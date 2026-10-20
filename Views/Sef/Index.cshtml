@@ -1,0 +1,285 @@
+<!-- File: Views/Sef/Index.cshtml -->
+@model List<aractakipsys.Models.ViewModels.Sef.SefListItemViewModel>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Ulaşım Sorumluları (Şefler)";
+    var activeCount = Model.Count(x => x.IsActive);
+    var passiveCount = Model.Count(x => !x.IsActive);
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-8">
+        <h2 class="font-weight-bold">Ulaşım Sorumluları (Şefler)</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item active"><strong>Ulaşım Şefleri</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-4 text-right d-flex align-items-center justify-content-end">
+        <a href="/Sef/Create" class="btn btn-primary font-weight-bold shadow-sm">
+            <i class="fa fa-user-plus mr-1"></i> Yeni Şef Tanımla
+        </a>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight p-0">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-check-circle mr-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-exclamation-circle mr-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    <!-- KPI KARTLARI -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3 mb-md-0">
+            <div class="ibox shadow-sm mb-0">
+                <div class="ibox-content p-3 border-left-4 border-primary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small font-weight-bold text-uppercase d-block mb-1">Kayıtlı Ulaşım Şefleri</span>
+                            <h3 class="font-weight-bold text-dark mb-0">@Model.Count <small class="text-muted font-weight-normal">Kişi</small></h3>
+                        </div>
+                        <div class="text-primary" style="font-size: 2.2rem; opacity: 0.8;">
+                            <i class="fa fa-user-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3 mb-md-0">
+            <div class="ibox shadow-sm mb-0">
+                <div class="ibox-content p-3 border-left-4 border-success">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small font-weight-bold text-uppercase d-block mb-1">Aktif Görevdeki Şefler</span>
+                            <h3 class="font-weight-bold text-success mb-0">@activeCount <small class="text-muted font-weight-normal">Hesap</small></h3>
+                        </div>
+                        <div class="text-success" style="font-size: 2.2rem; opacity: 0.8;">
+                            <i class="fa fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="ibox shadow-sm mb-0">
+                <div class="ibox-content p-3 border-left-4 border-danger">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-muted small font-weight-bold text-uppercase d-block mb-1">Dondurulmuş / Pasif</span>
+                            <h3 class="font-weight-bold text-danger mb-0">@passiveCount <small class="text-muted font-weight-normal">Hesap</small></h3>
+                        </div>
+                        <div class="text-danger" style="font-size: 2.2rem; opacity: 0.8;">
+                            <i class="fa fa-lock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ŞEFLER LİSTESİ TABLOSU -->
+    <div class="ibox shadow-sm">
+        <div class="ibox-title bg-white d-flex justify-content-between align-items-center">
+            <h5 class="font-weight-bold text-dark mb-0">
+                <i class="fa fa-list mr-1 text-primary"></i> Yetkili Ulaşım Sorumluları Listesi
+            </h5>
+            <span class="text-muted small">Şefler; araç, şoför ve görev yönetiminde tam operasyon yetkisine sahiptir.</span>
+        </div>
+        <div class="ibox-content p-0">
+            @if (Model.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <i class="fa fa-users text-muted mb-3" style="font-size: 3rem; opacity: 0.4;"></i>
+                    <h5 class="font-weight-bold text-dark">Kayıtlı Ulaşım Şefi Bulunamadı</h5>
+                    <p class="text-muted small">Sisteme yeni bir Ulaşım Sorumlusu tanımlamak için yukarıdaki butonu kullanabilirsiniz.</p>
+                    <a href="/Sef/Create" class="btn btn-primary btn-sm font-weight-bold">
+                        <i class="fa fa-plus mr-1"></i> İlk Şefi Ekle
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0 font-13">
+                        <thead class="bg-light text-dark font-weight-bold border-bottom">
+                            <tr>
+                                <th style="width: 50px;" class="text-center">#</th>
+                                <th style="min-width: 200px;">Ad Soyad & Kullanıcı Adı</th>
+                                <th style="min-width: 180px;">Kurumsal E-Posta</th>
+                                <th style="min-width: 130px;">Telefon</th>
+                                <th style="width: 110px;" class="text-center">Durum</th>
+                                <th style="width: 110px;" class="text-center">Kayıt Tarihi</th>
+                                <th style="width: 220px;" class="text-right">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ var rowNum = 1; }
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="text-center align-middle font-weight-bold text-muted">@(rowNum++)</td>
+                                    <td class="align-middle">
+                                        <div class="d-flex align-items-center">
+                                            <div class="mr-2" style="width: 36px; height: 36px; border-radius: 50%; background: #e0e7ff; color: #1e3c72; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                                @(string.IsNullOrWhiteSpace(item.FullName) ? "Ş" : item.FullName.Substring(0, 1).ToUpper())
+                                            </div>
+                                            <div>
+                                                <span class="font-weight-bold text-dark font-14 d-block">@item.FullName</span>
+                                                <small class="text-muted">Kullanıcı: <code>@item.UserName</code></small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="align-middle">
+                                        <a href="mailto:@item.Email" class="text-primary font-weight-bold">
+                                            <i class="fa fa-envelope mr-1 text-muted"></i>@item.Email
+                                        </a>
+                                    </td>
+                                    <td class="align-middle text-muted">
+                                        @if (!string.IsNullOrWhiteSpace(item.PhoneNumber))
+                                        {
+                                            <span><i class="fa fa-phone mr-1 text-muted"></i>@item.PhoneNumber</span>
+                                        }
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="badge badge-primary bg-success text-white px-2 py-1 font-weight-bold" style="border-radius: 6px;">
+                                                <i class="fa fa-check mr-1"></i> Aktif
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-danger text-white px-2 py-1 font-weight-bold" style="border-radius: 6px;">
+                                                <i class="fa fa-lock mr-1"></i> Donduruldu
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-center align-middle text-muted small">
+                                        @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                                    </td>
+                                    <td class="text-right align-middle">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/Sef/Edit/@item.Id" class="btn btn-outline-primary" title="Bilgileri Düzenle">
+                                                <i class="fa fa-pencil mr-1"></i> Düzenle
+                                            </a>
+                                            <button type="button" class="btn btn-outline-warning text-dark btn-reset-password" 
+                                                    data-id="@item.Id" data-name="@item.FullName" data-username="@item.UserName" 
+                                                    title="Şifre Sıfırla">
+                                                <i class="fa fa-key mr-1"></i> Şifre
+                                            </button>
+                                            <form method="post" action="/Sef/ToggleStatus/@item.Id" class="d-inline" onsubmit="return confirm('@(item.IsActive ? $"{item.FullName} hesabını dondurmak istediğinize emin misiniz? Şef sisteme giriş yapamayacaktır." : $"{item.FullName} hesabını tekrar aktif etmek istediğinize emin misiniz?")');">
+                                                @Html.AntiForgeryToken()
+                                                @if (item.IsActive)
+                                                {
+                                                    <button type="submit" class="btn btn-outline-secondary text-dark" title="Hesabı Dondur (Pasif Yap)">
+                                                        <i class="fa fa-pause"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="btn btn-outline-success" title="Hesabı Tekrar Aktif Et">
+                                                        <i class="fa fa-play"></i>
+                                                    </button>
+                                                }
+                                            </form>
+                                            @if (item.IsActive)
+                                            {
+                                                <form method="post" action="/Sef/Delete/@item.Id" class="d-inline" onsubmit="return confirm('@item.FullName (@item.UserName) şef hesabını pasife almak (dondurmak) istediğinize emin misiniz? Sistem denetim ve görev geçmişi korunacaktır.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-danger" title="Hesabı Pasife Al (Soft-Delete)">
+                                                        <i class="fa fa-trash mr-1"></i> Sil
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- ŞİFRE SIFIRLAMA MODALI -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-key mr-2"></i> Şef Şifresi Sıfırlama
+                </h5>
+                <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="post" action="/Sef/ResetPassword">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" id="modalSefId" />
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="fa fa-info-circle mr-1"></i>
+                        <strong id="modalSefName"></strong> (<span id="modalSefUsername"></span>) kullanıcısı için yeni bir parola belirliyorsunuz.
+                    </div>
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold small text-dark mb-1">Yeni Şifre <span class="text-danger">*</span></label>
+                        <input type="password" name="NewPassword" id="modalNewPassword" class="form-control" placeholder="En az 10 karakter" required minlength="10" />
+                    </div>
+                    <div class="form-group mb-2">
+                        <label class="font-weight-bold small text-dark mb-1">Yeni Şifre Tekrar <span class="text-danger">*</span></label>
+                        <input type="password" name="ConfirmNewPassword" id="modalConfirmPassword" class="form-control" placeholder="Şifreyi tekrar yazınız" required minlength="10" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-warning font-weight-bold shadow-sm">
+                        <i class="fa fa-check mr-1"></i> Şifreyi Güncelle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('.btn-reset-password').on('click', function () {
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                var username = $(this).data('username');
+
+                $('#modalSefId').val(id);
+                $('#modalSefName').text(name);
+                $('#modalSefUsername').text(username);
+                $('#modalNewPassword').val('');
+                $('#modalConfirmPassword').val('');
+
+                $('#resetPasswordModal').modal('show');
+            });
+        });
+    </script>
+}

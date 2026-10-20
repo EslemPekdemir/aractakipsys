@@ -1,0 +1,612 @@
+<!-- File: Views/AuditLog/Index.cshtml -->
+@model aractakipsys.Models.ViewModels.AuditLog.AuditLogFilterViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Denetim Günlüğü (Audit Log)";
+}
+
+@section Styles {
+    <link href="~/css/plugins/select2/select2.min.css" rel="stylesheet">
+    <style>
+        .select2-container--default .select2-selection--single {
+            height: 35px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            padding: 3px 6px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 27px;
+            color: #495057;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 33px;
+        }
+        .select2-dropdown {
+            border: 1px solid #1ab394;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2050;
+        }
+        .select2-results__options {
+            max-height: 200px !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #1ab394;
+        }
+    </style>
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Sistem Denetim Günlüğü (Audit Log)</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item active"><strong>Denetim Günlüğü</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-2 text-right d-flex align-items-center justify-content-end">
+        <span class="badge badge-secondary px-3 py-2" style="font-size: 0.85rem;">
+            <i class="fa fa-shield mr-1"></i> Salt Okunur
+        </span>
+    </div>
+</div>
+
+<!-- ÜST FİLTRE ÇUBUĞU (ARAYUZ-SPESIFIKASYONU) -->
+<div class="ibox float-e-margins mb-3">
+    <div class="ibox-content p-3 border-left border-primary" style="border-left-width: 4px !important;">
+        <form method="get" action="/AuditLog" class="row align-items-center">
+            <div class="col-md-2 mb-2 mb-md-0">
+                <label class="small font-weight-bold text-muted mb-1">Kayıt / Varlık Türü</label>
+                <select name="EntityName" class="form-control select2-filter" id="filterEntity">
+                    <option value="">Tüm Varlıklar</option>
+                    @foreach (var e in Model.EntityNameList)
+                    {
+                        var isSelected = Model.EntityName == e;
+                        var eDisplay = e switch
+                        {
+                            "Vehicle" => "Araç",
+                            "Driver" => "Şoför",
+                            "Assignment" => "Görev / Atama",
+                            "Maintenance" => "Bakım / Servis",
+                            "VehicleRequest" => "Araç Talebi",
+                            "ApplicationUser" => "Kullanıcı Hesabı",
+                            _ => e
+                        };
+                        <option value="@e" selected="@(isSelected ? "selected" : null)">@eDisplay</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-2 mb-2 mb-md-0">
+                <label class="small font-weight-bold text-muted mb-1">İşlem Türü</label>
+                <select name="Action" class="form-control select2-filter" id="filterAction">
+                    <option value="">Tüm İşlemler</option>
+                    <option value="Create" selected="@(Model.Action == AuditAction.Create ? "selected" : null)">Oluşturma</option>
+                    <option value="Update" selected="@(Model.Action == AuditAction.Update ? "selected" : null)">Güncelleme</option>
+                    <option value="Delete" selected="@(Model.Action == AuditAction.Delete ? "selected" : null)">Silme</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 mb-2 mb-md-0">
+                <label class="small font-weight-bold text-muted mb-1">Kullanıcı</label>
+                <select name="ChangedByUserId" class="form-control select2-filter" id="filterUser">
+                    <option value="">Tüm Kullanıcılar</option>
+                    @foreach (var u in Model.UserList)
+                    {
+                        var isSelected = Model.ChangedByUserId == u.Value;
+                        <option value="@u.Value" selected="@(isSelected ? "selected" : null)">@u.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-2 mb-2 mb-md-0">
+                <label class="small font-weight-bold text-muted mb-1">Başlangıç</label>
+                <input type="date" name="StartDate" class="form-control" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" onchange="this.form.submit()" />
+            </div>
+
+            <div class="col-md-2 mb-2 mb-md-0">
+                <label class="small font-weight-bold text-muted mb-1">Bitiş</label>
+                <input type="date" name="EndDate" class="form-control" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" onchange="this.form.submit()" />
+            </div>
+
+            <div class="col-md-2 text-right mt-md-4 pt-md-1">
+                @if (!string.IsNullOrWhiteSpace(Model.EntityName) || Model.Action.HasValue || !string.IsNullOrWhiteSpace(Model.ChangedByUserId) || Model.StartDate.HasValue || Model.EndDate.HasValue || !string.IsNullOrWhiteSpace(Model.SearchTerm))
+                {
+                    <a href="/AuditLog" class="btn btn-outline-secondary btn-block">
+                        <i class="fa fa-refresh mr-1"></i> Sıfırla
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- AUDIT LOG LİSTESİ TABLOSU -->
+<div class="ibox float-e-margins">
+    <div class="ibox-content p-0">
+        @if (Model.Logs.Count == 0)
+        {
+            <!-- BOŞ DURUM (EMPTY STATE) -->
+            <div class="text-center py-5">
+                <i class="fa fa-history text-muted mb-3" style="font-size: 3.5rem; opacity: 0.4;"></i>
+                <h4 class="font-weight-bold text-secondary">Kayıtlı Denetim Günlüğü Bulunamadı</h4>
+                <p class="text-muted mb-0">Filtreleme kriterlerinize uygun sistem işlem günlüğü bulunmamaktadır.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th style="width: 170px;">Tarih / Saat</th>
+                            <th>İşlemi Yapan Kullanıcı</th>
+                            <th>Etkilenen Kayıt (Varlık)</th>
+                            <th class="text-center" style="width: 140px;">İşlem Türü</th>
+                            <th class="text-right" style="width: 130px;">Detay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model.Logs)
+                        {
+                            <tr>
+                                <td class="align-middle small font-weight-bold text-dark">
+                                    <i class="fa fa-clock-o text-muted mr-1"></i> @log.ChangedAt.ToString("dd.MM.yyyy HH:mm:ss")
+                                </td>
+                                <td class="align-middle">
+                                    <span class="font-weight-bold text-primary font-14">@log.ChangedByUserName</span>
+                                    @if (!string.IsNullOrWhiteSpace(log.ChangedByUserEmail))
+                                    {
+                                        <small class="text-muted d-block font-12">@log.ChangedByUserEmail</small>
+                                    }
+                                </td>
+                                <td class="align-middle">
+                                    <span class="font-weight-bold text-dark">@(log.EntityDisplayName == "VehicleRequest" ? "Araç Talebi" : log.EntityDisplayName)</span>
+                                    <span class="badge badge-light border ml-1 font-weight-bold">#@log.EntityId</span>
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="badge @log.ActionBadgeClass px-3 py-1" style="border-radius: 12px; font-size: 0.8rem;">
+                                        @log.ActionDisplayName
+                                    </span>
+                                </td>
+                                <td class="align-middle text-right">
+                                    <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold btn-audit-detail"
+                                            data-id="@log.Id"
+                                            data-entity="@(log.EntityDisplayName == "VehicleRequest" ? "Araç Talebi" : log.EntityDisplayName) (#@log.EntityId)"
+                                            data-entityname="@log.EntityName"
+                                            data-action="@log.ActionDisplayName"
+                                            data-date="@log.ChangedAt.ToString("dd.MM.yyyy HH:mm:ss")"
+                                            data-user="@log.ChangedByUserName">
+                                        <i class="fa fa-search mr-1"></i> İncele
+                                    </button>
+                                    <script type="application/json" id="auditOld-@log.Id">@Html.Raw(string.IsNullOrWhiteSpace(log.OldValues) ? "null" : log.OldValues)</script>
+                                    <script type="application/json" id="auditNew-@log.Id">@Html.Raw(string.IsNullOrWhiteSpace(log.NewValues) ? "null" : log.NewValues)</script>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SAYFALAMA -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">
+                        Toplam <strong>@Model.TotalCount</strong> kayıttan <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)</strong> arası gösteriliyor.
+                    </span>
+                    <ul class="pagination pagination-sm m-0">
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="/AuditLog?PageNumber=@(Model.PageNumber - 1)&PageSize=@Model.PageSize&EntityName=@Model.EntityName&Action=@Model.Action&ChangedByUserId=@Model.ChangedByUserId&StartDate=@Model.StartDate&EndDate=@Model.EndDate">Önceki</a>
+                        </li>
+                        @{
+                            int curPage = Model.PageNumber;
+                            int totPages = Model.TotalPages;
+                            int startP = Math.Max(1, curPage - 2);
+                            int endP = Math.Min(totPages, curPage + 2);
+
+                            if (curPage <= 3)
+                            {
+                                endP = Math.Min(totPages, 5);
+                            }
+                            if (curPage >= totPages - 2)
+                            {
+                                startP = Math.Max(1, totPages - 4);
+                            }
+                        }
+                        @if (startP > 1)
+                        {
+                            <li class="page-item @(1 == curPage ? "active" : "")">
+                                <a class="page-link" href="/AuditLog?PageNumber=1&PageSize=@Model.PageSize&EntityName=@Model.EntityName&Action=@Model.Action&ChangedByUserId=@Model.ChangedByUserId&StartDate=@Model.StartDate&EndDate=@Model.EndDate">1</a>
+                            </li>
+                            if (startP > 2)
+                            {
+                                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                            }
+                        }
+                        @for (int p = startP; p <= endP; p++)
+                        {
+                            <li class="page-item @(p == curPage ? "active" : "")">
+                                <a class="page-link" href="/AuditLog?PageNumber=@p&PageSize=@Model.PageSize&EntityName=@Model.EntityName&Action=@Model.Action&ChangedByUserId=@Model.ChangedByUserId&StartDate=@Model.StartDate&EndDate=@Model.EndDate">@p</a>
+                            </li>
+                        }
+                        @if (endP < totPages)
+                        {
+                            if (endP < totPages - 1)
+                            {
+                                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                            }
+                            <li class="page-item @(totPages == curPage ? "active" : "")">
+                                <a class="page-link" href="/AuditLog?PageNumber=@totPages&PageSize=@Model.PageSize&EntityName=@Model.EntityName&Action=@Model.Action&ChangedByUserId=@Model.ChangedByUserId&StartDate=@Model.StartDate&EndDate=@Model.EndDate">@totPages</a>
+                            </li>
+                        }
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="/AuditLog?PageNumber=@(Model.PageNumber + 1)&PageSize=@Model.PageSize&EntityName=@Model.EntityName&Action=@Model.Action&ChangedByUserId=@Model.ChangedByUserId&StartDate=@Model.StartDate&EndDate=@Model.EndDate">Sonraki</a>
+                        </li>
+                    </ul>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- AUDIT LOG DETAY MODALI (KEY-VALUE TABLOSU + RAW JSON TOGGLE) -->
+<div class="modal fade" id="auditDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-info-circle mr-2"></i> Denetim Günlüğü Detayı
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- ÜST BİLGİ DÖKÜMÜ -->
+                <div class="row mb-3 pb-3 border-bottom">
+                    <div class="col-md-4">
+                        <small class="text-muted d-block">Etkilenen Kayıt</small>
+                        <strong id="modalEntityTitle" class="text-dark font-14"></strong>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">İşlem Türü</small>
+                        <span id="modalActionBadge" class="badge px-2 py-1"></span>
+                    </div>
+                    <div class="col-md-5 text-md-right">
+                        <small class="text-muted d-block">İşlemi Yapan / Tarih</small>
+                        <span id="modalUserDate" class="font-weight-600 text-dark font-13"></span>
+                    </div>
+                </div>
+
+                <!-- KEY-VALUE DEĞİŞİKLİK TABLOSU -->
+                <h6 class="font-weight-bold text-dark mb-2">
+                    <i class="fa fa-exchange mr-1 text-primary"></i> Değişen Alanlar ve Değerler
+                </h6>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-bordered mb-0" id="diffTable">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 30%;">Alan Adı</th>
+                                <th style="width: 35%;">Eski Değer</th>
+                                <th style="width: 35%;">Yeni Değer</th>
+                            </tr>
+                        </thead>
+                        <tbody id="diffTableBody">
+                            <!-- JS ile dinamik doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary px-4 font-weight-bold" data-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/plugins/select2/select2.full.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('.select2-filter').select2({
+            width: '100%',
+            dropdownAutoWidth: true,
+            language: {
+                noResults: function () {
+                    return "Eşleşen sonuç bulunamadı";
+                }
+            }
+        }).on('select2:select', function () {
+            $(this).closest('form').submit();
+        });
+
+        // İncele butonuna tıklandığında
+        $(document).on('click', '.btn-audit-detail', function () {
+            var $btn = $(this);
+            var id = $btn.data('id');
+            var entityTitle = $btn.data('entity');
+            var entityName = $btn.data('entityname') || '';
+            var actionName = $btn.data('action');
+            var dateStr = $btn.data('date');
+            var userName = $btn.data('user');
+            var oldEl = document.getElementById('auditOld-' + id);
+            var newEl = document.getElementById('auditNew-' + id);
+            var oldValuesJson = oldEl ? oldEl.textContent.trim() : 'null';
+            var newValuesJson = newEl ? newEl.textContent.trim() : 'null';
+
+            openAuditDetailModal(id, entityTitle, entityName, actionName, dateStr, userName, oldValuesJson, newValuesJson);
+        });
+    });
+
+    function openAuditDetailModal(id, entityTitle, entityName, actionName, dateStr, userName, oldValuesJson, newValuesJson) {
+        $('#modalEntityTitle').text(entityTitle || '-');
+        $('#modalUserDate').text((userName || '-') + ' (' + (dateStr || '-') + ')');
+        
+        var badgeClass = 'badge-primary bg-primary text-white';
+        if (actionName === 'Güncelleme') badgeClass = 'badge-warning bg-warning text-dark';
+        else if (actionName === 'Silme') badgeClass = 'badge-danger bg-danger text-white';
+        
+        $('#modalActionBadge').removeClass().addClass('badge ' + badgeClass).text(actionName || '-');
+
+        // Key-Value Fark Tablosunu Oluştur
+        var oldObj = safeParseJson(oldValuesJson);
+        var newObj = safeParseJson(newValuesJson);
+
+        var allKeys = Array.from(new Set([...Object.keys(oldObj), ...Object.keys(newObj)]));
+        var tbody = $('#diffTableBody');
+        tbody.empty();
+
+        if (allKeys.length === 0) {
+            tbody.append('<tr><td colspan="3" class="text-center text-muted py-3">Detaylandırılmış alan verisi bulunamadı.</td></tr>');
+        } else {
+            allKeys.forEach(function (key) {
+                var oldVal = oldObj.hasOwnProperty(key) ? formatAuditValue(key, oldObj[key], entityName) : '<span class="text-muted font-italic">-</span>';
+                var newVal = newObj.hasOwnProperty(key) ? formatAuditValue(key, newObj[key], entityName) : '<span class="text-muted font-italic">-</span>';
+
+                var rowClass = '';
+                if (oldObj.hasOwnProperty(key) && newObj.hasOwnProperty(key) && String(oldObj[key]) !== String(newObj[key])) {
+                    rowClass = 'table-warning font-weight-bold';
+                }
+
+                var friendlyName = keyFriendlyNames[key];
+                var displayKey = friendlyName ? escapeHtml(friendlyName) : escapeHtml(key);
+
+                var rowHtml = '<tr class="' + rowClass + '">' +
+                    '<td class="align-middle font-weight-bold text-dark" style="min-width: 180px;">' + displayKey + '</td>' +
+                    '<td class="align-middle text-danger">' + oldVal + '</td>' +
+                    '<td class="align-middle text-success">' + newVal + '</td>' +
+                    '</tr>';
+                tbody.append(rowHtml);
+            });
+        }
+
+        $('#auditDetailModal').modal('show');
+    }
+
+    var userMap = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.UserMap));
+
+    var keyFriendlyNames = {
+        // Görevlendirme (Assignment)
+        'StartReportedBySelf': 'Başlangıç Şoför Tarafından Bildirildi mi',
+        'EndReportedBySelf': 'Dönüş Şoför Tarafından Bildirildi mi',
+        'ActualStartTime': 'Fiili Başlangıç Zamanı',
+        'ActualEndTime': 'Fiili Bitiş Zamanı',
+        'PlannedStartTime': 'Planlanan Başlangıç Zamanı',
+        'PlannedEndTime': 'Planlanan Bitiş Zamanı',
+        'StartKm': 'Başlangıç Kilometresi (KM)',
+        'EndKm': 'Bitiş Kilometresi (KM)',
+        'StartApprovedByUserId': 'Çıkışı Onaylayan Yetkili',
+        'EndApprovedByUserId': 'Dönüşü Onaylayan Yetkili',
+        'DriverReturnNotes': 'Şoför Dönüş / Araç Notu',
+        'CancellationReason': 'Görevin İptal Gerekçesi',
+        'RequestedByDepartment': 'Talep Eden Birim',
+        'VehicleId': 'Tahsis Edilen Araç No',
+        'DriverId': 'Görevlendirilen Şoför No',
+        'Purpose': 'Görev / Talep Amacı',
+        'Status': 'Durum',
+
+        // Araç Talebi (VehicleRequest)
+        'RequesterFullName': 'Talep Eden Personel',
+        'RequesterEmail': 'Kurumsal E-Posta',
+        'RequesterPhone': 'İletişim Telefonu',
+        'Department': 'Talep Eden Birim',
+        'RequestType': 'Talep Türü',
+        'FulfilledByUserId': 'Talebi Karşılayan Yetkili',
+        'FulfilledAssignmentId': 'Oluşturulan Görev No',
+        'FulfilledAt': 'Karşılanma / Onay Zamanı',
+        'RejectionReason': 'Ret Gerekçesi',
+
+        // Araç (Vehicle)
+        'PlateNumber': 'Plaka',
+        'Brand': 'Marka',
+        'Model': 'Model',
+        'Year': 'Model Yılı',
+        'CurrentKm': 'Mevcut Kilometre (KM)',
+        'VehicleType': 'Araç Tipi',
+        'FuelType': 'Yakıt Tipi',
+        'Color': 'Renk',
+        'Notes': 'Notlar',
+
+        // Şoför (Driver)
+        'LicenseNumber': 'Ehliyet Belge No',
+        'LicenseClass': 'Ehliyet Sınıfı',
+        'LicenseExpiryDate': 'Ehliyet Geçerlilik Tarihi',
+        'Department': 'Bağlı Olduğu Birim',
+        'UserId': 'Bağlı Kullanıcı Hesabı',
+
+        // Bakım (Maintenance)
+        'MaintenanceType': 'Bakım Türü',
+        'Description': 'Bakım Açıklaması',
+        'StartDate': 'Bakım Başlangıç Tarihi',
+        'EndDate': 'Bakım Bitiş Tarihi',
+        'PerformedBy': 'Bakımı Yapan Servis / Firma',
+        'Cost': 'Maliyet / Tutar',
+
+        // Ortak Alanlar (BaseAuditableEntity)
+        'IsActive': 'Aktif mi',
+        'IsDeleted': 'Silinmiş mi (Yumuşak Silme)',
+        'CreatedBy': 'Kaydı Oluşturan',
+        'UpdatedBy': 'Son Güncelleyen',
+        'CreatedAt': 'Oluşturulma Tarihi',
+        'UpdatedAt': 'Son Güncelleme Tarihi'
+    };
+
+    function formatAuditValue(key, val, entityName) {
+        if (val === null || val === undefined || val === '') {
+            return '<span class="text-muted font-italic">-</span>';
+        }
+        var strVal = String(val);
+
+        // 1. Kullanıcı ID'si kontrolü (userMap içinde kayıtlı ID'ler)
+        var isUserField = key.toLowerCase().indexOf('userid') !== -1 || key === 'CreatedBy' || key === 'UpdatedBy';
+        if (userMap && (userMap.hasOwnProperty(strVal) || (isUserField && userMap[strVal]))) {
+            var userDisplay = userMap[strVal] || strVal;
+            return '<span class="font-weight-bold text-dark"><i class="fa fa-user-circle text-primary mr-1"></i>' + escapeHtml(userDisplay) + '</span>';
+        }
+
+        // 2. Boolean Kontrolü (StartReportedBySelf, EndReportedBySelf, IsActive, IsDeleted vb.)
+        if (typeof val === 'boolean' || strVal === 'True' || strVal === 'False' || strVal === 'true' || strVal === 'false') {
+            var isTrue = (val === true || strVal === 'True' || strVal === 'true');
+            return isTrue 
+                ? '<span class="badge badge-primary px-2 py-1"><i class="fa fa-check mr-1"></i> Evet</span>'
+                : '<span class="badge badge-secondary px-2 py-1"><i class="fa fa-times mr-1"></i> Hayır</span>';
+        }
+
+        // 3. Enum Durumları (Status: 0, 1, 2, 3 vb.)
+        var keyLower = key.toLowerCase();
+        if (keyLower === 'status') {
+            // Assignment Durumları (0: Planned, 1: InProgress, 2: Completed, 3: Cancelled)
+            if (!entityName || entityName === 'Assignment') {
+                if (strVal === '0' || strVal === 'Planned') {
+                    return '<span class="badge badge-info px-2 py-1"><i class="fa fa-calendar-o mr-1"></i> Planlandı</span>';
+                }
+                if (strVal === '1' || strVal === 'InProgress') {
+                    return '<span class="badge badge-warning px-2 py-1"><i class="fa fa-clock-o mr-1"></i> Devam Ediyor</span>';
+                }
+                if (strVal === '2' || strVal === 'Completed') {
+                    return '<span class="badge badge-success px-2 py-1"><i class="fa fa-check-circle mr-1"></i> Tamamlandı</span>';
+                }
+                if (strVal === '3' || strVal === 'Cancelled') {
+                    return '<span class="badge badge-danger px-2 py-1"><i class="fa fa-ban mr-1"></i> İptal Edildi</span>';
+                }
+            }
+            // Vehicle Durumları (0: Idle, 1: OnDuty, 2: Maintenance, 3: OutOfService, 4: DocumentExpired)
+            if (entityName === 'Vehicle') {
+                if (strVal === '0' || strVal === 'Idle') {
+                    return '<span class="badge badge-success px-2 py-1"><i class="fa fa-check mr-1"></i> Boşta / Müsait</span>';
+                }
+                if (strVal === '1' || strVal === 'OnDuty') {
+                    return '<span class="badge badge-primary px-2 py-1"><i class="fa fa-car mr-1"></i> Görevde</span>';
+                }
+                if (strVal === '2' || strVal === 'Maintenance') {
+                    return '<span class="badge badge-warning px-2 py-1"><i class="fa fa-wrench mr-1"></i> Bakımda</span>';
+                }
+                if (strVal === '3' || strVal === 'OutOfService') {
+                    return '<span class="badge badge-danger px-2 py-1"><i class="fa fa-times-circle mr-1"></i> Hizmet Dışı</span>';
+                }
+                if (strVal === '4' || strVal === 'DocumentExpired') {
+                    return '<span class="badge badge-danger px-2 py-1"><i class="fa fa-exclamation-triangle mr-1"></i> Belgesi Geçersiz</span>';
+                }
+            }
+            // VehicleRequest Durumları (0: Pending, 1: Fulfilled, 2: Rejected)
+            if (entityName === 'VehicleRequest') {
+                if (strVal === '0' || strVal === 'Pending') {
+                    return '<span class="badge badge-warning px-2 py-1"><i class="fa fa-clock-o mr-1"></i> Beklemede</span>';
+                }
+                if (strVal === '1' || strVal === 'Fulfilled') {
+                    return '<span class="badge badge-success px-2 py-1"><i class="fa fa-check-circle mr-1"></i> Karşılandı</span>';
+                }
+                if (strVal === '2' || strVal === 'Rejected') {
+                    return '<span class="badge badge-danger px-2 py-1"><i class="fa fa-ban mr-1"></i> Reddedildi</span>';
+                }
+            }
+        }
+
+        // FuelType
+        if (keyLower === 'fueltype') {
+            var fuelMap = {
+                '0': 'Benzin', 'Gasoline': 'Benzin',
+                '1': 'Dizel', 'Diesel': 'Dizel',
+                '2': 'LPG', 'Lpg': 'LPG',
+                '3': 'Elektrik', 'Electric': 'Elektrik',
+                '4': 'Hibrit', 'Hybrid': 'Hibrit'
+            };
+            var fuelText = fuelMap[strVal] || strVal;
+            return '<span class="badge badge-light border px-2 py-1"><i class="fa fa-tint text-info mr-1"></i>' + fuelText + '</span>';
+        }
+
+        // MaintenanceType Enum
+        if (keyLower === 'maintenancetype') {
+            var maintMap = {
+                '0': 'Periyodik Bakım', 'Periodic': 'Periyodik Bakım',
+                '1': 'Onarım / Tamir', 'Repair': 'Onarım / Tamir',
+                '2': 'Muayene', 'Inspection': 'Muayene',
+                '3': 'Lastik Değişimi', 'TireChange': 'Lastik Değişimi',
+                '4': 'Diğer', 'Other': 'Diğer'
+            };
+            if (maintMap[strVal]) {
+                return '<span class="badge badge-light border px-2 py-1"><i class="fa fa-wrench text-warning mr-1"></i>' + maintMap[strVal] + '</span>';
+            }
+        }
+
+        // RequestType Enum (VehicleRequest)
+        if (keyLower === 'requesttype') {
+            var reqTypeMap = {
+                '0': 'Resmi Görev / Seyahat', 'OfficialTrip': 'Resmi Görev / Seyahat',
+                '1': 'Misafir Taşıma', 'GuestTransportation': 'Misafir Taşıma',
+                '2': 'Etkinlik / Organizasyon', 'Event': 'Etkinlik / Organizasyon',
+                '3': 'Diğer', 'Other': 'Diğer'
+            };
+            if (reqTypeMap[strVal]) {
+                return '<span class="badge badge-light border px-2 py-1"><i class="fa fa-tag text-primary mr-1"></i> ' + reqTypeMap[strVal] + '</span>';
+            }
+        }
+
+        // 4. Tarih Kontrolü (ISO string)
+        if (typeof strVal === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(strVal)) {
+            try {
+                var d = new Date(strVal);
+                if (!isNaN(d.getTime())) {
+                    return '<span class="font-weight-bold text-dark"><i class="fa fa-calendar text-muted mr-1"></i>' + d.toLocaleString('tr-TR') + '</span>';
+                }
+            } catch (e) {}
+        }
+
+        return escapeHtml(strVal);
+    }
+
+
+    function safeParseJson(jsonStr) {
+        if (!jsonStr || jsonStr === 'null' || jsonStr.trim() === '') {
+            return {};
+        }
+        try {
+            var obj = JSON.parse(jsonStr);
+            return (typeof obj === 'object' && obj !== null) ? obj : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    $(document).ready(function () {
+        $('.select2-filter').select2({
+            width: '100%',
+            dropdownAutoWidth: true,
+            language: {
+                noResults: function () {
+                    return "Eşleşen kayıt bulunamadı";
+                }
+            }
+        }).on('select2:select', function () {
+            $(this).closest('form').submit();
+        });
+    });
+</script>
+}

@@ -1,0 +1,135 @@
+<!-- File: Views/Sef/Edit.cshtml -->
+@model aractakipsys.Models.ViewModels.Sef.SefEditViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Ulaşım Şefi Bilgilerini Düzenle";
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-8">
+        <h2 class="font-weight-bold">Ulaşım Şefi Bilgilerini Düzenle</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/Sef">Ulaşım Şefleri</a></li>
+            <li class="breadcrumb-item active"><strong>Düzenle</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-4 text-right d-flex align-items-center justify-content-end">
+        <a href="/Sef" class="btn btn-outline-secondary font-weight-bold">
+            <i class="fa fa-arrow-left mr-1"></i> Listeye Geri Dön
+        </a>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight p-0">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="ibox shadow-sm">
+                <div class="ibox-title bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="font-weight-bold text-dark mb-0">
+                        <i class="fa fa-pencil text-primary mr-1"></i> @Model.FullName — Profil Düzenleme
+                    </h5>
+                    <small class="text-muted">ID: @Model.Id</small>
+                </div>
+                <div class="ibox-content p-4">
+                    <form asp-action="Edit" method="post" id="sefEditForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+
+                        @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="fa fa-exclamation-circle mr-2"></i>
+                                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                                {
+                                    <div>@error.ErrorMessage</div>
+                                }
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        }
+
+                        <!-- KULLANICI ADI & E-POSTA (SABİT / BİLGİ) -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="font-weight-bold text-muted small mb-1">Kullanıcı Adı</label>
+                                <input type="text" class="form-control bg-light" value="@Model.UserName" readonly disabled />
+                                <small class="text-muted">Kullanıcı adı sistem güvenliği gereği değiştirilemez.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="font-weight-bold text-muted small mb-1">Kurumsal E-Posta</label>
+                                <input type="text" class="form-control bg-light" value="@Model.Email" readonly disabled />
+                                <small class="text-muted">Kurumsal e-posta adresi sabittir.</small>
+                            </div>
+                        </div>
+
+                        <div class="hr-line-dashed my-3"></div>
+
+                        <!-- AD SOYAD -->
+                        <div class="form-group mb-3">
+                            <label asp-for="FullName" class="font-weight-bold text-dark small mb-1">
+                                Ad Soyad <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fa fa-user"></i></span>
+                                </div>
+                                <input asp-for="FullName" class="form-control" placeholder="Ad Soyad" required />
+                            </div>
+                            <span asp-validation-for="FullName" class="text-danger small font-weight-bold"></span>
+                        </div>
+
+                        <!-- TELEFON -->
+                        <div class="form-group mb-3">
+                            <label asp-for="PhoneNumber" class="font-weight-bold text-dark small mb-1">
+                                Telefon Numarası
+                            </label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fa fa-phone"></i></span>
+                                </div>
+                                <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="05xx xxx xx xx" />
+                            </div>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small font-weight-bold"></span>
+                        </div>
+
+                        <!-- HESAP DURUMU -->
+                        <div class="form-group mb-4">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" asp-for="IsActive" class="custom-control-input" id="checkIsActive" />
+                                <label class="custom-control-label font-weight-bold text-dark" for="checkIsActive">
+                                    Hesap Aktif (Şef sisteme giriş yapabilir ve işlem yürütebilir)
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-1">İşareti kaldırırsanız hesap dondurulur ve şef oturum açamaz.</small>
+                        </div>
+
+                        <!-- SUBMIT -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <div>
+                                <a href="/Sef" class="btn btn-outline-secondary font-weight-bold px-3">
+                                    İptal
+                                </a>
+                                <button type="submit" form="deleteSefForm" class="btn btn-outline-danger font-weight-bold px-3 ml-2" onclick="return confirm('@Model.FullName hesabını pasife almak (dondurmak) istediğinize emin misiniz? Sistem denetim ve görev geçmişi korunacaktır.');">
+                                    <i class="fa fa-trash mr-1"></i> Hesabı Pasife Al (Sil)
+                                </button>
+                            </div>
+                            <button type="submit" class="btn btn-primary font-weight-bold px-4 shadow-sm">
+                                <i class="fa fa-check mr-1"></i> Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </form>
+
+                    <form id="deleteSefForm" method="post" action="/Sef/Delete/@Model.Id" class="d-none">
+                        @Html.AntiForgeryToken()
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,485 @@
+<!-- File: Views/Surucu/Detay.cshtml -->
+@model aractakipsys.Models.ViewModels.Surucu.DriverAssignmentDetailViewModel
+@{
+    Layout = "_SurucuLayout";
+    ViewData["Title"] = "Görev Detayı #" + Model.AssignmentId;
+}
+
+<!-- ÜST NAVİGASYON (GERİ DÖN VE BAŞLIK) -->
+<div class="d-flex align-items-center mb-3 pt-1">
+    <a href="/Surucu" class="btn btn-light border btn-sm mr-2 text-dark font-weight-bold" style="border-radius: 8px;">
+        <i class="fa fa-arrow-left mr-1"></i> Görevler
+    </a>
+    <h5 class="m-0 font-weight-bold text-dark">Görev Detayı</h5>
+</div>
+
+<!-- GÖREV DURUM VE ARAÇ KARTI -->
+<div class="card card-custom p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+        <span class="text-muted font-weight-bold" style="font-size: 0.85rem;">GÖREV DURUMU</span>
+        <div>
+            @if (Model.IsEndApprovalPending)
+            {
+                <span class="badge text-white px-3 py-1 font-weight-bold shadow-sm" style="background-color: #f8ac59; border-radius: 12px; font-size: 0.82rem;">
+                    <i class="fa fa-clock-o mr-1"></i> Teslim Edildi (Onay Bekliyor)
+                </span>
+            }
+            else if (Model.IsStartApprovalPending)
+            {
+                <span class="badge text-white px-3 py-1 font-weight-bold shadow-sm" style="background-color: #f8ac59; border-radius: 12px; font-size: 0.82rem;">
+                    <i class="fa fa-clock-o mr-1"></i> Başlangıç Bildirildi (Onay Bekliyor)
+                </span>
+            }
+            else
+            {
+                <span class="badge badge-status @Model.StatusBadgeClass">
+                    @if (Model.Status == AssignmentStatus.InProgress)
+                    {
+                        <i class="fa fa-spinner fa-spin mr-1"></i>
+                    }
+                    @Model.StatusDisplayName
+                </span>
+            }
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <div class="h2 font-weight-bold text-primary mb-0" style="letter-spacing: -0.5px;">@Model.VehiclePlate</div>
+        <div class="text-dark font-weight-bold" style="font-size: 1.1rem;">
+            @Model.VehicleBrand @Model.VehicleModel
+        </div>
+        <div class="text-muted" style="font-size: 0.9rem;">
+            <i class="fa fa-tag mr-1"></i> @Model.VehicleType &nbsp;|&nbsp; 
+            <i class="fa fa-tint mr-1"></i> @Model.VehicleFuelType &nbsp;|&nbsp; 
+            <i class="fa fa-paint-brush mr-1"></i> @Model.VehicleColor (@Model.VehicleYear)
+        </div>
+    </div>
+
+    <div class="row text-center bg-light rounded p-2 m-0 border">
+        <div class="col-6 border-right">
+            <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">GÜNCEL ARAÇ KM</small>
+            <span class="h5 font-weight-bold text-dark mb-0">@Model.CurrentVehicleKm.ToString("N0") KM</span>
+        </div>
+        <div class="col-6">
+            <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">GÖREV BAŞLANGIÇ KM</small>
+            <span class="h5 font-weight-bold text-dark mb-0">
+                @(Model.StartKm.HasValue ? Model.StartKm.Value.ToString("N0") + " KM" : "-")
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- GÖREV DETAYLARI KARTI -->
+<div class="card card-custom p-3 mb-4">
+    <h6 class="font-weight-bold text-secondary border-bottom pb-2 mb-3" style="font-size: 0.9rem;">
+        <i class="fa fa-info-circle text-primary mr-1"></i> GÖREV VE ZAMAN BİLGİLERİ
+    </h6>
+
+    <div class="mb-3">
+        <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">GÖREV AMACI</small>
+        <div class="p-2 rounded bg-light border text-dark font-weight-600 mt-1">
+            @Model.Purpose
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.RequestedByDepartment))
+    {
+        <div class="mb-3">
+            <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">TALEP EDEN BİRİM</small>
+            <div class="text-dark font-weight-bold mt-1">
+                <i class="fa fa-university text-muted mr-1"></i> @Model.RequestedByDepartment
+            </div>
+        </div>
+    }
+
+    <div class="row mb-3">
+        <div class="col-6">
+            <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">PLANLANAN BAŞLANGIÇ</small>
+            <div class="text-dark font-weight-600 mt-1" style="font-size: 0.9rem;">
+                <i class="fa fa-calendar-check-o text-muted mr-1"></i> @Model.PlannedStartTime.ToString("dd.MM.yyyy HH:mm")
+            </div>
+        </div>
+        <div class="col-6">
+            <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">PLANLANAN BİTİŞ</small>
+            <div class="text-dark font-weight-600 mt-1" style="font-size: 0.9rem;">
+                <i class="fa fa-calendar-times-o text-muted mr-1"></i> @Model.PlannedEndTime.ToString("dd.MM.yyyy HH:mm")
+            </div>
+        </div>
+    </div>
+
+    @if (Model.ActualStartTime.HasValue || Model.ActualEndTime.HasValue)
+    {
+        <div class="row border-top pt-2 mt-2 bg-light rounded p-2 mx-0">
+            @if (Model.ActualStartTime.HasValue)
+            {
+                <div class="col-6">
+                    <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">FİİLİ BAŞLANGIÇ</small>
+                    <div class="text-primary font-weight-bold" style="font-size: 0.85rem;">
+                        @Model.ActualStartTime.Value.ToString("dd.MM.yyyy HH:mm")
+                    </div>
+                </div>
+            }
+            @if (Model.ActualEndTime.HasValue)
+            {
+                <div class="col-6">
+                    <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">FİİLİ BİTİŞ</small>
+                    <div class="text-success font-weight-bold" style="font-size: 0.85rem;">
+                        @Model.ActualEndTime.Value.ToString("dd.MM.yyyy HH:mm")
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (Model.Status == AssignmentStatus.Completed)
+    {
+        <div class="mt-3 p-3 bg-light rounded border border-success">
+            <div class="d-flex justify-content-between mb-1">
+                <span class="font-weight-bold text-success"><i class="fa fa-check mr-1"></i> Görev Tamamlandı</span>
+                <span class="font-weight-bold text-dark">
+                    Bitiş: @(Model.EndKm.HasValue ? Model.EndKm.Value.ToString("N0") + " KM" : "-")
+                </span>
+            </div>
+            @if (Model.StartKm.HasValue && Model.EndKm.HasValue)
+            {
+                <div class="text-muted small mb-2">
+                    Toplam Yapılan Mesafe: <strong>@(Model.EndKm.Value - Model.StartKm.Value) KM</strong>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.DriverReturnNotes))
+            {
+                <div class="border-top pt-2 mt-2">
+                    <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">TESLİM NOTUNUZ</small>
+                    <div class="text-dark font-italic small mt-1">"@Model.DriverReturnNotes"</div>
+                </div>
+            }
+        </div>
+    }
+    else if (Model.IsEndApprovalPending)
+    {
+        <div class="mt-3 p-3 bg-light rounded border" style="border-color: #f8ac59 !important;">
+            <div class="d-flex justify-content-between mb-1">
+                <span class="font-weight-bold" style="color: #d97706;"><i class="fa fa-clock-o mr-1"></i> Bitiş Bildirimi (Onay Bekliyor)</span>
+                <span class="font-weight-bold text-dark">
+                    Bildirilen Bitiş: @(Model.EndKm.HasValue ? Model.EndKm.Value.ToString("N0") + " KM" : "-")
+                </span>
+            </div>
+            @if (Model.StartKm.HasValue && Model.EndKm.HasValue)
+            {
+                <div class="text-muted small mb-2">
+                    Tahmini Yapılan Mesafe: <strong>@(Model.EndKm.Value - Model.StartKm.Value) KM</strong>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(Model.DriverReturnNotes))
+            {
+                <div class="border-top pt-2 mt-2">
+                    <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">BİLDİRİLEN TESLİM NOTUNUZ</small>
+                    <div class="text-dark font-italic small mt-1">"@Model.DriverReturnNotes"</div>
+                </div>
+            }
+        </div>
+    }
+    else if (Model.IsStartApprovalPending)
+    {
+        <div class="mt-3 p-3 bg-light rounded border" style="border-color: #f8ac59 !important;">
+            <div class="d-flex justify-content-between mb-1">
+                <span class="font-weight-bold" style="color: #d97706;"><i class="fa fa-clock-o mr-1"></i> Başlangıç Bildirimi (Onay Bekliyor)</span>
+                <span class="font-weight-bold text-dark">
+                    Bildirilen Başlangıç: @(Model.StartKm.HasValue ? Model.StartKm.Value.ToString("N0") + " KM" : "-")
+                </span>
+            </div>
+        </div>
+    }
+
+    @if (Model.Status == AssignmentStatus.Cancelled && !string.IsNullOrEmpty(Model.CancellationReason))
+    {
+        <div class="mt-3 p-3 bg-light rounded border border-danger">
+            <small class="text-danger d-block font-weight-bold"><i class="fa fa-ban mr-1"></i> İPTAL SEBEBİ</small>
+            <div class="text-dark small mt-1">@Model.CancellationReason</div>
+        </div>
+    }
+</div>
+
+<!-- ALT AKSİYON BUTONLARI (DOKUNMATİK BÜYÜK BUTONLAR) -->
+<div class="mt-2 mb-4">
+    @if (Model.Status == AssignmentStatus.Cancelled)
+    {
+        <div class="alert alert-danger p-3 text-center shadow-sm" style="border-radius: 12px; border-left: 5px solid #ed5565;">
+            <i class="fa fa-ban fa-2x mb-2 d-block text-danger"></i>
+            <h5 class="font-weight-bold text-dark mb-1">Bu Görev İptal Edilmiştir</h5>
+            <p class="mb-0 text-muted small">
+                Bu görev birim yetkilisi veya yönetici tarafından iptal edilmiştir. Başlangıç veya bitiş bildirimi yapılamaz.
+            </p>
+        </div>
+    }
+    else if (Model.Status == AssignmentStatus.Completed)
+    {
+        <div class="alert alert-success p-3 text-center shadow-sm" style="border-radius: 12px; border-left: 5px solid #1ab394;">
+            <i class="fa fa-check-circle fa-2x mb-2 d-block text-success"></i>
+            <h5 class="font-weight-bold text-dark mb-1">Görev Tamamlandı</h5>
+            <p class="mb-0 text-muted small">
+                Bu göreve ait tüm süreçler ve teslim alma işlemleri başarıyla tamamlanmıştır.
+            </p>
+        </div>
+    }
+    else if (Model.IsEndApprovalPending)
+    {
+        <div class="alert alert-warning p-3 text-center shadow-sm" style="border-radius: 12px; border-left: 5px solid #f8ac59;">
+            <i class="fa fa-clock-o fa-2x mb-2 d-block text-warning"></i>
+            <h5 class="font-weight-bold text-dark mb-1">Bitiş Bildiriminiz Kaydedildi</h5>
+            <p class="mb-1 text-muted small">
+                Girdiğiniz bitiş kilometresi (<strong>@(Model.EndKm?.ToString("N0") ?? "-") KM</strong>) sisteme kaydedildi. Bildiriminiz <strong>Şef onayı bekliyor</strong>.
+            </p>
+            @if (!string.IsNullOrWhiteSpace(Model.DriverReturnNotes))
+            {
+                <div class="mt-2 p-2 rounded bg-white border text-left" style="font-size: 0.85rem;">
+                    <small class="text-muted d-block font-weight-bold"><i class="fa fa-comment-o mr-1"></i> Girdiğiniz Not:</small>
+                    <span class="text-dark font-italic">"@Model.DriverReturnNotes"</span>
+                </div>
+            }
+        </div>
+    }
+    else if (Model.IsStartApprovalPending)
+    {
+        <div class="alert alert-warning p-3 text-center shadow-sm mb-3" style="border-radius: 12px; border-left: 5px solid #f8ac59;">
+            <i class="fa fa-clock-o fa-2x mb-2 d-block text-warning"></i>
+            <h5 class="font-weight-bold text-dark mb-1">Başlangıç Bildiriminiz Kaydedildi</h5>
+            <p class="mb-0 text-muted small">
+                Girdiğiniz başlangıç kilometresi (<strong>@(Model.StartKm?.ToString("N0") ?? "-") KM</strong>) sisteme kaydedildi. Bildiriminiz <strong>Şef onayı bekliyor</strong>.
+            </p>
+        </div>
+        <!-- Şef henüz onaylamamış olsa bile şoför dönüşünde bitiş bildirebilir -->
+        <button type="button" class="btn btn-primary btn-block btn-touch shadow" data-toggle="modal" data-target="#endAssignmentModal">
+            <i class="fa fa-flag-checkered mr-2" style="font-size: 1.3rem;"></i> Bitişi Bildir
+        </button>
+    }
+    else if (Model.Status == AssignmentStatus.Planned)
+    {
+        <button type="button" class="btn btn-success btn-block btn-touch shadow" data-toggle="modal" data-target="#startAssignmentModal">
+            <i class="fa fa-play-circle mr-2" style="font-size: 1.3rem;"></i> Başlangıcı Bildir
+        </button>
+    }
+    else if (Model.Status == AssignmentStatus.InProgress)
+    {
+        <button type="button" class="btn btn-primary btn-block btn-touch shadow" data-toggle="modal" data-target="#endAssignmentModal">
+            <i class="fa fa-flag-checkered mr-2" style="font-size: 1.3rem;"></i> Bitişi Bildir
+        </button>
+    }
+</div>
+
+<!-- 1. BAŞLANGICI BİLDİR MODAL -->
+<div class="modal fade" id="startAssignmentModal" tabindex="-1" role="dialog" aria-labelledby="startModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div class="modal-header bg-success text-white" style="border-radius: 12px 12px 0 0;">
+                <h5 class="modal-title font-weight-bold" id="startModalLabel">
+                    <i class="fa fa-tachometer mr-2"></i> Başlangıcı Bildir
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted mb-3" style="font-size: 0.95rem;">
+                    <strong>@Model.VehiclePlate</strong> plakalı araçla göreve başlamak üzeresiniz. Lütfen aracın göstergesindeki güncel kilometreyi giriniz.
+                </p>
+
+                <div class="form-group mb-3">
+                    <label for="inputStartKm" class="font-weight-bold text-dark">
+                        Başlangıç Kilometresi (KM) <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group input-group-lg">
+                        <input type="number" class="form-control font-weight-bold text-primary" id="inputStartKm" 
+                               value="@Model.CurrentVehicleKm" min="@Model.CurrentVehicleKm" placeholder="Örn: @Model.CurrentVehicleKm">
+                        <div class="input-group-append">
+                            <span class="input-group-text font-weight-bold">KM</span>
+                        </div>
+                    </div>
+                    <small class="form-text text-muted">
+                        Kayıtlı son KM: <strong>@Model.CurrentVehicleKm.ToString("N0") KM</strong> (Bu değerden küçük girilemez).
+                    </small>
+                </div>
+
+                <div id="startErrorAlert" class="alert alert-danger d-none p-2 mb-0" style="font-size: 0.9rem;"></div>
+            </div>
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal" style="border-radius: 8px;">İptal</button>
+                <button type="button" class="btn btn-success font-weight-bold px-4" id="btnConfirmStart" style="border-radius: 8px;">
+                    <i class="fa fa-check mr-1"></i> Başlangıcı Bildir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. BİTİŞİ BİLDİR MODAL -->
+<div class="modal fade" id="endAssignmentModal" tabindex="-1" role="dialog" aria-labelledby="endModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div class="modal-header bg-primary text-white" style="border-radius: 12px 12px 0 0;">
+                <h5 class="modal-title font-weight-bold" id="endModalLabel">
+                    <i class="fa fa-flag-checkered mr-2"></i> Bitişi Bildir ve Aracı Teslim Et
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted mb-3" style="font-size: 0.95rem;">
+                    <strong>@Model.VehiclePlate</strong> plakalı görevi tamamlamak üzeresiniz. Lütfen dönüş kilometresini ve varsa notunuzu giriniz.
+                </p>
+
+                <div class="form-group mb-3">
+                    <label for="inputEndKm" class="font-weight-bold text-dark">
+                        Bitiş Kilometresi (KM) <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group input-group-lg">
+                        <input type="number" class="form-control font-weight-bold text-primary" id="inputEndKm" 
+                               value="@(Model.StartKm ?? Model.CurrentVehicleKm)" 
+                               min="@(Model.StartKm ?? Model.CurrentVehicleKm)" 
+                               placeholder="Örn: @(Model.StartKm ?? Model.CurrentVehicleKm)">
+                        <div class="input-group-append">
+                            <span class="input-group-text font-weight-bold">KM</span>
+                        </div>
+                    </div>
+                    <small class="form-text text-muted">
+                        Başlangıç KM: <strong>@((Model.StartKm ?? Model.CurrentVehicleKm).ToString("N0")) KM</strong>
+                    </small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="inputReturnNotes" class="font-weight-bold text-dark">
+                        Teslim Notu / Durum Açıklaması <span class="text-muted font-weight-normal">(Opsiyonel)</span>
+                    </label>
+                    <textarea class="form-control" id="inputReturnNotes" rows="3" 
+                              maxlength="500" placeholder="Araç durumu, yakıt seviyesi veya yaşanan bir aksaklık varsa belirtebilirsiniz..."></textarea>
+                </div>
+
+                <div id="endErrorAlert" class="alert alert-danger d-none p-2 mb-0" style="font-size: 0.9rem;"></div>
+            </div>
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal" style="border-radius: 8px;">İptal</button>
+                <button type="button" class="btn btn-primary font-weight-bold px-4" id="btnConfirmEnd" style="border-radius: 8px;">
+                    <i class="fa fa-check mr-1"></i> Bitişi Bildir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        const assignmentId = @Model.AssignmentId;
+        const token = $('input[name="__RequestVerificationToken"]').val();
+
+        // 1. BAŞLANGICI BİLDİR AJAX
+        $('#btnConfirmStart').on('click', function () {
+            const startKmVal = parseInt($('#inputStartKm').val(), 10);
+            const minKm = @Model.CurrentVehicleKm;
+            const $btn = $(this);
+            const $errorDiv = $('#startErrorAlert');
+
+            $errorDiv.addClass('d-none').text('');
+
+            if (isNaN(startKmVal) || startKmVal < 0) {
+                $errorDiv.removeClass('d-none').text('Lütfen geçerli bir başlangıç kilometresi giriniz.');
+                return;
+            }
+
+            if (startKmVal < minKm) {
+                $errorDiv.removeClass('d-none').text('Başlangıç KM (' + startKmVal + '), kayıtlı son kilometreden (' + minKm + ') küçük olamaz.');
+                return;
+            }
+
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Bildiriliyor...');
+
+            fetch('/Surucu/Baslat/' + assignmentId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ startKm: startKmVal })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showNativeToast(data.message || 'Bilgileriniz kaydedildi, Şef onayı bekleniyor.', true);
+                    $('#startAssignmentModal').modal('hide');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    $errorDiv.removeClass('d-none').text(data.message || 'Bir hata oluştu.');
+                    showNativeToast(data.message || 'Bildirim iletilemedi.', false);
+                    $btn.prop('disabled', false).html('<i class="fa fa-check mr-1"></i> Başlangıcı Bildir');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                $errorDiv.removeClass('d-none').text('Sunucuyla iletişim kurulurken bir hata oluştu.');
+                showNativeToast('Bağlantı hatası.', false);
+                $btn.prop('disabled', false).html('<i class="fa fa-check mr-1"></i> Başlangıcı Bildir');
+            });
+        });
+
+        // 2. BİTİŞİ BİLDİR AJAX
+        $('#btnConfirmEnd').on('click', function () {
+            const endKmVal = parseInt($('#inputEndKm').val(), 10);
+            const minEndKm = @(Model.StartKm ?? Model.CurrentVehicleKm);
+            const returnNotesVal = $('#inputReturnNotes').val();
+            const $btn = $(this);
+            const $errorDiv = $('#endErrorAlert');
+
+            $errorDiv.addClass('d-none').text('');
+
+            if (isNaN(endKmVal) || endKmVal < 0) {
+                $errorDiv.removeClass('d-none').text('Lütfen geçerli bir bitiş kilometresi giriniz.');
+                return;
+            }
+
+            if (endKmVal < minEndKm) {
+                $errorDiv.removeClass('d-none').text('Bitiş KM (' + endKmVal + '), başlangıç kilometresinden (' + minEndKm + ') küçük olamaz.');
+                return;
+            }
+
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Bildiriliyor...');
+
+            fetch('/Surucu/Bitir/' + assignmentId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    endKm: endKmVal,
+                    driverReturnNotes: returnNotesVal
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showNativeToast(data.message || 'Bilgileriniz kaydedildi, Şef onayı bekleniyor.', true);
+                    $('#endAssignmentModal').modal('hide');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    $errorDiv.removeClass('d-none').text(data.message || 'Bir hata oluştu.');
+                    showNativeToast(data.message || 'Bildirim iletilemedi.', false);
+                    $btn.prop('disabled', false).html('<i class="fa fa-check mr-1"></i> Bitişi Bildir');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                $errorDiv.removeClass('d-none').text('Sunucuyla iletişim kurulurken bir hata oluştu.');
+                showNativeToast('Bağlantı hatası.', false);
+                $btn.prop('disabled', false).html('<i class="fa fa-check mr-1"></i> Bitişi Bildir');
+            });
+        });
+    });
+</script>
+}

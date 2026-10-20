@@ -1,0 +1,333 @@
+<!-- File: Views/Vehicle/Index.cshtml -->
+@model aractakipsys.Models.ViewModels.Vehicle.VehicleFilterViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Araçlar";
+}
+
+@section Styles {
+    <link href="~/css/plugins/select2/select2.min.css" rel="stylesheet">
+    <style>
+        .select2-container--default .select2-selection--single {
+            height: 35px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            padding: 3px 6px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 27px;
+            color: #495057;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 33px;
+        }
+        .select2-dropdown {
+            border: 1px solid #1ab394;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2050;
+        }
+        .select2-results__options {
+            max-height: 200px !important; /* Dikey kaydırma / scroll */
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #1ab394;
+        }
+    </style>
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Araç Filosu Yönetimi</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="/">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item active">
+                <strong>Araçlar</strong>
+            </li>
+        </ol>
+    </div>
+    <div class="col-lg-2 text-right d-flex align-items-center justify-content-end">
+        <a href="/Vehicle/Create" class="btn btn-primary font-weight-bold">
+            <i class="fa fa-plus-circle mr-1"></i> Yeni Araç Ekle
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fa fa-check-circle mr-1"></i> @TempData["SuccessMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa fa-exclamation-circle mr-1"></i> @TempData["ErrorMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+<!-- ÜST FİLTRE ÇUBUĞU (ARAYUZ-SPESIFIKASYONU Bölüm 4) -->
+<div class="ibox float-e-margins mb-3">
+    <div class="ibox-content p-3 border-left border-primary" style="border-left-width: 4px !important;">
+        <form method="get" action="/Vehicle" class="row align-items-end">
+            <div class="col-xl-3 col-lg-4 col-sm-6 mb-2">
+                <label class="small font-weight-bold text-muted mb-1">Durum Filtresi</label>
+                <select name="Status" class="form-control select2-filter" id="filterStatus">
+                    <option value="">Tüm Durumlar</option>
+                    @foreach (VehicleStatus status in Enum.GetValues(typeof(VehicleStatus)))
+                    {
+                        var isSelected = Model.Status == status;
+                        var displayName = status switch
+                        {
+                            VehicleStatus.Idle => "Boşta",
+                            VehicleStatus.OnDuty => "Görevde",
+                            VehicleStatus.Maintenance => "Bakımda",
+                            VehicleStatus.OutOfService => "Hizmet Dışı",
+                            VehicleStatus.DocumentExpired => "Belgesi Geçersiz",
+                            _ => status.ToString()
+                        };
+                        <option value="@status" selected="@(isSelected ? "selected" : null)">@displayName</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-xl-3 col-lg-4 col-sm-6 mb-2">
+                <label class="small font-weight-bold text-muted mb-1">Araç Tipi Filtresi</label>
+                <select name="VehicleType" class="form-control select2-filter" id="filterVehicleType">
+                    <option value="">Tüm Tipler</option>
+                    @foreach (var type in Model.AvailableVehicleTypes)
+                    {
+                        var isSelected = Model.VehicleType == type;
+                        <option value="@type" selected="@(isSelected ? "selected" : null)">@type</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-xl-4 col-lg-4 col-sm-12 mb-2">
+                <label class="small font-weight-bold text-muted mb-1">Plaka veya Model Arama</label>
+                <div class="input-group">
+                    <input type="text" name="SearchTerm" class="form-control" style="height: 35px;" placeholder="Örn: 81 DU 101 veya Renault..." value="@Model.SearchTerm">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary d-flex align-items-center justify-content-center" type="submit" style="height: 35px; padding: 0 14px; margin-bottom: 0 !important;" title="Ara">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-lg-12 col-sm-12 mb-2 text-right">
+                @if (Model.Status.HasValue || !string.IsNullOrWhiteSpace(Model.VehicleType) || !string.IsNullOrWhiteSpace(Model.SearchTerm))
+                {
+                    <a href="/Vehicle" class="btn btn-outline-secondary btn-block d-inline-flex align-items-center justify-content-center" style="height: 35px; margin-bottom: 0;">
+                        <i class="fa fa-refresh mr-1"></i> Filtreyi Sıfırla
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ARAÇ LİSTESİ TABLOSU -->
+<div class="ibox float-e-margins">
+    <div class="ibox-content p-0">
+        @if (Model.Vehicles.Count == 0)
+        {
+            <!-- BOŞ DURUM (EMPTY STATE - ARAYUZ-SPESIFIKASYONU Bölüm 0) -->
+            <div class="text-center py-5">
+                <i class="fa fa-car text-muted mb-3" style="font-size: 3.5rem; opacity: 0.4;"></i>
+                <h4 class="font-weight-bold text-secondary">Henüz Kayıtlı Araç Yok</h4>
+                <p class="text-muted mb-3">Arama kriterlerine uygun araç bulunamadı veya henüz filoya araç eklenmedi.</p>
+                <a href="/Vehicle/Create" class="btn btn-primary">
+                    <i class="fa fa-plus-circle mr-1"></i> İlk Aracı Ekle
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th class="text-nowrap" style="width: 130px;">Plaka</th>
+                            <th class="text-nowrap">Marka / Model</th>
+                            <th class="text-nowrap">Tip / Yakıt</th>
+                            <th class="text-nowrap">Renk</th>
+                            <th class="text-nowrap">Yıl</th>
+                            <th class="text-right text-nowrap">Güncel KM</th>
+                            <th class="text-center text-nowrap">Durum</th>
+                            <th class="text-right text-nowrap" style="min-width: 140px; width: 160px;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Vehicles)
+                        {
+                            var isDocExpired = item.Status == VehicleStatus.DocumentExpired;
+                            <tr class="@(isDocExpired ? "table-danger" : "")">
+                                <td class="font-weight-bold align-middle text-primary" style="font-size: 1rem;">
+                                    @item.PlateNumber
+                                </td>
+                                <td class="align-middle">
+                                    <span class="font-weight-bold text-dark">@item.Brand</span> @item.Model
+                                </td>
+                                <td class="align-middle text-muted small">
+                                    @item.VehicleType / @item.FuelType
+                                </td>
+                                <td class="align-middle">@item.Color</td>
+                                <td class="align-middle">@item.Year</td>
+                                <td class="align-middle text-right font-weight-600">
+                                    @item.CurrentKm.ToString("N0") KM
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="badge text-white px-2 py-1 @item.StatusBadgeClass" style="border-radius: 12px; font-size: 0.8rem;">
+                                        @item.StatusDisplayName
+                                    </span>
+                                </td>
+                                <td class="align-middle text-right">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/Vehicle/Details/@item.Id" class="btn btn-outline-info" title="Detay">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+                                        <a href="/Vehicle/Edit/@item.Id" class="btn btn-outline-warning" title="Düzenle">
+                                            <i class="fa fa-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" title="Sil"
+                                                onclick="openDeleteModal(@item.Id, '@item.PlateNumber', '@item.Brand @item.Model')">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SAYFALAMA (PAGINATION) -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">
+                        Toplam <strong>@Model.TotalCount</strong> araçtan <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)</strong> arası gösteriliyor.
+                    </span>
+                    <ul class="pagination pagination-sm m-0">
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="/Vehicle?PageNumber=@(Model.PageNumber - 1)&PageSize=@Model.PageSize&Status=@Model.Status&VehicleType=@Model.VehicleType&SearchTerm=@Model.SearchTerm">Önceki</a>
+                        </li>
+                        @{
+                            int curPage = Model.PageNumber;
+                            int totPages = Model.TotalPages;
+                            int startP = Math.Max(1, curPage - 2);
+                            int endP = Math.Min(totPages, curPage + 2);
+
+                            if (curPage <= 3)
+                            {
+                                endP = Math.Min(totPages, 5);
+                            }
+                            if (curPage >= totPages - 2)
+                            {
+                                startP = Math.Max(1, totPages - 4);
+                            }
+                        }
+                        @if (startP > 1)
+                        {
+                            <li class="page-item @(1 == curPage ? "active" : "")">
+                                <a class="page-link" href="/Vehicle?PageNumber=1&PageSize=@Model.PageSize&Status=@Model.Status&VehicleType=@Model.VehicleType&SearchTerm=@Model.SearchTerm">1</a>
+                            </li>
+                            if (startP > 2)
+                            {
+                                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                            }
+                        }
+                        @for (int p = startP; p <= endP; p++)
+                        {
+                            <li class="page-item @(p == curPage ? "active" : "")">
+                                <a class="page-link" href="/Vehicle?PageNumber=@p&PageSize=@Model.PageSize&Status=@Model.Status&VehicleType=@Model.VehicleType&SearchTerm=@Model.SearchTerm">@p</a>
+                            </li>
+                        }
+                        @if (endP < totPages)
+                        {
+                            if (endP < totPages - 1)
+                            {
+                                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                            }
+                            <li class="page-item @(totPages == curPage ? "active" : "")">
+                                <a class="page-link" href="/Vehicle?PageNumber=@totPages&PageSize=@Model.PageSize&Status=@Model.Status&VehicleType=@Model.VehicleType&SearchTerm=@Model.SearchTerm">@totPages</a>
+                            </li>
+                        }
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="/Vehicle?PageNumber=@(Model.PageNumber + 1)&PageSize=@Model.PageSize&Status=@Model.Status&VehicleType=@Model.VehicleType&SearchTerm=@Model.SearchTerm">Sonraki</a>
+                        </li>
+                    </ul>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- SİLME ONAY MODAL PENCERESİ (ARAYUZ-SPESIFIKASYONU Bölüm 4) -->
+<div class="modal fade" id="deleteVehicleModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-exclamation-triangle mr-2"></i> Araç Silme Onayı
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="deleteVehicleForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <p class="text-dark mb-2">
+                        <strong id="deleteVehicleInfo" class="text-danger font-weight-bold"></strong> plakalı aracı sistemden silmek istediğinize emin misiniz?
+                    </p>
+                    <p class="text-muted small mb-0">
+                        <i class="fa fa-info-circle mr-1"></i> Bu işlem aracı pasife (soft delete) alacaktır. Eğer araca ait devam eden veya planlanmış aktif bir görev varsa silme işlemi engellenecektir.
+                    </p>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger font-weight-bold px-4">
+                        <i class="fa fa-trash mr-1"></i> Evet, Sil
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/plugins/select2/select2.full.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2-filter').select2({
+            width: '100%',
+            dropdownAutoWidth: true,
+            language: {
+                noResults: function () {
+                    return "Eşleşen sonuç bulunamadı";
+                }
+            }
+        }).on('select2:select', function () {
+            $(this).closest('form').submit();
+        });
+    });
+
+    function openDeleteModal(vehicleId, plateNumber, brandModel) {
+        $('#deleteVehicleInfo').text(plateNumber + ' (' + brandModel + ')');
+        $('#deleteVehicleForm').attr('action', '/Vehicle/Delete/' + vehicleId);
+        $('#deleteVehicleModal').modal('show');
+    }
+</script>
+}

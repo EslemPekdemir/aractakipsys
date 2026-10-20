@@ -1,0 +1,255 @@
+<!-- File: Views/Account/Profile.cshtml -->
+@model aractakipsys.Models.ViewModels.Account.ProfileViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Kullanıcı Profili";
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Kullanıcı Profili</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item active"><strong>Profilim</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-2 text-right d-flex align-items-center justify-content-end">
+        <a href="/" class="btn btn-outline-secondary">
+            <i class="fa fa-arrow-left mr-1"></i> Dashboard
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fa fa-check-circle mr-1"></i> @TempData["SuccessMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa fa-exclamation-circle mr-1"></i> @TempData["ErrorMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+<div class="row">
+    <!-- SOL KOLON: KULLANICI ÖZET KARTI -->
+    <div class="col-lg-4 col-md-5 mb-4">
+        <div class="ibox">
+            <div class="ibox-content text-center p-4">
+                <div class="m-b-sm position-relative d-inline-block">
+                    @if (!string.IsNullOrEmpty(Model.ProfilePictureUrl))
+                    {
+                        <img id="profilePreviewImg" alt="Profil Fotoğrafı" class="rounded-circle shadow" 
+                             src="@Model.ProfilePictureUrl" 
+                             style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #1ab394;" />
+                        <div id="profilePreviewBadge" class="rounded-circle shadow d-none align-items-center justify-content-center font-weight-bold" 
+                             style="width: 120px; height: 120px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: #ffffff; font-size: 2.8rem; letter-spacing: 1px; border: 3px solid #1ab394; text-shadow: 0 2px 4px rgba(0,0,0,0.25); user-select: none;">
+                            @AvatarHelper.GetInitials(Model.FullName, Model.Username)
+                        </div>
+                    }
+                    else
+                    {
+                        <div id="profilePreviewBadge" class="rounded-circle shadow d-inline-flex align-items-center justify-content-center font-weight-bold" 
+                             style="width: 120px; height: 120px; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: #ffffff; font-size: 2.8rem; letter-spacing: 1px; border: 3px solid #1ab394; text-shadow: 0 2px 4px rgba(0,0,0,0.25); user-select: none;">
+                            @AvatarHelper.GetInitials(Model.FullName, Model.Username)
+                        </div>
+                        <img id="profilePreviewImg" alt="Profil Fotoğrafı" class="rounded-circle shadow d-none" 
+                             src="" 
+                             style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #1ab394;" />
+                    }
+                </div>
+                
+                @if (!string.IsNullOrEmpty(Model.ProfilePictureUrl))
+                {
+                    <div class="mb-2">
+                        <form method="post" action="/Account/RemoveProfilePhoto" class="d-inline" onsubmit="return confirm('Profil fotoğrafınızı kaldırmak ve varsayılan rozete dönmek istediğinize emin misiniz?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-xs btn-outline-danger">
+                                <i class="fa fa-trash mr-1"></i> Fotoğrafı Kaldır
+                            </button>
+                        </form>
+                    </div>
+                }
+
+                <h3 class="font-bold mb-1 mt-2">@Model.FullName</h3>
+                <div class="text-muted font-italic mb-2">@@@Model.Username</div>
+
+                <div class="mb-3">
+                    @foreach (var role in Model.Roles)
+                    {
+                        var badgeClass = role switch
+                        {
+                            "Admin" => "badge-danger",
+                            "Kullanici" => "badge-primary",
+                            "Driver" => "badge-info",
+                            _ => "badge-secondary"
+                        };
+                        var roleDisplay = role switch
+                        {
+                            "Admin" => "Sistem Yöneticisi",
+                            "Kullanici" => "Ulaşım / Birim Şefi",
+                            "Driver" => "Şoför",
+                            _ => role
+                        };
+                        <span class="badge @badgeClass px-2 py-1" style="font-size: 0.85rem;">
+                            <i class="fa fa-shield mr-1"></i> @roleDisplay
+                        </span>
+                    }
+                    @if (Model.IsActive)
+                    {
+                        <span class="badge badge-primary px-2 py-1 ml-1" style="font-size: 0.85rem;">
+                            <i class="fa fa-check mr-1"></i> Aktif Hesap
+                        </span>
+                    }
+                </div>
+
+                <hr />
+
+                <div class="text-left small text-muted">
+                    <div class="mb-2">
+                        <i class="fa fa-envelope mr-2 text-primary"></i> <strong>E-Posta:</strong>
+                        <span class="float-right text-dark">@Model.Email</span>
+                    </div>
+                    <div class="mb-2">
+                        <i class="fa fa-phone mr-2 text-primary"></i> <strong>Telefon:</strong>
+                        <span class="float-right text-dark">@(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "Belirtilmemiş" : Model.PhoneNumber)</span>
+                    </div>
+                    <div>
+                        <i class="fa fa-calendar mr-2 text-primary"></i> <strong>Kayıt Tarihi:</strong>
+                        <span class="float-right text-dark">@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAĞ KOLON: PROFİL VE PAROLA FORMU -->
+    <div class="col-lg-8 col-md-7">
+        <div class="ibox">
+            <div class="ibox-title">
+                <h5><i class="fa fa-user-circle mr-1"></i> Profil Bilgilerini Düzenle</h5>
+            </div>
+            <div class="ibox-content p-4">
+                <form method="post" action="/Account/Profile" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Username" />
+                    <input type="hidden" asp-for="Email" />
+                    <input type="hidden" asp-for="ProfilePictureUrl" />
+
+                    <div asp-validation-summary="All" class="alert alert-danger mb-4 @(ViewData.ModelState.IsValid ? "d-none" : "")" role="alert"></div>
+
+                    <h5 class="text-primary font-weight-bold border-bottom pb-2 mb-3">
+                        <i class="fa fa-id-card-o mr-1"></i> 1. Genel Bilgiler & Fotoğraf
+                    </h5>
+
+                    <!-- FOTOĞRAF YÜKLEME ALANI -->
+                    <div class="form-group mb-4 bg-light p-3 rounded border">
+                        <label class="font-weight-bold d-block">
+                            <i class="fa fa-camera mr-1 text-primary"></i> Profil Fotoğrafı Seç / Güncelle
+                        </label>
+                        <div class="custom-file mb-2">
+                            <input type="file" asp-for="ProfilePicture" class="custom-file-input" id="customProfileFile" accept="image/jpeg,image/png,image/webp">
+                            <label class="custom-file-label" for="customProfileFile" data-browse="Gözat...">Dosya seçiniz (JPG, PNG, WebP)...</label>
+                        </div>
+                        <span asp-validation-for="ProfilePicture" class="text-danger small font-weight-bold"></span>
+                        <small class="form-text text-muted">Maksimum dosya boyutu: 5 MB. Kare veya portre resimler önerilir.</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group mb-3">
+                            <label class="font-weight-bold">Kullanıcı Adı</label>
+                            <input type="text" class="form-control bg-light" readonly value="@Model.Username" />
+                            <small class="form-text text-muted">Kullanıcı adı sistem tarafından atanır, değiştirilemez.</small>
+                        </div>
+                        <div class="col-md-6 form-group mb-3">
+                            <label class="font-weight-bold">E-Posta Adresi</label>
+                            <input type="text" class="form-control bg-light" readonly value="@Model.Email" />
+                            <small class="form-text text-muted">Kurumsal e-posta adresi değiştirilemez.</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group mb-3">
+                            <label asp-for="FullName" class="font-weight-bold">Ad Soyad <span class="text-danger">*</span></label>
+                            <input asp-for="FullName" class="form-control" placeholder="Ad Soyad" />
+                            <span asp-validation-for="FullName" class="text-danger small font-weight-bold"></span>
+                        </div>
+                        <div class="col-md-6 form-group mb-3">
+                            <label asp-for="PhoneNumber" class="font-weight-bold">Telefon Numarası</label>
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="05XXXXXXXXX" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small font-weight-bold"></span>
+                        </div>
+                    </div>
+
+                    <h5 class="text-primary font-weight-bold border-bottom pb-2 mb-3 mt-4">
+                        <i class="fa fa-lock mr-1"></i> 2. Güvenlik & Parola Değiştirme
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        Parolanızı değiştirmek istemiyorsanız bu alanları boş bırakabilirsiniz.
+                    </p>
+
+                    <div class="row">
+                        <div class="col-md-4 form-group mb-3">
+                            <label asp-for="CurrentPassword" class="font-weight-bold">Mevcut Parola</label>
+                            <input asp-for="CurrentPassword" class="form-control" placeholder="••••••••" autocomplete="new-password" />
+                            <span asp-validation-for="CurrentPassword" class="text-danger small font-weight-bold"></span>
+                        </div>
+                        <div class="col-md-4 form-group mb-3">
+                            <label asp-for="NewPassword" class="font-weight-bold">Yeni Parola</label>
+                            <input asp-for="NewPassword" class="form-control" placeholder="En az 10 karakter" autocomplete="new-password" />
+                            <span asp-validation-for="NewPassword" class="text-danger small font-weight-bold"></span>
+                        </div>
+                        <div class="col-md-4 form-group mb-3">
+                            <label asp-for="ConfirmPassword" class="font-weight-bold">Yeni Parola Tekrar</label>
+                            <input asp-for="ConfirmPassword" class="form-control" placeholder="Tekrar giriniz" autocomplete="new-password" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small font-weight-bold"></span>
+                        </div>
+                    </div>
+
+                    <div class="hr-line-dashed mt-4"></div>
+                    <div class="d-flex flex-column flex-sm-row justify-content-end align-items-stretch align-items-sm-center">
+                        <a href="/" class="btn btn-outline-secondary mb-2 mb-sm-0 mr-sm-2 px-4 font-weight-bold text-center">
+                            <i class="fa fa-times mr-1"></i> Vazgeç
+                        </a>
+                        <button type="submit" class="btn btn-primary mb-0 px-5 font-weight-bold shadow-sm">
+                            <i class="fa fa-save mr-1"></i> Değişiklikleri Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        // Canlı Dosya Önizleme ve Label Güncelleme
+        $('#customProfileFile').on('change', function (e) {
+            var file = e.target.files[0];
+            if (file) {
+                // Label yazısını dosya adı yap
+                $(this).next('.custom-file-label').text(file.name);
+
+                // Canlı resim önizleme
+                var reader = new FileReader();
+                reader.onload = function (event) {
+                    $('#profilePreviewBadge').removeClass('d-inline-flex').addClass('d-none');
+                    $('#profilePreviewImg').attr('src', event.target.result).removeClass('d-none');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+</script>
+}

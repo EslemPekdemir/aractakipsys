@@ -1,0 +1,1153 @@
+<!-- File: Views/Assignment/Index.cshtml -->
+@model aractakipsys.Models.ViewModels.Assignment.AssignmentFilterViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Görevler";
+}
+
+@section Styles {
+    <link href="~/css/plugins/select2/select2.min.css" rel="stylesheet">
+    <style>
+        .select2-container--default .select2-selection--single {
+            height: 35px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            padding: 3px 6px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 27px;
+            color: #495057;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 33px;
+        }
+        .select2-dropdown {
+            border: 1px solid #1ab394;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2050;
+        }
+        .select2-results__options {
+            max-height: 200px !important; /* Dikey kaydırma / scroll */
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #1ab394;
+        }
+    </style>
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Araç Görevlendirme Yönetimi</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item active"><strong>Görevler</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-2 text-right d-flex align-items-center justify-content-end">
+        <a href="/Assignment/Create" class="btn btn-primary font-weight-bold shadow-sm">
+            <i class="fa fa-calendar-plus-o mr-1"></i> Yeni Görev Ata
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fa fa-check-circle mr-1"></i> @TempData["SuccessMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa fa-exclamation-circle mr-1"></i> @TempData["ErrorMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+<!-- ÜST FİLTRE ÇUBUĞU (ARAYUZ-SPESIFIKASYONU Bölüm 8) -->
+<div class="ibox float-e-margins mb-3">
+    <div class="ibox-content p-3 border-left border-primary" style="border-left-width: 4px !important;">
+        <form method="get" action="/Assignment" class="row align-items-end">
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                <label class="small font-weight-bold text-muted mb-1">Durum</label>
+                <select name="Status" class="form-control select2-filter" id="filterStatus">
+                    <option value="">Tüm Durumlar</option>
+                    @foreach (AssignmentStatus status in Enum.GetValues(typeof(AssignmentStatus)))
+                    {
+                        var isSelected = Model.Status == status;
+                        var displayName = status switch
+                        {
+                            AssignmentStatus.Planned => "Planlandı",
+                            AssignmentStatus.InProgress => "Devam Ediyor",
+                            AssignmentStatus.Completed => "Tamamlandı",
+                            AssignmentStatus.Cancelled => "İptal Edildi",
+                            _ => status.ToString()
+                        };
+                        <option value="@status" selected="@(isSelected ? "selected" : null)">@displayName</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                <label class="small font-weight-bold text-muted mb-1">Araç</label>
+                <select name="VehicleId" class="form-control select2-filter" id="filterVehicle">
+                    <option value="">Tüm Araçlar</option>
+                    @foreach (var v in Model.VehicleList)
+                    {
+                        var isSelected = Model.VehicleId?.ToString() == v.Value;
+                        <option value="@v.Value" selected="@(isSelected ? "selected" : null)">@v.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
+                <label class="small font-weight-bold text-muted mb-1">Şoför</label>
+                <select name="DriverId" class="form-control select2-filter" id="filterDriver">
+                    <option value="">Tüm Şoförler</option>
+                    @foreach (var d in Model.DriverList)
+                    {
+                        var isSelected = Model.DriverId?.ToString() == d.Value;
+                        <option value="@d.Value" selected="@(isSelected ? "selected" : null)">@d.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-xl-4 col-lg-6 col-md-8 col-sm-12 mb-2">
+                <label class="small font-weight-bold text-muted mb-1">Arama</label>
+                <div class="input-group">
+                    <input type="text" name="SearchTerm" class="form-control" style="height: 35px;" placeholder="Plaka, şoför, birim veya görev amacı..." value="@Model.SearchTerm">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary d-flex align-items-center justify-content-center" type="submit" style="height: 35px; padding: 0 14px; margin-bottom: 0 !important;" title="Ara">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2 text-right">
+                @if (Model.Status.HasValue || Model.VehicleId.HasValue || Model.DriverId.HasValue || !string.IsNullOrWhiteSpace(Model.SearchTerm))
+                {
+                    <a href="/Assignment" class="btn btn-outline-secondary btn-block d-inline-flex align-items-center justify-content-center" style="height: 35px; margin-bottom: 0;">
+                        <i class="fa fa-refresh mr-1"></i> Filtreyi Sıfırla
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- GÖREV LİSTESİ TABLOSU -->
+<div class="ibox float-e-margins">
+    <div class="ibox-content p-0">
+        @if (Model.Assignments.Count == 0)
+        {
+            <!-- BOŞ DURUM (EMPTY STATE) -->
+            <div class="text-center py-5">
+                <i class="fa fa-calendar-times-o text-muted mb-3" style="font-size: 3.5rem; opacity: 0.4;"></i>
+                <h4 class="font-weight-bold text-secondary">Kayıtlı Görev Bulunamadı</h4>
+                <p class="text-muted mb-3">Seçilen kriterlere uygun bir görevlendirme kaydı bulunmamaktadır.</p>
+                <a href="/Assignment/Create" class="btn btn-primary">
+                    <i class="fa fa-calendar-plus-o mr-1"></i> İlk Görevi Ata
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th class="text-nowrap">Araç Bilgisi</th>
+                            <th class="text-nowrap">Görevlendirilen Şoför</th>
+                            <th class="text-nowrap">Talep Eden Birim</th>
+                            <th>Görev Amacı</th>
+                            <th class="text-nowrap">Planlanan Zaman</th>
+                            <th class="text-right text-nowrap">Mesafe</th>
+                            <th class="text-center text-nowrap">Durum</th>
+                            <th class="text-right text-nowrap" style="min-width: 140px; width: 150px;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Assignments)
+                        {
+                            var isInProgress = item.Status == AssignmentStatus.InProgress;
+                            <tr class="@(isInProgress ? "table-info font-weight-bold" : "")" style="@(isInProgress ? "background-color: #f0f7fd !important; border-left: 4px solid #1c84c6;" : "")">
+                                <td class="align-middle">
+                                    <span class="font-weight-bold text-primary font-14">@item.VehiclePlate</span>
+                                    @if (isInProgress)
+                                    {
+                                        <span class="badge bg-primary text-white ml-1 font-weight-normal" style="font-size: 0.7rem;"><i class="fa fa-spinner fa-spin mr-1"></i> Seyirde</span>
+                                    }
+                                    <span class="text-muted small d-block">@item.VehicleBrandModel</span>
+                                </td>
+                                <td class="font-weight-bold align-middle text-dark">
+                                    @item.DriverFullName
+                                </td>
+                                <td class="align-middle small text-muted text-truncate" style="max-width: 140px;" title="@item.RequestedByDepartment">
+                                    @item.RequestedByDepartment
+                                </td>
+                                <td class="align-middle text-truncate" style="max-width: 160px;" title="@item.Purpose">
+                                    @item.Purpose
+                                </td>
+                                <td class="align-middle small">
+                                    <div class="font-weight-bold text-dark text-nowrap">@item.PlannedStartTime.ToString("dd.MM.yyyy")</div>
+                                    <div class="text-muted text-nowrap" style="font-size: 0.78rem;">@item.PlannedStartTime.ToString("HH:mm") - @item.PlannedEndTime.ToString("HH:mm")</div>
+                                </td>
+                                <td class="align-middle text-right font-weight-600 small">
+                                    @if (item.TotalDistanceKm.HasValue)
+                                    {
+                                        <span class="text-success font-weight-bold">@item.TotalDistanceKm.Value.ToString("N0") KM</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                    @if (item.TotalTripExpense > 0 || item.TotalDriverFee.HasValue)
+                                    {
+                                        var tooltipText = $"Seyahat Masrafı: {item.TotalTripExpense:N2} ₺ (Görev Ücreti: {item.EffectiveDriverFee:N2} ₺, Konaklama: {(item.AccommodationCost ?? 0):N2} ₺)";
+                                        <div class="mt-1" title="@tooltipText">
+                                            <span class="badge badge-light border text-success font-weight-bold" style="font-size: 0.72rem;">
+                                                <i class="fa fa-calculator mr-1"></i> @item.TotalTripExpense.ToString("N2") ₺
+                                            </span>
+                                            @if (item.AccommodationNights.HasValue && item.AccommodationNights.Value > 0)
+                                            {
+                                                <span class="badge badge-light border text-primary ml-1" style="font-size: 0.68rem;" title="Konaklama: @item.AccommodationNights Gece">
+                                                    <i class="fa fa-bed"></i>
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="badge text-white px-2 py-1 @item.StatusBadgeClass" style="border-radius: 12px; font-size: 0.8rem;">
+                                        @item.StatusDisplayName
+                                    </span>
+                                    @if (item.IsStartApprovalPending && item.IsEndApprovalPending)
+                                    {
+                                        <div class="mt-1">
+                                            <span class="badge font-weight-bold px-2 py-1 text-white shadow-sm" style="border-radius: 12px; font-size: 0.72rem; background-color: #f8ac59;" title="Başlangıç ve bitiş şoför tarafından bildirildi, onay bekliyor">
+                                                <i class="fa fa-clock-o mr-1"></i> Başlangıç & Bitiş Onayı Bekliyor
+                                            </span>
+                                        </div>
+                                    }
+                                    else if (item.IsStartApprovalPending)
+                                    {
+                                        <div class="mt-1">
+                                            <span class="badge font-weight-bold px-2 py-1 text-white shadow-sm" style="border-radius: 12px; font-size: 0.72rem; background-color: #f8ac59;" title="Şoför başlangıç bildirdi (@(item.StartKm?.ToString("N0") ?? "-") KM)">
+                                                <i class="fa fa-clock-o mr-1"></i> Şoför Bildirdi, Onay Bekliyor
+                                            </span>
+                                        </div>
+                                    }
+                                    else if (item.IsEndApprovalPending)
+                                    {
+                                        <div class="mt-1">
+                                            <span class="badge font-weight-bold px-2 py-1 text-white shadow-sm" style="border-radius: 12px; font-size: 0.72rem; background-color: #f8ac59;" title="Şoför bitiş bildirdi (@(item.EndKm?.ToString("N0") ?? "-") KM)">
+                                                <i class="fa fa-clock-o mr-1"></i> Şoför Bildirdi, Onay Bekliyor
+                                            </span>
+                                        </div>
+                                    }
+                                </td>
+                                <td class="align-middle text-right text-nowrap">
+                                    <div class="btn-group btn-group-sm">
+                                        @if (item.IsEndApprovalPending)
+                                        {
+                                            var modalStart = item.ActualStartTime?.ToString("yyyy-MM-ddTHH:mm") ?? item.PlannedStartTime.ToString("yyyy-MM-ddTHH:mm");
+                                            var modalEnd = item.ActualEndTime?.ToString("yyyy-MM-ddTHH:mm") ?? DateTime.Now.ToString("yyyy-MM-ddTHH:mm");
+                                            var accNights = item.AccommodationNights ?? 0;
+                                            var accCost = item.AccommodationCost?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0";
+                                            var perDiemType = item.PerDiemType ?? "Hourly";
+                                            var perDiemHours = item.PerDiemHours?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0";
+                                            var perDiemRate = item.PerDiemRate?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0";
+                                            var perDiemDays = item.PerDiemDays ?? 0;
+                                            var perDiemAmount = item.PerDiemAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0";
+                                            var notes = (item.ExpenseNotes ?? "").Replace("'", "\\'").Replace("\r", "").Replace("\n", " ");
+                                            var plannedHours = (item.PlannedEndTime - item.PlannedStartTime).TotalHours.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+                                            <button type="button" class="btn btn-success font-weight-bold mr-1" title="Bitişi Onayla ve Harcırah/Maliyet Hesapla"
+                                                    onclick="openApproveEndModal(@item.Id, '@item.VehiclePlate', '@item.DriverFullName', '@modalStart', '@modalEnd', @(item.StartKm ?? 0), @(item.EndKm ?? 0), @accNights, @accCost, '@perDiemType', @perDiemHours, @perDiemRate, @perDiemDays, @perDiemAmount, '@notes', @plannedHours)">
+                                                <i class="fa fa-calculator mr-1"></i> @(item.IsStartApprovalPending ? "Görevi Onayla & Bitir" : "Bitişi Onayla")
+                                            </button>
+                                        }
+                                        else if (item.IsStartApprovalPending)
+                                        {
+                                            <form action="/Assignment/ApproveStart/@item.Id" method="post" class="d-inline mr-1" onsubmit="return confirm('@item.VehiclePlate plakalı aracın başlangıç bildirimini onaylayıp sefere çıkarmak istiyor musunuz?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-warning font-weight-bold text-white shadow-sm" style="background-color: #f8ac59; border-color: #f8ac59;" title="Başlangıcı Onayla">
+                                                    <i class="fa fa-check mr-1"></i> Onayla
+                                                </button>
+                                            </form>
+                                        }
+
+                                        else if (item.Status == AssignmentStatus.Planned && !item.StartReportedBySelf)
+                                        {
+                                            <button type="button" class="btn btn-outline-success font-weight-bold mr-1" title="Yetkili Olarak Doğrudan Başlat"
+                                                    onclick="openStartDirectModal(@item.Id, '@item.VehiclePlate', '@item.DriverFullName')">
+                                                <i class="fa fa-play mr-1"></i> Başlat
+                                            </button>
+                                        }
+                                        else if (item.Status == AssignmentStatus.InProgress && !item.EndReportedBySelf)
+                                        {
+                                            <button type="button" class="btn btn-outline-primary font-weight-bold mr-1" title="Yetkili Olarak Doğrudan Bitir"
+                                                    onclick="openEndDirectModal(@item.Id, '@item.VehiclePlate', '@item.DriverFullName', @(item.StartKm ?? 0))">
+                                                <i class="fa fa-flag-checkered mr-1"></i> Bitir
+                                            </button>
+                                        }
+
+                                        <a href="/Assignment/Details/@item.Id" class="btn btn-outline-info" title="Detay">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+                                        @if (item.Status == AssignmentStatus.Planned && !item.IsStartApprovalPending)
+                                        {
+                                            <a href="/Assignment/Edit/@item.Id" class="btn btn-outline-warning" title="Düzenle">
+                                                <i class="fa fa-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger" title="İptal Et"
+                                                    onclick="openCancelModal(@item.Id, '@item.VehiclePlate', '@item.DriverFullName')">
+                                                <i class="fa fa-ban"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SAYFALAMA -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">
+                        Toplam <strong>@Model.TotalCount</strong> görevden <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)</strong> arası gösteriliyor.
+                    </span>
+                    <ul class="pagination pagination-sm m-0">
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="/Assignment?PageNumber=@(Model.PageNumber - 1)&PageSize=@Model.PageSize&Status=@Model.Status&VehicleId=@Model.VehicleId&DriverId=@Model.DriverId&SearchTerm=@Model.SearchTerm">Önceki</a>
+                        </li>
+                        @{
+                            int curPage = Model.PageNumber;
+                            int totPages = Model.TotalPages;
+                            int startP = Math.Max(1, curPage - 2);
+                            int endP = Math.Min(totPages, curPage + 2);
+
+                            if (curPage <= 3)
+                            {
+                                endP = Math.Min(totPages, 5);
+                            }
+                            if (curPage >= totPages - 2)
+                            {
+                                startP = Math.Max(1, totPages - 4);
+                            }
+                        }
+                        @if (startP > 1)
+                        {
+                            <li class="page-item @(1 == curPage ? "active" : "")">
+                                <a class="page-link" href="/Assignment?PageNumber=1&PageSize=@Model.PageSize&Status=@Model.Status&VehicleId=@Model.VehicleId&DriverId=@Model.DriverId&SearchTerm=@Model.SearchTerm">1</a>
+                            </li>
+                            if (startP > 2)
+                            {
+                                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                            }
+                        }
+                        @for (int p = startP; p <= endP; p++)
+                        {
+                            <li class="page-item @(p == curPage ? "active" : "")">
+                                <a class="page-link" href="/Assignment?PageNumber=@p&PageSize=@Model.PageSize&Status=@Model.Status&VehicleId=@Model.VehicleId&DriverId=@Model.DriverId&SearchTerm=@Model.SearchTerm">@p</a>
+                            </li>
+                        }
+                        @if (endP < totPages)
+                        {
+                            if (endP < totPages - 1)
+                            {
+                                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                            }
+                            <li class="page-item @(totPages == curPage ? "active" : "")">
+                                <a class="page-link" href="/Assignment?PageNumber=@totPages&PageSize=@Model.PageSize&Status=@Model.Status&VehicleId=@Model.VehicleId&DriverId=@Model.DriverId&SearchTerm=@Model.SearchTerm">@totPages</a>
+                            </li>
+                        }
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="/Assignment?PageNumber=@(Model.PageNumber + 1)&PageSize=@Model.PageSize&Status=@Model.Status&VehicleId=@Model.VehicleId&DriverId=@Model.DriverId&SearchTerm=@Model.SearchTerm">Sonraki</a>
+                        </li>
+                    </ul>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- İPTAL ETME MODALI (ENDPOINT-SPESIFIKASYONU Bölüm 3.50) -->
+<div class="modal fade" id="cancelAssignmentModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-ban mr-2"></i> Görev İptal Onayı
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="cancelAssignmentForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <p class="text-dark mb-2">
+                        <strong id="cancelAssignmentInfo" class="text-danger font-weight-bold"></strong> görevini iptal etmek istediğinize emin misiniz?
+                    </p>
+                    <div class="form-group mt-3">
+                        <label class="font-weight-bold text-dark">İptal Gerekçesi <span class="text-danger">*</span></label>
+                        <textarea name="cancellationReason" class="form-control" rows="3" required placeholder="Lütfen görevin iptal edilme nedenini yazınız..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger font-weight-bold px-4">
+                        <i class="fa fa-ban mr-1"></i> Görevi İptal Et
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- DOĞRUDAN BAŞLATMA MODALI (Yetkili Başlatma) -->
+<div class="modal fade" id="startDirectModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-play mr-2"></i> Görevi Doğrudan Başlat
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="startDirectForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <p class="text-dark mb-2">
+                        <strong id="startDirectInfo" class="text-primary font-weight-bold"></strong> görevini doğrudan başlatmak üzeresiniz.
+                    </p>
+                    <div class="form-group mt-3">
+                        <label class="font-weight-bold text-dark">Başlangıç Kilometresi (Opsiyonel)</label>
+                        <input type="number" name="startKm" class="form-control" placeholder="Boş bırakılırsa aracın güncel kilometresi alınır">
+                        <small class="form-text text-muted">Şoför bildirmeden yetkili olarak aracı sefere çıkarıyorsunuz.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-success font-weight-bold px-4">
+                        <i class="fa fa-play mr-1"></i> Görevi Başlat
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- DOĞRUDAN BİTİRME MODALI (Yetkili Bitirme) -->
+<div class="modal fade" id="endDirectModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-flag-checkered mr-2"></i> Görevi Doğrudan Bitir ve Teslim Al
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="endDirectForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <p class="text-dark mb-2">
+                        <strong id="endDirectInfo" class="text-primary font-weight-bold"></strong> görevini sonlandırmak üzeresiniz.
+                    </p>
+                    <div class="form-group mt-3">
+                        <label class="font-weight-bold text-dark">Bitiş Kilometresi <span class="text-danger">*</span></label>
+                        <input type="number" id="endDirectKmInput" name="endKm" class="form-control" required placeholder="Aracın güncel bitiş kilometresini giriniz">
+                        <small id="endDirectKmHelp" class="form-text text-muted"></small>
+                    </div>
+                    <div class="form-group mt-3">
+                        <label class="font-weight-bold text-dark">Teslim Notu (Opsiyonel)</label>
+                        <textarea name="driverReturnNotes" class="form-control" rows="2" placeholder="Varsa teslim alma veya aracın durumu hakkında not..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary font-weight-bold px-4">
+                        <i class="fa fa-check mr-1"></i> Görevi Bitir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- BİTİŞ ONAYI, HARCIRAH VE MALİYET HESAPLAMA MODALI -->
+<div class="modal fade" id="approveEndCalculationModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" style="border-radius: 12px; overflow: hidden; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header bg-success text-white py-3">
+                <h5 class="modal-title font-weight-bold mb-0">
+                    <i class="fa fa-calculator mr-2"></i> Görev Bitiş Onayı, Harcırah ve Maliyet Hesaplama
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="approveEndCalculationForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="calcCalculatedDutyHours" name="CalculatedDutyHours" value="0" />
+                <input type="hidden" id="calcTotalDriverFee" name="TotalDriverFee" value="0" />
+                <input type="hidden" id="calcTotalTripExpense" name="TotalTripExpense" value="0" />
+
+                <div class="modal-body p-4">
+                    <!-- Araç ve Şoför Özet Başlığı -->
+                    <div class="p-3 bg-light rounded border mb-3">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+                            <div>
+                                <strong id="approveEndVehiclePlate" class="text-primary font-16"></strong>
+                                <span class="text-muted mx-2">|</span>
+                                <span id="approveEndDriverName" class="font-weight-bold text-dark"></span>
+                            </div>
+                            <div class="mt-2 mt-sm-0">
+                                <span class="small text-muted">Başlangıç: <strong id="approveEndStartKmText" class="text-dark"></strong></span>
+                                <span class="text-muted mx-1">→</span>
+                                <span class="small text-muted">Bitiş: <strong id="approveEndEndKmText" class="text-dark"></strong></span>
+                                <span class="badge badge-success font-weight-bold ml-2" id="approveEndTotalKmBadge">0 KM</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Şefe Onay Sorusu Banner'ı -->
+                    <div class="alert alert-warning border-left border-warning p-3 mb-3" style="border-left-width: 4px !important;">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                            <div class="d-flex align-items-center mb-2 mb-md-0">
+                                <i class="fa fa-clock-o text-warning mr-3" style="font-size: 2rem;"></i>
+                                <div>
+                                    <strong class="text-dark d-block">Şoförün bildirdiği başlangıç ve dönüş saatlerini onaylıyor musunuz?</strong>
+                                    <small class="text-muted">Fiili çıkış ve dönüş saatlerini kontrol edip onaylayınız. Gerekirse şef olarak saat veya sürede değişiklik yapabilirsiniz.</small>
+                                </div>
+                            </div>
+                            <button type="button" id="btnToggleTimeEdit" class="btn btn-sm btn-outline-warning text-dark font-weight-bold shadow-sm text-nowrap ml-md-3" onclick="toggleApproveTimeEditMode()">
+                                <i class="fa fa-pencil mr-1"></i> Saatlerde / Sürede Değişiklik Yap
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Planlanan vs Fiili Süre Göstergesi -->
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center bg-white border rounded px-3 py-2 mb-3 small">
+                        <div class="mb-1 mb-sm-0">
+                            <span class="text-muted mr-1"><i class="fa fa-calendar-check-o text-info mr-1"></i> Planlanan Süre:</span>
+                            <strong id="approvePlannedHoursBadge" class="text-info font-14">0.00 Saat</strong>
+                        </div>
+                        <div>
+                            <span class="text-muted mr-1"><i class="fa fa-clock-o text-success mr-1"></i> Fiili Sefer:</span>
+                            <strong id="approveActualHoursBadge" class="text-success font-14">0.00 Saat</strong>
+                            <span id="approveDurationDeltaBadge" class="badge badge-light border ml-1"></span>
+                        </div>
+                    </div>
+
+                    <!-- Erken Dönüş & Konaklama Akıllı Uyarı Kutusu -->
+                    <div id="approveEarlyReturnAlert" class="alert alert-danger border-left border-danger p-3 mb-3 d-none" style="border-left-width: 4px !important; background-color: #fdf2f2;">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+                            <div class="mb-2 mb-sm-0 mr-sm-2">
+                                <strong class="text-danger d-block">
+                                    <i class="fa fa-exclamation-triangle mr-1"></i> Erken Dönüş & Konaklama Kontrolü
+                                </strong>
+                                <small class="text-dark" id="approveEarlyReturnText">
+                                    Bu görev planlanırken konaklama öngörülmüştü; ancak sefer aynı gün içinde tamamlanmıştır. Şoför otelde kalmadıysa sıfırlayabilirsiniz.
+                                </small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-danger font-weight-bold text-nowrap shadow-sm" onclick="resetAccommodationFields()">
+                                <i class="fa fa-times-circle mr-1"></i> Konaklama Yapılmadı (Sıfırla)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ÇALIŞMA SAATLERİ ONAYI -->
+                    <div id="approveTimeCard" class="border rounded p-3 mb-3 bg-white" style="transition: all 0.3s ease;">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                            <h6 class="font-weight-bold text-dark mb-0">
+                                <i class="fa fa-clock-o text-success mr-1"></i> Fiili Sefer Saatleri Onayı
+                            </h6>
+                            <span id="badgeTimeEditStatus" class="badge badge-light border text-muted">
+                                <i class="fa fa-check-circle text-success mr-1"></i> Şoförün Bildirimi
+                            </span>
+                        </div>
+
+                        <!-- Şef Değişiklik Modu Bilgilendirme ve Hızlı Sıfırlama Çubuğu -->
+                        <div id="timeEditActiveAlert" class="alert alert-warning py-2 px-3 mb-3 small d-none" style="border-radius: 6px;">
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+                                <div>
+                                    <i class="fa fa-info-circle mr-1 text-warning"></i>
+                                    <strong>Saat / Süre Düzenleme Modu Açık:</strong> Tarih-saatleri değiştirebilir veya aşağıdan doğrudan <strong>Fiili Görev Süresi (Saat)</strong> kutusunu artırıp azaltabilirsiniz.
+                                </div>
+                                <button type="button" class="btn btn-xs btn-outline-dark font-weight-bold mt-2 mt-sm-0 text-nowrap" onclick="resetToDriverOriginalTimes()">
+                                    <i class="fa fa-undo mr-1"></i> Şoförün İlk Saatine Dön
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark small">
+                                    <i class="fa fa-sign-out text-success mr-1"></i> Onaylanan Sefer Çıkış Saati <span class="text-danger">*</span>
+                                </label>
+                                <input type="datetime-local" id="approveStartTime" name="ConfirmedStartTime" class="form-control font-weight-bold" required />
+                                <small class="form-text text-muted">Şoförün sefere fiilen çıktığı saat</small>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark small">
+                                    <i class="fa fa-sign-in text-primary mr-1"></i> Onaylanan Sefer Dönüş Saati <span class="text-danger">*</span>
+                                </label>
+                                <input type="datetime-local" id="approveEndTime" name="ConfirmedEndTime" class="form-control font-weight-bold" required />
+                                <small class="form-text text-muted">Şoförün sefere fiilen döndüğü saat</small>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded bg-light border d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+                            <div>
+                                <small class="text-muted font-weight-bold d-block"><i class="fa fa-hourglass-half text-info mr-1"></i> Onaylanan Fiili Görev Süresi:</small>
+                                <span class="font-weight-bold text-dark font-15" id="calcDutyDurationText">0 Saat 0 Dakika</span>
+                                <span class="text-muted small" id="calcDutyDecimalHoursText">(0.00 Saat)</span>
+                            </div>
+                            <div id="divQuickDurationButtons" class="mt-2 mt-sm-0 d-none">
+                                <span class="small text-muted font-weight-bold mr-1">Hızlı Süre Belirle:</span>
+                                <div class="btn-group btn-group-xs">
+                                    <button type="button" class="btn btn-outline-secondary btn-xs font-weight-bold" onclick="setQuickDutyHours(1)">1 Sa</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-xs font-weight-bold" onclick="setQuickDutyHours(2)">2 Sa</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-xs font-weight-bold" onclick="setQuickDutyHours(4)">4 Sa</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-xs font-weight-bold" onclick="setQuickDutyHours(8)">8 Sa</button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="approveHourlyRate" name="HourlyRate" value="" />
+                    </div>
+
+                    <!-- BLOK 1: GÖREV ÜCRETİ HESAPLAMA (OPSİYONEL) -->
+                    <div class="border rounded p-3 mb-3 bg-white">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center border-bottom pb-2 mb-3">
+                            <div>
+                                <h6 class="font-weight-bold text-dark mb-0">
+                                    <i class="fa fa-money text-warning mr-1"></i> 1. Görev Ücreti (Opsiyonel)
+                                </h6>
+                                <small class="text-muted">Saatlik veya günlük ücret belirleyebilirsiniz. Boş bırakılırsa 0 ₺ olarak kaydedilir.</small>
+                            </div>
+                            <div class="btn-group btn-group-sm mt-2 mt-sm-0">
+                                <button type="button" class="btn btn-xs btn-primary font-weight-bold" id="btnApprovePerDiemHourly" onclick="setApprovePerDiemMode('Hourly')">
+                                    <i class="fa fa-clock-o mr-1"></i> Saatlik Ücret
+                                </button>
+                                <button type="button" class="btn btn-xs btn-outline-secondary font-weight-bold" id="btnApprovePerDiemDaily" onclick="setApprovePerDiemMode('Daily')">
+                                    <i class="fa fa-calendar mr-1"></i> Günlük Ücret
+                                </button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="approvePerDiemType" name="PerDiemType" value="Hourly" />
+                        <div class="row">
+                            <!-- Saatlik Süre (Hourly) -->
+                            <div class="col-md-4 col-12 form-group" id="approvePerDiemHoursGroup">
+                                <label class="font-weight-bold text-dark small d-flex justify-content-between align-items-center">
+                                    <span>Fiili Görev Süresi (Saat)</span>
+                                    <span id="badgeCustomHoursIndicator" class="badge badge-warning font-weight-bold py-1 px-2 d-none">
+                                        <i class="fa fa-pencil mr-1"></i> Şef Revizesi
+                                    </span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" id="approvePerDiemHours" name="PerDiemHours" min="0" step="0.1" placeholder="0.0" class="form-control font-weight-bold text-primary" />
+                                    <div class="input-group-append"><span class="input-group-text">Saat</span></div>
+                                </div>
+                                <small class="form-text text-muted" id="approvePerDiemHoursHint">Fiili süreden otomatik aktarılır (Elle artırıp azaltabilirsiniz)</small>
+                            </div>
+                            <!-- Günlük Süre (Daily) -->
+                            <div class="col-md-4 col-12 form-group d-none" id="approvePerDiemDaysGroup">
+                                <label class="font-weight-bold text-dark small">Ücretli Gün Sayısı</label>
+                                <input type="number" id="approvePerDiemDays" name="PerDiemDays" min="0" step="1" placeholder="0 Gün" class="form-control font-weight-bold" />
+                                <small class="form-text text-muted">Gün sayısı</small>
+                            </div>
+                            <!-- Birim Ücret -->
+                            <div class="col-md-4 col-6 form-group">
+                                <label class="font-weight-bold text-dark small" id="approvePerDiemRateLabel">Saat Başına Ücret (₺)</label>
+                                <div class="input-group">
+                                    <input type="number" id="approvePerDiemRate" name="PerDiemRate" min="0" step="0.01" placeholder="0.00" class="form-control font-weight-bold text-success" />
+                                    <div class="input-group-append">
+                                        <span class="input-group-text" id="approvePerDiemRateUnit">₺/Saat</span>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Opsiyonel birim ücret</small>
+                            </div>
+                            <!-- Toplam Görev Ücreti -->
+                            <div class="col-md-4 col-6 form-group">
+                                <label class="font-weight-bold text-dark small">Toplam Ücret (₺)</label>
+                                <div class="input-group">
+                                    <input type="number" id="approvePerDiemAmount" name="PerDiemAmount" min="0" step="0.01" placeholder="0.00" class="form-control font-weight-bold text-warning" />
+                                    <div class="input-group-append">
+                                        <span class="input-group-text">₺</span>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Otomatik hesaplanır</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOK 2: KONAKLAMA MASRAFI -->
+                    <div class="border rounded p-3 mb-3 bg-white">
+                        <div class="border-bottom pb-2 mb-3">
+                            <h6 class="font-weight-bold text-dark mb-0">
+                                <i class="fa fa-bed text-primary mr-1"></i> 2. Konaklama Masrafı (Opsiyonel)
+                            </h6>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark small">Konaklanan Gece Sayısı</label>
+                                <input type="number" id="approveAccommodationNights" name="AccommodationNights" min="0" step="1" placeholder="0 Gece" class="form-control" />
+                                <small class="form-text text-muted">Varsa konaklanan gece</small>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark small">Konaklama Masrafı Tutarı (₺)</label>
+                                <div class="input-group">
+                                    <input type="number" id="approveAccommodationCost" name="AccommodationCost" min="0" step="0.01" placeholder="0.00" class="form-control font-weight-bold text-primary" />
+                                    <div class="input-group-append">
+                                        <span class="input-group-text">₺</span>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">İbraz edilen otel faturası tutarı</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOK 3: ONAY NOTU & AÇIKLAMA -->
+                    <div class="border rounded p-3 mb-3 bg-white">
+                        <div class="form-group mb-0">
+                            <label class="font-weight-bold text-dark small">
+                                <i class="fa fa-comment-o text-muted mr-1"></i> 3. Onay Notu & Açıklama
+                            </label>
+                            <input type="text" id="approveExpenseNotes" name="ExpenseNotes" class="form-control" placeholder="Varsa onay, mesai veya görev açıklaması..." />
+                        </div>
+                    </div>
+
+                    <!-- CANLI GENEL TOPLAM VE İCMAL KARTI -->
+                    <div class="card border-0 shadow-sm mt-3" style="background: linear-gradient(135deg, #1ab394 0%, #0e6251 100%); color: #ffffff; border-radius: 10px;">
+                        <div class="card-body p-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-7 border-right border-white-50 mb-3 mb-md-0">
+                                    <span class="text-white-50 small text-uppercase font-weight-bold d-block mb-1">Maliyet Dağılımı İcmali</span>
+                                    <div class="d-flex justify-content-between text-white-50 small mb-1">
+                                        <span>Onaylanan Sefer Süresi:</span>
+                                        <strong class="text-white" id="summaryDutyDuration">0 Saat 0 Dk</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-white-50 small mb-1">
+                                        <span>Görev Ücreti:</span>
+                                        <strong class="text-white" id="summaryPerDiem">0,00 ₺</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-white-50 small">
+                                        <span>Konaklama Masrafı:</span>
+                                        <strong class="text-white" id="summaryAccommodation">0,00 ₺</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-5 text-center text-md-right">
+                                    <span class="text-white-50 small text-uppercase font-weight-bold d-block">TOPLAM SEYAHAT GİDERİ</span>
+                                    <h2 class="font-weight-bold text-white mb-0" id="calcGrandTotalText" style="font-size: 2.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                                        0,00 ₺
+                                    </h2>
+                                    <small class="text-white-50 d-block mt-1">(Ücret + Konaklama)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="approveTimeErrorAlert" class="alert alert-danger mt-3 py-2 px-3 d-none" style="border-radius: 6px;">
+                        <i class="fa fa-exclamation-triangle mr-2"></i>
+                        <span id="approveTimeErrorText">Dönüş saati, çıkış saatinden sonra olmalıdır.</span>
+                    </div>
+
+                    <div class="text-muted small mt-3">
+                        <i class="fa fa-lock text-secondary mr-1"></i>
+                        <strong>Gizlilik Notu:</strong> Bu saat onayı ve görev maliyeti hesaplama verileri yalnızca Yönetici ve Şef yetkililerine açıktır, şoför ekranında gösterilmez.
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light d-flex flex-column-reverse flex-sm-row justify-content-end align-items-stretch align-items-sm-center">
+                    <button type="button" class="btn btn-secondary mt-2 mt-sm-0" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" id="btnSubmitApproveEnd" class="btn btn-success font-weight-bold px-4 shadow-sm">
+                        <i class="fa fa-check-circle mr-1"></i> Görevi & Tüm Maliyetleri Onayla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/plugins/select2/select2.full.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2-filter').select2({
+            width: '100%',
+            dropdownAutoWidth: true,
+            language: {
+                noResults: function () {
+                    return "Eşleşen sonuç bulunamadı";
+                }
+            }
+        }).on('select2:select', function () {
+            $(this).closest('form').submit();
+        });
+    });
+
+    function openCancelModal(assignmentId, plate, driverName) {
+        $('#cancelAssignmentInfo').text(plate + ' / ' + driverName);
+        $('#cancelAssignmentForm').attr('action', '/Assignment/Cancel/' + assignmentId);
+        $('#cancelAssignmentModal').modal('show');
+    }
+
+    function openStartDirectModal(assignmentId, plate, driverName) {
+        $('#startDirectInfo').text(plate + ' / ' + driverName);
+        $('#startDirectForm').attr('action', '/Assignment/StartDirect/' + assignmentId);
+        $('#startDirectModal').modal('show');
+    }
+
+    function openEndDirectModal(assignmentId, plate, driverName, startKm) {
+        $('#endDirectInfo').text(plate + ' / ' + driverName);
+        $('#endDirectForm').attr('action', '/Assignment/EndDirect/' + assignmentId);
+        if (startKm > 0) {
+            $('#endDirectKmInput').attr('min', startKm);
+            $('#endDirectKmHelp').text('Başlangıç KM: ' + startKm.toLocaleString() + ' KM (Bitiş KM bundan küçük olamaz)');
+        } else {
+            $('#endDirectKmInput').removeAttr('min');
+            $('#endDirectKmHelp').text('');
+        }
+        $('#endDirectModal').modal('show');
+    }
+
+    var _currentPlannedHours = 0;
+    var _initialPlannedNights = 0;
+    var _driverStartTimeIso = '';
+    var _driverEndTimeIso = '';
+    var _isTimeEditActive = false;
+
+    function openApproveEndModal(assignmentId, plate, driverName, startTimeIso, endTimeIso, startKm, endKm, accNights, accCost, perDiemType, perDiemHours, perDiemRate, perDiemDays, perDiemAmount, notes, plannedHours) {
+        $('#approveEndCalculationForm').attr('action', '/Assignment/ApproveEnd/' + assignmentId);
+        $('#approveEndVehiclePlate').text(plate);
+        $('#approveEndDriverName').text(driverName);
+        $('#approveEndStartKmText').text(startKm ? startKm.toLocaleString() + ' KM' : '-');
+        $('#approveEndEndKmText').text(endKm ? endKm.toLocaleString() + ' KM' : '-');
+        
+        var totalKm = (endKm && startKm && endKm >= startKm) ? (endKm - startKm) : 0;
+        $('#approveEndTotalKmBadge').text(totalKm.toLocaleString() + ' KM');
+
+        _driverStartTimeIso = startTimeIso;
+        _driverEndTimeIso = endTimeIso;
+        _isTimeEditActive = false;
+
+        $('#approveStartTime').val(startTimeIso);
+        $('#approveEndTime').val(endTimeIso);
+        $('#approveHourlyRate').val('').css({ 'border': '', 'background-color': '' });
+        $('#approveTimeErrorAlert').addClass('d-none');
+        $('#btnSubmitApproveEnd').prop('disabled', false).html('<i class="fa fa-check-circle mr-1"></i> Görevi & Tüm Maliyetleri Onayla');
+
+        // Değişiklik arayüz durumunu sıfırla
+        $('#approvePerDiemHours').data('user-edited', false);
+        $('#badgeCustomHoursIndicator').addClass('d-none');
+        $('#timeEditActiveAlert').addClass('d-none');
+        $('#divQuickDurationButtons').addClass('d-none');
+        $('#approveTimeCard').removeClass('border-warning shadow-sm').addClass('border');
+        $('#btnToggleTimeEdit').removeClass('btn-warning').addClass('btn-outline-warning text-dark').html('<i class="fa fa-pencil mr-1"></i> Saatlerde / Sürede Değişiklik Yap');
+        $('#badgeTimeEditStatus').html('<i class="fa fa-check-circle text-success mr-1"></i> Şoförün Bildirimi').removeClass('badge-warning text-dark font-weight-bold').addClass('badge-light text-muted');
+
+        _initialPlannedNights = parseInt(accNights) || 0;
+        _currentPlannedHours = parseFloat(plannedHours) || 0;
+        $('#approvePlannedHoursBadge').text(_currentPlannedHours.toFixed(2) + ' Saat');
+
+        $('#approveAccommodationNights').val(accNights && accNights > 0 ? accNights : '');
+        $('#approveAccommodationCost').val(accCost && parseFloat(accCost) > 0 ? parseFloat(accCost).toFixed(2) : '');
+        
+        // Yevmiye tipi ve alanları
+        setApprovePerDiemMode(perDiemType || 'Hourly');
+        $('#approvePerDiemHours').val(perDiemHours && parseFloat(perDiemHours) > 0 ? parseFloat(perDiemHours).toFixed(1) : '');
+        $('#approvePerDiemRate').val(perDiemRate && parseFloat(perDiemRate) > 0 ? parseFloat(perDiemRate).toFixed(2) : '');
+        $('#approvePerDiemDays').val(perDiemDays && perDiemDays > 0 ? perDiemDays : '');
+        $('#approvePerDiemAmount').val(perDiemAmount && parseFloat(perDiemAmount) > 0 ? parseFloat(perDiemAmount).toFixed(2) : '');
+        $('#approveExpenseNotes').val(notes || '');
+        
+        recalculateApproveEndFee();
+        $('#approveEndCalculationModal').modal('show');
+    }
+
+    function toggleApproveTimeEditMode() {
+        _isTimeEditActive = !_isTimeEditActive;
+        if (_isTimeEditActive) {
+            $('#timeEditActiveAlert').removeClass('d-none');
+            $('#divQuickDurationButtons').removeClass('d-none');
+            $('#approveTimeCard').removeClass('border').addClass('border-warning shadow-sm');
+            $('#btnToggleTimeEdit').removeClass('btn-outline-warning text-dark').addClass('btn-warning').html('<i class="fa fa-check mr-1"></i> Değişiklik Modu Açık');
+            $('#badgeTimeEditStatus').html('<i class="fa fa-unlock-alt text-warning mr-1"></i> Şef Düzenleme Modu').removeClass('badge-light text-muted').addClass('badge-warning text-dark font-weight-bold');
+            $('#approvePerDiemHours').focus();
+        } else {
+            $('#timeEditActiveAlert').addClass('d-none');
+            $('#divQuickDurationButtons').addClass('d-none');
+            $('#approveTimeCard').removeClass('border-warning shadow-sm').addClass('border');
+            $('#btnToggleTimeEdit').removeClass('btn-warning').addClass('btn-outline-warning text-dark').html('<i class="fa fa-pencil mr-1"></i> Saatlerde / Sürede Değişiklik Yap');
+            $('#badgeTimeEditStatus').html('<i class="fa fa-check-circle text-success mr-1"></i> Şoförün Bildirimi').removeClass('badge-warning text-dark font-weight-bold').addClass('badge-light text-muted');
+        }
+    }
+
+    function setQuickDutyHours(hours) {
+        if (!hours || hours <= 0) return;
+        
+        $('#approvePerDiemHours').val(hours.toFixed(1)).data('user-edited', true);
+        $('#badgeCustomHoursIndicator').removeClass('d-none');
+
+        // Başlangıç saati varsa dönüş saatini çıkış + hours olarak ayarla
+        var startVal = $('#approveStartTime').val();
+        if (startVal) {
+            var sDate = new Date(startVal);
+            var eDate = new Date(sDate.getTime() + (hours * 60 * 60 * 1000));
+            var pad = function(n) { return n < 10 ? '0' + n : n; };
+            var eIso = eDate.getFullYear() + '-' + pad(eDate.getMonth() + 1) + '-' + pad(eDate.getDate()) + 'T' + pad(eDate.getHours()) + ':' + pad(eDate.getMinutes());
+            $('#approveEndTime').val(eIso);
+        }
+
+        if (!$('#approveExpenseNotes').val()) {
+            $('#approveExpenseNotes').val('Şef tarafından fiili çalışma süresi ' + hours + ' saat olarak revize edildi.');
+        }
+
+        recalculateApprovePerDiemAmount();
+        recalculateApproveEndFee();
+        if (typeof toastr !== 'undefined') {
+            toastr.success('Fiili çalışma süresi ' + hours + ' saat olarak belirlendi.', 'Süre Güncellendi');
+        }
+    }
+
+    function resetToDriverOriginalTimes() {
+        $('#approveStartTime').val(_driverStartTimeIso);
+        $('#approveEndTime').val(_driverEndTimeIso);
+        $('#approvePerDiemHours').val('').data('user-edited', false);
+        $('#badgeCustomHoursIndicator').addClass('d-none');
+        recalculateApproveEndFee();
+        recalculateApprovePerDiemAmount();
+        if (typeof toastr !== 'undefined') {
+            toastr.info('Şoförün ilk bildirdiği orijinal saatlere ve süreye dönüldü.', 'Sıfırlandı');
+        }
+    }
+
+    function setApprovePerDiemMode(mode) {
+        $('#approvePerDiemType').val(mode);
+        if (mode === 'Hourly') {
+            $('#btnApprovePerDiemHourly').removeClass('btn-outline-primary').addClass('btn-primary');
+            $('#btnApprovePerDiemDaily').removeClass('btn-secondary').addClass('btn-outline-secondary');
+            $('#approvePerDiemHoursGroup').removeClass('d-none');
+            $('#approvePerDiemDaysGroup').addClass('d-none');
+            $('#approvePerDiemRateLabel').text('Saat Başına Ücret (₺)');
+            $('#approvePerDiemRateUnit').text('₺/Saat');
+        } else {
+            $('#btnApprovePerDiemDaily').removeClass('btn-outline-secondary').addClass('btn-secondary');
+            $('#btnApprovePerDiemHourly').removeClass('btn-primary').addClass('btn-outline-primary');
+            $('#approvePerDiemHoursGroup').addClass('d-none');
+            $('#approvePerDiemDaysGroup').removeClass('d-none');
+            $('#approvePerDiemRateLabel').text('Gün Başına Ücret (₺)');
+            $('#approvePerDiemRateUnit').text('₺/Gün');
+        }
+        recalculateApprovePerDiemAmount();
+        recalculateApproveEndFee();
+    }
+
+    function recalculateApprovePerDiemAmount() {
+        var mode = $('#approvePerDiemType').val();
+        var rateStr = ('' + ($('#approvePerDiemRate').val() || '')).trim().replace(',', '.');
+        var rate = parseFloat(rateStr);
+        if (!isNaN(rate) && rate > 0) {
+            if (mode === 'Hourly') {
+                var hours = parseFloat($('#approvePerDiemHours').val()) || parseFloat($('#calcCalculatedDutyHours').val()) || 0;
+                $('#approvePerDiemAmount').val((hours * rate).toFixed(2));
+            } else {
+                var days = parseFloat($('#approvePerDiemDays').val()) || 0;
+                $('#approvePerDiemAmount').val((days * rate).toFixed(2));
+            }
+        } else if (rateStr === '') {
+            $('#approvePerDiemAmount').val('');
+        }
+    }
+
+    function resetAccommodationFields() {
+        $('#approveAccommodationNights').val('0');
+        $('#approveAccommodationCost').val('0.00');
+        $('#approveEarlyReturnAlert').addClass('d-none');
+        recalculateApproveEndFee();
+    }
+
+    function recalculateApproveEndFee() {
+        var startStr = $('#approveStartTime').val();
+        var endStr = $('#approveEndTime').val();
+        var rawRate = $('#approveHourlyRate').val();
+        var hourlyRateStr = ('' + (rawRate || '')).trim().replace(',', '.');
+        var hourlyRate = parseFloat(hourlyRateStr);
+        var isHourlyRateValid = hourlyRateStr !== '' && !isNaN(hourlyRate) && hourlyRate > 0;
+
+        var currentAccNights = parseInt($('#approveAccommodationNights').val()) || 0;
+        var perDiemAmount = parseFloat($('#approvePerDiemAmount').val()) || 0;
+        var accommodationCost = parseFloat($('#approveAccommodationCost').val()) || 0;
+
+        if (!startStr || !endStr) {
+            return;
+        }
+
+        var startDate = new Date(startStr);
+        var endDate = new Date(endStr);
+        var diffMs = endDate.getTime() - startDate.getTime();
+
+        if (diffMs <= 0) {
+            $('#approveTimeErrorAlert').removeClass('d-none');
+            $('#approveTimeErrorText').text('Dönüş saati, çıkış saatinden önce veya çıkış saatiyle aynı olamaz.');
+            $('#calcDutyDurationText').text('0 Saat 0 Dakika');
+            $('#calcDutyDecimalHoursText').text('(0.00 Saat)');
+            $('#approveActualHoursBadge').text('0.00 Saat');
+            $('#calcDriverFeePreviewText').text('0,00 ₺');
+            $('#summaryDriverFee').text('0,00 ₺');
+            $('#summaryPerDiem').text(perDiemAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');
+            $('#summaryAccommodation').text(accommodationCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');
+            $('#calcGrandTotalText').text((perDiemAmount + accommodationCost).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');
+            $('#calcCalculatedDutyHours').val(0);
+            $('#calcTotalDriverFee').val(0);
+            $('#calcTotalTripExpense').val((perDiemAmount + accommodationCost).toFixed(2));
+            return;
+        }
+
+        // Zaman geçerliyse ve önceki hata zaman hatasıysa alert'i gizle
+        if ($('#approveTimeErrorText').text().indexOf('Dönüş saati') !== -1) {
+            $('#approveTimeErrorAlert').addClass('d-none');
+        }
+
+        var totalMinutes = Math.round(diffMs / (1000 * 60));
+        var hours = Math.floor(totalMinutes / 60);
+        var minutes = totalMinutes % 60;
+        var decimalHours = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+
+        var isUserEditedHours = $('#approvePerDiemHours').data('user-edited');
+        var manualHours = parseFloat($('#approvePerDiemHours').val()) || 0;
+
+        if ($('#approvePerDiemType').val() === 'Hourly') {
+            if (isUserEditedHours && manualHours > 0) {
+                $('#calcDutyDecimalHoursText').text('(' + manualHours.toFixed(2) + ' Saat - Şef Belirledi)');
+                var h = Math.floor(manualHours);
+                var m = Math.round((manualHours - h) * 60);
+                $('#calcDutyDurationText').text(h + ' Saat ' + m + ' Dakika');
+                $('#approveActualHoursBadge').text(manualHours.toFixed(2) + ' Saat (Şef)');
+                $('#calcCalculatedDutyHours').val(manualHours);
+                recalculateApprovePerDiemAmount();
+                perDiemAmount = parseFloat($('#approvePerDiemAmount').val()) || 0;
+            } else {
+                $('#calcDutyDurationText').text(hours + ' Saat ' + minutes + ' Dakika');
+                $('#calcDutyDecimalHoursText').text('(' + decimalHours.toFixed(2) + ' Saat)');
+                $('#approveActualHoursBadge').text(decimalHours.toFixed(2) + ' Saat');
+                $('#calcCalculatedDutyHours').val(decimalHours);
+                $('#approvePerDiemHours').val(decimalHours.toFixed(1));
+                recalculateApprovePerDiemAmount();
+                perDiemAmount = parseFloat($('#approvePerDiemAmount').val()) || 0;
+            }
+        } else {
+            $('#calcDutyDurationText').text(hours + ' Saat ' + minutes + ' Dakika');
+            $('#calcDutyDecimalHoursText').text('(' + decimalHours.toFixed(2) + ' Saat)');
+            $('#approveActualHoursBadge').text(decimalHours.toFixed(2) + ' Saat');
+            $('#calcCalculatedDutyHours').val(decimalHours);
+        }
+
+        // Planlanan vs Fiili Süre Fark Göstergesi
+        if (_currentPlannedHours > 0) {
+            var compareHours = (isUserEditedHours && manualHours > 0) ? manualHours : decimalHours;
+            var diff = compareHours - _currentPlannedHours;
+            if (Math.abs(diff) < 0.1) {
+                $('#approveDurationDeltaBadge').text('Tam Zamanında').attr('class', 'badge badge-success ml-1');
+            } else if (diff < 0) {
+                $('#approveDurationDeltaBadge').text(Math.abs(diff).toFixed(1) + ' Saat Erken').attr('class', 'badge badge-primary ml-1');
+            } else {
+                $('#approveDurationDeltaBadge').text(diff.toFixed(1) + ' Saat Gecikmeli').attr('class', 'badge badge-warning ml-1');
+            }
+        }
+
+        // Akıllı Erken Dönüş / Konaklama Kontrolü
+        if (_initialPlannedNights > 0 && decimalHours <= 24 && currentAccNights > 0) {
+            $('#approveEarlyReturnText').html('Bu görev planlanırken <strong>' + _initialPlannedNights + ' Gece Konaklama</strong> öngörülmüş; ancak fiili görev aynı gün içinde (<strong>' + decimalHours.toFixed(2) + ' Saat</strong>) tamamlanmıştır. Şoför konaklama yapmadıysa sıfırlayınız.');
+            $('#approveEarlyReturnAlert').removeClass('d-none');
+        } else {
+            $('#approveEarlyReturnAlert').addClass('d-none');
+        }
+
+        // İcmal Kartı (Görev Ücreti + Konaklama)
+        var grandTotal = Math.round((perDiemAmount + accommodationCost) * 100) / 100;
+        var displayHours = (isUserEditedHours && manualHours > 0) ? Math.floor(manualHours) : hours;
+        var displayMins = (isUserEditedHours && manualHours > 0) ? Math.round((manualHours - displayHours) * 60) : minutes;
+        $('#summaryDutyDuration').text(displayHours + ' Saat ' + displayMins + ' Dk');
+        $('#summaryPerDiem').text(perDiemAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');
+        $('#summaryAccommodation').text(accommodationCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');
+        $('#calcGrandTotalText').text(grandTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');
+
+        $('#calcTotalDriverFee').val(0);
+        $('#calcTotalTripExpense').val(grandTotal.toFixed(2));
+    }
+
+    $(document).on('input change', '#approveStartTime, #approveEndTime, #approvePerDiemRate, #approvePerDiemDays, #approvePerDiemAmount, #approveAccommodationCost, #approveAccommodationNights', function() {
+        if ($(this).is('#approvePerDiemRate, #approvePerDiemDays')) {
+            recalculateApprovePerDiemAmount();
+        }
+        recalculateApproveEndFee();
+    });
+
+    $(document).on('input', '#approvePerDiemHours', function() {
+        var valStr = ('' + ($(this).val() || '')).trim().replace(',', '.');
+        var val = parseFloat(valStr) || 0;
+        if (val > 0) {
+            $(this).data('user-edited', true);
+            $('#badgeCustomHoursIndicator').removeClass('d-none');
+
+            // Başlangıç saati varsa dönüş saatini süreye uyarla
+            var startVal = $('#approveStartTime').val();
+            if (startVal) {
+                var sDate = new Date(startVal);
+                var eDate = new Date(sDate.getTime() + (val * 60 * 60 * 1000));
+                var pad = function(n) { return n < 10 ? '0' + n : n; };
+                var eIso = eDate.getFullYear() + '-' + pad(eDate.getMonth() + 1) + '-' + pad(eDate.getDate()) + 'T' + pad(eDate.getHours()) + ':' + pad(eDate.getMinutes());
+                $('#approveEndTime').val(eIso);
+            }
+        } else {
+            $(this).data('user-edited', false);
+            $('#badgeCustomHoursIndicator').addClass('d-none');
+        }
+        recalculateApprovePerDiemAmount();
+        recalculateApproveEndFee();
+    });
+
+    $('#approveEndCalculationForm').on('submit', function (e) {
+        var startStr = $('#approveStartTime').val();
+        var endStr = $('#approveEndTime').val();
+
+        if (!startStr || !endStr) {
+            e.preventDefault();
+            $('#approveTimeErrorAlert').removeClass('d-none');
+            $('#approveTimeErrorText').text('Lütfen başlangıç ve bitiş saatlerini eksiksiz giriniz.');
+            $('#approveStartTime').focus();
+            return false;
+        }
+
+        var startDate = new Date(startStr);
+        var endDate = new Date(endStr);
+        if (endDate.getTime() <= startDate.getTime()) {
+            e.preventDefault();
+            $('#approveTimeErrorAlert').removeClass('d-none');
+            $('#approveTimeErrorText').text('Dönüş saati, çıkış saatinden sonra olmalıdır.');
+            $('#approveEndTime').focus();
+            return false;
+        }
+
+        $('#btnSubmitApproveEnd').prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Onaylanıyor...');
+        return true;
+    });
+</script>
+}

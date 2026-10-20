@@ -1,0 +1,368 @@
+@model aractakipsys.Models.ViewModels.VehicleRequest.VehicleRequestCreateViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Araç Talebi - Düzce Üniversitesi";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+
+    <link href="~/css/bootstrap.min.css" rel="stylesheet">
+    <link href="~/font-awesome/css/font-awesome.css" rel="stylesheet">
+    <link href="~/css/animate.css" rel="stylesheet">
+    <link href="~/css/style.css" rel="stylesheet">
+
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        html {
+            background-color: #1e3c72 !important;
+            min-height: 100%;
+        }
+        body {
+            background-color: #1e3c72 !important;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0 16px;
+            box-sizing: border-box;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        .request-card {
+            margin: 40px auto 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 540px;
+            padding: 35px 32px;
+            border: none;
+        }
+        .bottom-spacer {
+            height: 40px;
+            width: 100%;
+            flex-shrink: 0;
+        }
+        .request-logo-wrap {
+            display: inline-block;
+            margin: 0 auto 10px auto;
+            text-align: center;
+        }
+        .request-univ-logo {
+            max-height: 82px;
+            width: auto;
+            max-width: 155px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.04));
+            transition: transform 0.25s ease;
+        }
+        .request-univ-logo:hover {
+            transform: scale(1.02);
+        }
+        .form-control {
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            border: 1px solid #d1d5db;
+        }
+        .form-control:focus {
+            border-color: #2a5298;
+            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.15);
+        }
+        .input-group-text {
+            border-radius: 8px 0 0 8px;
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-right: none;
+            color: #6b7280;
+        }
+        .input-group .form-control {
+            border-radius: 0 8px 8px 0;
+            border-left: none;
+        }
+        .btn-submit {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border: none;
+            color: #ffffff;
+            height: 48px;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+        }
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #162c55 0%, #1f3f75 100%);
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(30, 60, 114, 0.3);
+        }
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+        .field-label {
+            font-weight: 600;
+            font-size: 0.82rem;
+            color: #4b5563;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+        @@media (max-width: 576px) {
+            body {
+                padding: 0 16px;
+            }
+            .request-card {
+                margin: 20px auto 0 auto;
+                padding: 22px 16px;
+                border-radius: 14px;
+                max-width: calc(100vw - 32px);
+            }
+            .form-control {
+                font-size: 16px !important;
+            }
+            .bottom-spacer {
+                height: 20px;
+            }
+            .request-univ-logo {
+                max-height: 70px;
+                max-width: 135px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="request-card animated fadeInDown">
+        <!-- KURUM BAŞLIĞI VE LOGO -->
+        <div class="text-center mb-3">
+            <div class="request-logo-wrap">
+                <img src="~/img/duzce_logo.png" alt="Düzce Üniversitesi" class="request-univ-logo" />
+            </div>
+            <div class="text-muted font-weight-bold small text-uppercase" style="letter-spacing: 0.8px; font-size: 0.8rem; color: #4b5563;">
+                Araç Takip ve Görevlendirme Sistemi
+            </div>
+            <div class="badge badge-secondary mt-2 px-3 py-1 font-weight-bold" style="font-size: 0.8rem; background-color: #1e3c72;">
+                Araç Talep Formu
+            </div>
+        </div>
+
+        <div class="info-box">
+            <i class="fa fa-info-circle mr-1"></i>
+            Araç talepleri yalnızca <strong>@@duzce.edu.tr</strong> uzantılı kurumsal e-posta adresleri üzerinden kabul edilmektedir.
+        </div>
+
+        <!-- HATA BİLDİRİMİ -->
+        @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            <div class="alert alert-danger p-3 mb-3 rounded" role="alert" style="font-size: 0.9rem;">
+                <i class="fa fa-exclamation-circle mr-1"></i>
+                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                {
+                    <span>@error.ErrorMessage</span>
+                }
+            </div>
+        }
+
+        <!-- TALEP FORMU -->
+        <form action="/AracTalebi" method="post" id="requestForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="RequestType" value="OfficialTrip" />
+
+            <!-- 1. AD SOYAD -->
+            <div class="form-group mb-3">
+                <label asp-for="RequesterFullName" class="field-label">
+                    Ad Soyad <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fa fa-user"></i></span>
+                    </div>
+                    <input asp-for="RequesterFullName" class="form-control" placeholder="Adınız ve Soyadınız" required />
+                </div>
+                <span asp-validation-for="RequesterFullName" class="text-danger small font-weight-bold"></span>
+            </div>
+
+            <!-- 2. E-POSTA -->
+            <div class="form-group mb-3">
+                <label asp-for="RequesterEmail" class="field-label">
+                    E-Posta (@@duzce.edu.tr) <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fa fa-envelope"></i></span>
+                    </div>
+                    <input asp-for="RequesterEmail" type="email" class="form-control" placeholder="ornek@duzce.edu.tr" required />
+                </div>
+                <small class="text-muted" style="font-size: 0.78rem;">* @("@duzce.edu.tr") uzantısı zorunludur.</small>
+                <span asp-validation-for="RequesterEmail" class="text-danger small font-weight-bold d-block"></span>
+            </div>
+
+            <!-- 3. TELEFON -->
+            <div class="form-group mb-3">
+                <label asp-for="RequesterPhone" class="field-label">
+                    Telefon <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fa fa-phone"></i></span>
+                    </div>
+                    <input asp-for="RequesterPhone" type="tel" class="form-control" placeholder="05xx xxx xx xx" maxlength="14" autocomplete="tel" required />
+                </div>
+                <small class="text-muted d-block mt-1" style="font-size: 0.8rem;">
+                    <i class="fa fa-info-circle mr-1"></i> Cep telefonu 10 veya 11 hane olmalıdır (Örn: 05xx xxx xx xx).
+                </small>
+                <span asp-validation-for="RequesterPhone" class="text-danger small font-weight-bold d-block mt-1"></span>
+            </div>
+
+            <!-- 4. FAKÜLTE / DAİRE BAŞKANLIĞI / BİRİM -->
+            <div class="form-group mb-3">
+                <label asp-for="Department" class="field-label">
+                    Fakülte / Daire Başkanlığı / Birim <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fa fa-university"></i></span>
+                    </div>
+                    <input asp-for="Department" class="form-control" list="departmentList" placeholder="Birim seçiniz veya yazınız (örn: Mühendislik Fakültesi)" required autocomplete="off" />
+                </div>
+                <datalist id="departmentList">
+                    <option value="Rektörlük / Genel Sekreterlik"></option>
+                    <option value="Tıp Fakültesi"></option>
+                    <option value="Mühendislik Fakültesi"></option>
+                    <option value="Fen Edebiyat Fakültesi"></option>
+                    <option value="İlahiyat Fakültesi"></option>
+                    <option value="Eğitim Fakültesi"></option>
+                    <option value="Orman Fakültesi"></option>
+                    <option value="İşletme Fakültesi"></option>
+                    <option value="Sanat, Tasarım ve Mimarlık Fakültesi"></option>
+                    <option value="Ziraat Fakültesi"></option>
+                    <option value="Sağlık Bilimleri Fakültesi"></option>
+                    <option value="Spor Bilimleri Fakültesi"></option>
+                    <option value="Teknoloji Fakültesi"></option>
+                    <option value="Eczacılık Fakültesi"></option>
+                    <option value="Lisansüstü Eğitim Enstitüsü"></option>
+                    <option value="Düzce Meslek Yüksekokulu"></option>
+                    <option value="Sağlık Hizmetleri MYO"></option>
+                    <option value="Sosyal Bilimler MYO"></option>
+                    <option value="Ormancılık MYO"></option>
+                    <option value="Akçakoca Bey SBF"></option>
+                    <option value="Akçakoca Turizm İşletmeciliği ve Otelcilik YO"></option>
+                    <option value="Bilgi İşlem Daire Başkanlığı"></option>
+                    <option value="İdari ve Mali İşler Daire Başkanlığı"></option>
+                    <option value="Personel Daire Başkanlığı"></option>
+                    <option value="Sağlık Kültür ve Spor Daire Başkanlığı"></option>
+                    <option value="Öğrenci İşleri Daire Başkanlığı"></option>
+                    <option value="Yapı İşleri ve Teknik Daire Başkanlığı"></option>
+                    <option value="Kütüphane ve Dokümantasyon Daire Başkanlığı"></option>
+                    <option value="Strateji Geliştirme Daire Başkanlığı"></option>
+                    <option value="Döner Sermaye İşletme Müdürlüğü"></option>
+                    <option value="Hukuk Müşavirliği"></option>
+                </datalist>
+                <small class="text-muted" style="font-size: 0.78rem;">* Listeden seçebilir veya bağlı olduğunuz birimi doğrudan yazabilirsiniz.</small>
+                <span asp-validation-for="Department" class="text-danger small font-weight-bold d-block"></span>
+            </div>
+
+            <!-- 5. TALEP AMACI -->
+            <div class="form-group mb-4">
+                <label asp-for="Purpose" class="field-label">
+                    Talep Amacı <span class="text-danger">*</span>
+                </label>
+                <div class="input-group align-items-stretch">
+                    <div class="input-group-prepend d-flex">
+                        <span class="input-group-text d-flex align-items-center justify-content-center px-3" style="border-radius: 8px 0 0 8px; border-right: none; height: 100%;">
+                            <i class="fa fa-comment text-muted"></i>
+                        </span>
+                    </div>
+                    <textarea asp-for="Purpose" class="form-control" rows="4" 
+                              style="border-radius: 0 8px 8px 0; resize: vertical;"
+                              placeholder="Aracı ne için talep ettiğinizi, gidilecek güzergahı ve görev amacını belirtiniz..." required></textarea>
+                </div>
+                <span asp-validation-for="Purpose" class="text-danger small font-weight-bold"></span>
+            </div>
+
+            <!-- GÖNDER BUTONU -->
+            <button type="submit" class="btn btn-submit btn-block shadow-sm" id="btnSubmit">
+                <i class="fa fa-paper-plane mr-1"></i> Talebi Gönder
+            </button>
+        </form>
+
+        <div class="text-center mt-3 pt-2">
+            <a href="/Account/Login" class="text-muted small font-weight-bold" style="text-decoration: none;">
+                <i class="fa fa-sign-in mr-1"></i> Yetkili / Şoför Girişi &rarr;
+            </a>
+        </div>
+
+        <div class="text-center text-muted small mt-3 pt-3 border-top">
+            &copy; 2026 Düzce Üniversitesi — Bilgi İşlem Daire Başkanlığı
+        </div>
+    </div>
+    <div class="bottom-spacer" aria-hidden="true"></div>
+
+    <script src="~/js/jquery-3.1.1.min.js"></script>
+    <script src="~/js/bootstrap.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Telefon numarası otomatik formatlama (05xx xxx xx xx)
+            $('#RequesterPhone').on('input', function () {
+                var digits = $(this).val().replace(/\D/g, '');
+                if (digits.length > 0) {
+                    if (digits.startsWith('90') && digits.length > 10) {
+                        digits = '0' + digits.substring(2);
+                    }
+                    if (digits.length > 0 && digits[0] !== '0') {
+                        digits = '0' + digits;
+                    }
+                    if (digits.length > 11) {
+                        digits = digits.substring(0, 11);
+                    }
+
+                    var formatted = digits.substring(0, Math.min(4, digits.length));
+                    if (digits.length > 4) {
+                        formatted += ' ' + digits.substring(4, Math.min(7, digits.length));
+                    }
+                    if (digits.length > 7) {
+                        formatted += ' ' + digits.substring(7, Math.min(9, digits.length));
+                    }
+                    if (digits.length > 9) {
+                        formatted += ' ' + digits.substring(9, 11);
+                    }
+                    $(this).val(formatted);
+                }
+            });
+
+            $('#requestForm').on('submit', function () {
+                if ($(this).valid()) {
+                    var btn = $('#btnSubmit');
+                    btn.prop('disabled', true);
+                    btn.html('<i class="fa fa-spinner fa-spin mr-2"></i> İletiliyor...');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+appsettings.Production.json
+*.local.json
+App_Data/
+wwwroot/uploads/
+scratch/

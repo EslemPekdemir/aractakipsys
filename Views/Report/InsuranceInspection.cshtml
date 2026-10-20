@@ -1,0 +1,634 @@
+<!-- File: Views/Report/InsuranceInspection.cshtml -->
+@model aractakipsys.Models.ViewModels.Report.InsuranceInspectionReportViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Sigorta ve Muayene Durum Raporu";
+
+    var exportPdfUrl = Url.Action("ExportInsuranceInspectionPdf", new { 
+        scope = Model.Filter.Scope, 
+        filterOption = Model.Filter.FilterOption, 
+        startDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"),
+        endDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"),
+        dateTarget = Model.Filter.DateTarget,
+        searchTerm = Model.Filter.SearchTerm 
+    });
+
+    var pdfLabel = Model.Filter.Scope switch {
+        aractakipsys.Models.ViewModels.Report.ReportScopeType.Insurance => "Sigorta PDF Raporu",
+        aractakipsys.Models.ViewModels.Report.ReportScopeType.Inspection => "Muayene PDF Raporu",
+        _ => "Sigorta & Muayene PDF Raporu"
+    };
+
+    if (Model.Filter.FilterOption == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.Expired)
+        pdfLabel += " (Süresi Geçenler)";
+    else if (Model.Filter.FilterOption == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.ExpiringSoon)
+        pdfLabel += " (30 Gün Kalanlar)";
+    else if (Model.Filter.FilterOption == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.CustomDate)
+        pdfLabel += " (Özel Tarih)";
+
+    pdfLabel += $" ({Model.TotalCount} Araç)";
+}
+
+@section Styles {
+    <link href="~/css/plugins/select2/select2.min.css" rel="stylesheet">
+    <style>
+        .select2-container--default .select2-selection--single {
+            height: 35px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            padding: 3px 6px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 27px;
+            color: #495057;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 33px;
+        }
+        .select2-dropdown {
+            border: 1px solid #1ab394;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2050;
+        }
+        .select2-results__options {
+            max-height: 200px !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #1ab394;
+        }
+        /* Responsive 2x2 Grid KPI Kartları */
+        .report-kpi-row .ibox {
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            transition: transform 0.15s ease;
+        }
+        .report-kpi-row .ibox-title {
+            padding: 8px 12px 2px 12px !important;
+            min-height: auto !important;
+        }
+        .report-kpi-row .ibox-title h5 {
+            font-size: 0.72rem !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+        .report-kpi-row .ibox-title .label {
+            font-size: 0.65rem !important;
+            padding: 2px 5px !important;
+        }
+        .report-kpi-row .ibox-content {
+            padding: 4px 12px 10px 12px !important;
+        }
+        .report-kpi-row .kpi-num {
+            font-size: 1.5rem !important;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 2px !important;
+        }
+        .report-kpi-row .ibox-content small {
+            font-size: 0.68rem !important;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .preset-btn {
+            font-size: 0.78rem;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+        .preset-btn-container {
+            gap: 4px;
+        }
+        .table-danger:hover {
+            background-color: #fde8e8 !important;
+        }
+        @@media (max-width: 576px) {
+            .report-kpi-row .ibox-title {
+                padding: 6px 8px 2px 8px !important;
+            }
+            .report-kpi-row .ibox-title h5 {
+                font-size: 0.65rem !important;
+            }
+            .report-kpi-row .ibox-content {
+                padding: 4px 8px 6px 8px !important;
+            }
+            .report-kpi-row .kpi-num {
+                font-size: 1.3rem !important;
+            }
+            .report-kpi-row .ibox-content small {
+                font-size: 0.62rem !important;
+            }
+            .preset-btn-container {
+                width: 100%;
+            }
+            .preset-btn-container .preset-btn {
+                flex: 1 1 auto;
+                text-align: center;
+                padding: 4px 6px;
+                font-size: 0.75rem;
+            }
+            .filter-action-buttons {
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 8px !important;
+            }
+            .filter-action-buttons .btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+    </style>
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-12">
+        <h2 class="font-weight-bold">Sigorta ve Muayene Durum Raporu</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/Report">Raporlar</a></li>
+            <li class="breadcrumb-item active"><strong>Sigorta & Muayene</strong></li>
+        </ol>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight p-0">
+    <!-- RAPOR TÜRÜ SEKMELERİ -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <ul class="nav nav-pills p-2 bg-white rounded shadow-sm font-weight-bold d-flex flex-wrap" style="border: 1px solid #e7eaec; gap: 4px;">
+                <li class="nav-item mr-2 mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report">
+                        <i class="fa fa-road mr-1"></i> Sefer & Kullanım Raporu
+                    </a>
+                </li>
+                <li class="nav-item mr-2 mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report/Maintenance">
+                        <i class="fa fa-wrench mr-1"></i> Araç Bakım & Tamir Dökümü
+                    </a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link active bg-primary text-white py-2 px-3 shadow-sm" href="/Report/InsuranceInspection">
+                        <i class="fa fa-shield mr-1"></i> Sigorta & Muayene Durum Raporu
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-exclamation-circle mr-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    <!-- FİLTRELEME FORMU -->
+    <div class="ibox float-e-margins mb-4 shadow-sm">
+        <div class="ibox-title bg-light py-2" style="height: auto; min-height: auto;">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center w-100">
+                <h5 class="font-weight-bold text-dark mb-1 mb-sm-0" style="float: none;">
+                    <i class="fa fa-filter mr-1 text-primary"></i> Rapor Filtreleme Kriterleri
+                </h5>
+                <div style="float: none;">
+                    <small class="text-muted">Kapsam ve kriter seçerek belgelerin geçerlilik durumunu filtreleyin</small>
+                </div>
+            </div>
+        </div>
+        <div class="ibox-content p-3 border-left border-primary" style="border-left-width: 4px !important;">
+            <form method="get" action="/Report/InsuranceInspection" id="filterForm">
+                <input type="hidden" name="DateTarget" value="@(Model.Filter.DateTarget ?? "ExpiryDate")" />
+                <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                <div class="row">
+                    <!-- Belge Kapsamı -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Belge Kapsamı</label>
+                        <select name="Scope" class="form-control select2" id="selectScope">
+                            <option value="All" selected="@(Model.Filter.Scope == aractakipsys.Models.ViewModels.Report.ReportScopeType.All)">-- Tüm Belgeler (Sigorta + Muayene) --</option>
+                            <option value="Insurance" selected="@(Model.Filter.Scope == aractakipsys.Models.ViewModels.Report.ReportScopeType.Insurance)">Sadece Trafik Sigortası</option>
+                            <option value="Inspection" selected="@(Model.Filter.Scope == aractakipsys.Models.ViewModels.Report.ReportScopeType.Inspection)">Sadece Fenni Muayene</option>
+                        </select>
+                    </div>
+
+                    <!-- Durum Kriteri -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Durum Kriteri</label>
+                        <select name="FilterOption" class="form-control select2" id="selectFilterOption">
+                            <option value="All" selected="@(Model.Filter.FilterOption == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.All)">-- Tümü (Tüm Filo) --</option>
+                            <option value="Expired" selected="@(Model.Filter.FilterOption == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.Expired)">Süresi Geçenler (Kritik)</option>
+                            <option value="ExpiringSoon" selected="@(Model.Filter.FilterOption == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.ExpiringSoon)">30 Gün Kalanlar (Yaklaşan)</option>
+                        </select>
+                    </div>
+
+                    <!-- Plaka / Model Arama -->
+                    <div class="col-lg-2 col-md-4 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Plaka / Model Ara</label>
+                        <input type="text" name="SearchTerm" class="form-control" placeholder="Örn: 81 DU 112..." value="@Model.Filter.SearchTerm" style="height: 35px;" />
+                    </div>
+
+                    <!-- Başlangıç Tarihi -->
+                    <div class="col-lg-2 col-md-4 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Başlangıç Tarihi</label>
+                        <input type="date" name="StartDate" id="filterStartDate" class="form-control" 
+                               value="@(Model.Filter.StartDate?.ToString("yyyy-MM-dd"))" style="height: 35px;" />
+                    </div>
+
+                    <!-- Bitiş Tarihi -->
+                    <div class="col-lg-2 col-md-4 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Bitiş Tarihi</label>
+                        <input type="date" name="EndDate" id="filterEndDate" class="form-control" 
+                               value="@(Model.Filter.EndDate?.ToString("yyyy-MM-dd"))" style="height: 35px;" />
+                    </div>
+                </div>
+
+                <!-- Hazır Kısayollar ve İşlem Butonları -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top">
+                    <div class="d-flex flex-wrap align-items-center my-1">
+                        <span class="small font-weight-bold text-muted mr-2 my-1">
+                            <i class="fa fa-clock-o mr-1"></i> Hızlı Filtre:
+                        </span>
+                        @{
+                            var currentOpt = Model.Filter.FilterOption;
+                            var isAllActive = (currentOpt == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.All || currentOpt == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.CustomDate) && !Model.Filter.StartDate.HasValue && !Model.Filter.EndDate.HasValue;
+                            var isExpiredActive = currentOpt == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.Expired;
+                            var isExpiringSoonActive = currentOpt == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.ExpiringSoon;
+                            var isNext30Days = Model.Filter.StartDate?.Date == DateTime.Today && Model.Filter.EndDate?.Date == DateTime.Today.AddDays(30);
+                            var isNext60Days = Model.Filter.StartDate?.Date == DateTime.Today && Model.Filter.EndDate?.Date == DateTime.Today.AddDays(60);
+                        }
+                        <div class="d-inline-flex flex-wrap my-1 preset-btn-container">
+                            <button type="button" class="btn @(isAllActive && !isNext30Days && !isNext60Days ? "btn-primary text-white" : "btn-outline-secondary") preset-btn" onclick="applyQuickStatus('All')">Tümü</button>
+                            <button type="button" class="btn @(isExpiredActive ? "btn-primary text-white" : "btn-outline-secondary") preset-btn" onclick="applyQuickStatus('Expired')">Süresi Geçenler</button>
+                            <button type="button" class="btn @(isExpiringSoonActive ? "btn-primary text-white" : "btn-outline-secondary") preset-btn" onclick="applyQuickStatus('ExpiringSoon')">30 Gün Kalanlar</button>
+                            <button type="button" class="btn @(isNext30Days ? "btn-primary text-white" : "btn-outline-secondary") preset-btn" onclick="setQuickDateRange(30)">Önümüzdeki 30 Gün</button>
+                            <button type="button" class="btn @(isNext60Days ? "btn-primary text-white" : "btn-outline-secondary") preset-btn" onclick="setQuickDateRange(60)">Önümüzdeki 60 Gün</button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center my-1 filter-action-buttons">
+                        <a href="/Report/InsuranceInspection" class="btn btn-sm btn-outline-secondary mr-2">
+                            <i class="fa fa-refresh mr-1"></i> Temizle
+                        </a>
+                        <button type="submit" class="btn btn-sm btn-primary font-weight-bold px-3">
+                            <i class="fa fa-search mr-1"></i> Raporu Getir
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4 ÖZET KPI KARTI (MOBİLDE 2x2 KOMPAKT DÜZEN) -->
+    <div class="row mb-3 report-kpi-row">
+        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-primary" style="border-left-width: 4px !important;">
+                <div class="ibox-title border-0">
+                    <span class="label label-primary float-right font-weight-bold">Toplam</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Filo Araç Sayısı</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="kpi-num text-dark">@Model.TotalVehiclesCount</div>
+                    <small class="text-muted">Kayıtlı aktif araçlar</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-danger" style="border-left-width: 4px !important;">
+                <div class="ibox-title border-0">
+                    <span class="label label-danger float-right font-weight-bold">Kritik</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Süresi Geçenler</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="kpi-num text-danger">@Model.ExpiredCount</div>
+                    <small class="text-muted">
+                        @(Model.Filter.Scope switch {
+                            aractakipsys.Models.ViewModels.Report.ReportScopeType.Insurance => "Sigortası dolmuş araçlar",
+                            aractakipsys.Models.ViewModels.Report.ReportScopeType.Inspection => "Muayenesi dolmuş araçlar",
+                            _ => "Sigortası veya muayenesi dolmuş"
+                        })
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-warning" style="border-left-width: 4px !important;">
+                <div class="ibox-title border-0">
+                    <span class="label label-warning text-dark float-right font-weight-bold">Yaklaşan</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">30 Gün Kalanlar</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="kpi-num text-warning">@Model.ExpiringSoonCount</div>
+                    <small class="text-muted">30 gün içinde dolacak</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-success" style="border-left-width: 4px !important;">
+                <div class="ibox-title border-0">
+                    <span class="label label-success float-right font-weight-bold">Sorunsuz</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Geçerli Araçlar</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="kpi-num text-success">@Model.ValidCount</div>
+                    <small class="text-muted">Belgeleri 30 günden fazla geçerli</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SONUÇ TABLOSU -->
+    <div class="ibox shadow-sm mb-4">
+        <div class="ibox-title bg-light py-2 px-3" style="min-height: auto; height: auto;">
+            <div class="d-flex justify-content-between align-items-start w-100" style="gap: 10px;">
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                        <h5 class="font-weight-bold text-dark mb-0 d-inline-flex align-items-center" style="float: none; font-size: 0.95rem; line-height: 1.4;">
+                            <i class="fa fa-list-alt mr-1 text-primary"></i> Sigorta & Muayene Durum Listesi
+                        </h5>
+                        <span class="badge badge-primary px-2 py-1 font-weight-bold" style="font-size: 0.8rem;">
+                            Toplam @Model.TotalCount Araç
+                        </span>
+                    </div>
+                    <small class="text-muted d-block mt-1" style="font-size: 0.78rem; line-height: 1.3;">
+                        (@Model.ScopeDisplayName &bull; @Model.FilterOptionDisplayName)
+                    </small>
+                </div>
+                @if (Model.TotalCount > 0)
+                {
+                    <div class="flex-shrink-0" style="margin-top: 2px;">
+                        <a href="@exportPdfUrl" target="_blank" class="btn btn-sm btn-danger font-weight-bold shadow-sm d-inline-flex align-items-center" style="height: 31px; padding: 4px 10px; font-size: 0.8rem; white-space: nowrap;">
+                            <i class="fa fa-file-pdf-o mr-1"></i> PDF İndir
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="ibox-content p-0">
+            @if (Model.TotalCount == 0)
+            {
+                <div class="text-center p-5 text-muted">
+                    <i class="fa fa-check-circle-o fa-4x text-success mb-3"></i>
+                    <h4 class="font-weight-bold text-dark">Sonuç Bulunamadı</h4>
+                    <p class="mb-3">Seçilen filtre kriterine uygun araç kaydı bulunmamaktadır.</p>
+                    <a href="/Report/InsuranceInspection" class="btn btn-sm btn-primary">
+                        <i class="fa fa-list mr-1"></i> Tüm Araçları Göster
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="bg-light text-secondary">
+                            <tr>
+                                <th style="width: 45px;">#</th>
+                                <th style="width: 130px;">Plaka</th>
+                                <th>Marka / Model</th>
+                                <th>Trafik Sigortası Tarihleri</th>
+                                <th>Fenni Muayene Tarihleri</th>
+                                <th>Güncel Durum</th>
+                                <th class="text-right" style="width: 110px;">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int rowIdx = ((Model.PageNumber - 1) * Model.PageSize) + 1; }
+                            @foreach (var item in Model.Items)
+                            {
+                                var isRowAlert = Model.Filter.Scope switch {
+                                    aractakipsys.Models.ViewModels.Report.ReportScopeType.Insurance => item.IsInsuranceExpired,
+                                    aractakipsys.Models.ViewModels.Report.ReportScopeType.Inspection => item.IsInspectionExpired,
+                                    _ => item.HasAnyExpired
+                                };
+                                var trClass = isRowAlert ? "table-danger" : "";
+
+                                <tr class="@trClass">
+                                    <td class="align-middle font-weight-bold text-muted">@rowIdx</td>
+                                    <td class="align-middle">
+                                        <a href="/Vehicle/Details/@item.VehicleId" class="font-weight-bold text-primary font-14">
+                                            <i class="fa fa-car mr-1"></i> @item.PlateNumber
+                                        </a>
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="font-weight-bold text-dark font-13">@item.BrandModel</div>
+                                        <small class="text-muted">@item.Year Model &bull; @item.Color</small>
+                                    </td>
+
+                                    <!-- Trafik Sigortası Sütunu -->
+                                    <td class="align-middle">
+                                        <div class="small text-muted mb-1">
+                                            <i class="fa fa-calendar-check-o mr-1 text-info"></i> Başlangıç: <strong>@item.InsuranceStartDate.ToString("dd.MM.yyyy")</strong>
+                                        </div>
+                                        <div class="font-weight-bold text-dark font-13">
+                                            <i class="fa fa-calendar-times-o mr-1 text-danger"></i> Bitiş: @item.InsuranceExpiryDate.ToString("dd.MM.yyyy")
+                                        </div>
+                                        @if (item.IsInsuranceExpired)
+                                        {
+                                            <span class="badge badge-danger text-white px-2 py-1 font-11 mt-1">
+                                                <i class="fa fa-times-circle mr-1"></i> @(Math.Abs(item.InsuranceDaysRemaining)) gün geçti
+                                            </span>
+                                        }
+                                        else if (item.IsInsuranceExpiringSoon)
+                                        {
+                                            <span class="badge badge-warning text-dark px-2 py-1 font-11 mt-1">
+                                                <i class="fa fa-clock-o mr-1"></i> @(item.InsuranceDaysRemaining == 0 ? "Bugün doluyor" : $"{item.InsuranceDaysRemaining} gün kaldı")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted font-11 d-block mt-1">
+                                                <i class="fa fa-check text-success mr-1"></i> @item.InsuranceDaysRemaining gün var
+                                            </small>
+                                        }
+                                    </td>
+
+                                    <!-- Fenni Muayene Sütunu -->
+                                    <td class="align-middle">
+                                        <div class="small text-muted mb-1">
+                                            <i class="fa fa-calendar-check-o mr-1 text-info"></i> Başlangıç: <strong>@item.InspectionStartDate.ToString("dd.MM.yyyy")</strong>
+                                        </div>
+                                        <div class="font-weight-bold text-dark font-13">
+                                            <i class="fa fa-calendar-times-o mr-1 text-danger"></i> Bitiş: @item.InspectionExpiryDate.ToString("dd.MM.yyyy")
+                                        </div>
+                                        @if (item.IsInspectionExpired)
+                                        {
+                                            <span class="badge badge-danger text-white px-2 py-1 font-11 mt-1">
+                                                <i class="fa fa-times-circle mr-1"></i> @(Math.Abs(item.InspectionDaysRemaining)) gün geçti
+                                            </span>
+                                        }
+                                        else if (item.IsInspectionExpiringSoon)
+                                        {
+                                            <span class="badge badge-warning text-dark px-2 py-1 font-11 mt-1">
+                                                <i class="fa fa-clock-o mr-1"></i> @(item.InspectionDaysRemaining == 0 ? "Bugün doluyor" : $"{item.InspectionDaysRemaining} gün kaldı")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted font-11 d-block mt-1">
+                                                <i class="fa fa-check text-success mr-1"></i> @item.InspectionDaysRemaining gün var
+                                            </small>
+                                        }
+                                    </td>
+
+                                    <td class="align-middle">
+                                        <span class="badge @item.StatusBadgeClass px-2 py-1 font-12" style="border-radius: 8px;">
+                                            @item.StatusDisplayName
+                                        </span>
+                                    </td>
+                                    <td class="align-middle text-right">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/Vehicle/Details/@item.VehicleId" class="btn btn-outline-info" title="Araç Detayı">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                            <a href="/Vehicle/Edit/@item.VehicleId" class="btn btn-outline-warning" title="Belgeleri Güncelle">
+                                                <i class="fa fa-pencil"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                rowIdx++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- SAYFALAMA (PAGINATION) BARI -->
+                <div class="p-3 border-top d-flex flex-wrap justify-content-between align-items-center" style="gap: 10px;">
+                    <span class="text-muted small">
+                        Toplam <strong>@Model.TotalCount</strong> araçtan 
+                        <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)</strong> arası gösteriliyor.
+                    </span>
+
+                    @if (Model.TotalPages > 1)
+                    {
+                        <ul class="pagination pagination-sm m-0">
+                            @* Önceki Butonu *@
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("InsuranceInspection", new { 
+                                    PageNumber = Model.PageNumber - 1, 
+                                    PageSize = Model.PageSize, 
+                                    Scope = Model.Filter.Scope, 
+                                    FilterOption = Model.Filter.FilterOption, 
+                                    SearchTerm = Model.Filter.SearchTerm, 
+                                    StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), 
+                                    EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), 
+                                    DateTarget = Model.Filter.DateTarget 
+                                })">&laquo; Önceki</a>
+                            </li>
+
+                            @{
+                                int curPage = Model.PageNumber;
+                                int totPages = Model.TotalPages;
+                                int maxButtons = 10; // En fazla 10 sayfa butonu (uzayıp gitmemesi için)
+                                
+                                int startP = Math.Max(1, curPage - (maxButtons / 2));
+                                int endP = Math.Min(totPages, startP + maxButtons - 1);
+                                if (endP - startP + 1 < maxButtons)
+                                {
+                                    startP = Math.Max(1, endP - maxButtons + 1);
+                                }
+                            }
+
+                            @if (startP > 1)
+                            {
+                                <li class="page-item @(curPage == 1 ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("InsuranceInspection", new { PageNumber = 1, PageSize = Model.PageSize, Scope = Model.Filter.Scope, FilterOption = Model.Filter.FilterOption, SearchTerm = Model.Filter.SearchTerm, StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), DateTarget = Model.Filter.DateTarget })">1</a>
+                                </li>
+                                if (startP > 2)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                }
+                            }
+
+                            @for (int p = startP; p <= endP; p++)
+                            {
+                                <li class="page-item @(p == curPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("InsuranceInspection", new { PageNumber = p, PageSize = Model.PageSize, Scope = Model.Filter.Scope, FilterOption = Model.Filter.FilterOption, SearchTerm = Model.Filter.SearchTerm, StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), DateTarget = Model.Filter.DateTarget })">@p</a>
+                                </li>
+                            }
+
+                            @if (endP < totPages)
+                            {
+                                if (endP < totPages - 1)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                }
+                                <li class="page-item @(curPage == totPages ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("InsuranceInspection", new { PageNumber = totPages, PageSize = Model.PageSize, Scope = Model.Filter.Scope, FilterOption = Model.Filter.FilterOption, SearchTerm = Model.Filter.SearchTerm, StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), DateTarget = Model.Filter.DateTarget })">@totPages</a>
+                                </li>
+                            }
+
+                            @* Sonraki Butonu *@
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("InsuranceInspection", new { 
+                                    PageNumber = Model.PageNumber + 1, 
+                                    PageSize = Model.PageSize, 
+                                    Scope = Model.Filter.Scope, 
+                                    FilterOption = Model.Filter.FilterOption, 
+                                    SearchTerm = Model.Filter.SearchTerm, 
+                                    StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), 
+                                    EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), 
+                                    DateTarget = Model.Filter.DateTarget 
+                                })">Sonraki &raquo;</a>
+                            </li>
+                        </ul>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/plugins/select2/select2.full.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.select2').select2({
+                width: '100%',
+                dropdownAutoWidth: true,
+                language: {
+                    noResults: function () {
+                        return "Eşleşen sonuç bulunamadı";
+                    }
+                }
+            });
+        });
+
+        function applyQuickStatus(status) {
+            $('#selectFilterOption').val(status).trigger('change');
+            $('#filterStartDate').val('');
+            $('#filterEndDate').val('');
+            $('#filterForm').submit();
+        }
+
+        function setQuickDateRange(days) {
+            var today = new Date();
+            var target = new Date();
+            target.setDate(today.getDate() + days);
+
+            $('#selectFilterOption').val('All').trigger('change');
+            $('#filterStartDate').val(formatDateToInput(today));
+            $('#filterEndDate').val(formatDateToInput(target));
+            $('#filterForm').submit();
+        }
+
+        function formatDateToInput(d) {
+            var month = '' + (d.getMonth() + 1);
+            var day = '' + d.getDate();
+            var year = d.getFullYear();
+
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        }
+    </script>
+}

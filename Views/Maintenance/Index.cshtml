@@ -1,0 +1,406 @@
+<!-- File: Views/Maintenance/Index.cshtml -->
+@model aractakipsys.Models.ViewModels.Maintenance.MaintenanceFilterViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Bakım ve Servis Kayıtları";
+}
+
+@section Styles {
+    <link href="~/css/plugins/select2/select2.min.css" rel="stylesheet">
+    <style>
+        .select2-container--default .select2-selection--single {
+            height: 35px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            padding: 3px 6px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 27px;
+            color: #495057;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 33px;
+        }
+        .select2-dropdown {
+            border: 1px solid #1ab394;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2050;
+        }
+        .select2-results__options {
+            max-height: 200px !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #1ab394;
+        }
+    </style>
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Araç Bakım ve Servis Yönetimi</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item active"><strong>Bakımlar</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-2 text-right d-flex align-items-center justify-content-end">
+        <a href="/Maintenance/Create" class="btn btn-primary font-weight-bold shadow-sm">
+            <i class="fa fa-wrench mr-1"></i> Yeni Bakım Ekle
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fa fa-check-circle mr-1"></i> @TempData["SuccessMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa fa-exclamation-circle mr-1"></i> @TempData["ErrorMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+<!-- ÜST FİLTRE ÇUBUĞU (ARAYUZ-SPESIFIKASYONU) -->
+<div class="ibox float-e-margins mb-3">
+    <div class="ibox-content p-3 border-left border-primary" style="border-left-width: 4px !important;">
+        <form method="get" action="/Maintenance" class="row align-items-end">
+            <div class="col-md-3 mb-2 mb-md-0">
+                <label class="small font-weight-bold text-muted mb-1">Araç</label>
+                <select name="VehicleId" class="form-control select2-filter" id="filterVehicle">
+                    <option value="">Tüm Araçlar</option>
+                    @foreach (var v in Model.VehicleList)
+                    {
+                        var isSelected = Model.VehicleId?.ToString() == v.Value;
+                        <option value="@v.Value" selected="@(isSelected ? "selected" : null)">@v.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-2 mb-2 mb-md-0">
+                <label class="small font-weight-bold text-muted mb-1">Bakım Durumu</label>
+                <select name="IsOngoing" class="form-control select2-filter" id="filterIsOngoing">
+                    <option value="" selected="@(!Model.IsOngoing.HasValue ? "selected" : null)">Tümü</option>
+                    <option value="true" selected="@(Model.IsOngoing == true ? "selected" : null)">Devam Edenler</option>
+                    <option value="false" selected="@(Model.IsOngoing == false ? "selected" : null)">Tamamlananlar</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 mb-2 mb-md-0">
+                <label class="small font-weight-bold text-muted mb-1">Bakım Türü</label>
+                <select name="MaintenanceType" class="form-control select2-filter" id="filterMaintenanceType">
+                    <option value="">Tüm Türler</option>
+                    @foreach (var t in Model.MaintenanceTypeList)
+                    {
+                        var isSelected = Model.MaintenanceType == t;
+                        <option value="@t" selected="@(isSelected ? "selected" : null)">@t</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3 mb-2 mb-md-0">
+                <label class="small font-weight-bold text-muted mb-1">Arama</label>
+                <div class="input-group">
+                    <input type="text" name="SearchTerm" class="form-control" style="height: 35px;" placeholder="Plaka, marka, servis veya açıklama..." value="@Model.SearchTerm">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary d-flex align-items-center justify-content-center" type="submit" style="height: 35px; padding: 0 14px; margin-bottom: 0 !important;" title="Ara">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-2 mb-2 mb-md-0 text-right">
+                @if (Model.VehicleId.HasValue || Model.IsOngoing.HasValue || !string.IsNullOrWhiteSpace(Model.MaintenanceType) || !string.IsNullOrWhiteSpace(Model.SearchTerm))
+                {
+                    <a href="/Maintenance" class="btn btn-outline-secondary btn-block d-inline-flex align-items-center justify-content-center" style="height: 35px; margin-bottom: 0;">
+                        <i class="fa fa-refresh mr-1"></i> Sıfırla
+                    </a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- BAKIM LİSTESİ TABLOSU -->
+<div class="ibox float-e-margins">
+    <div class="ibox-content p-0">
+        @if (Model.Maintenances.Count == 0)
+        {
+            <!-- BOŞ DURUM (EMPTY STATE) -->
+            <div class="text-center py-5">
+                <i class="fa fa-wrench text-muted mb-3" style="font-size: 3.5rem; opacity: 0.4;"></i>
+                <h4 class="font-weight-bold text-secondary">Kayıtlı Bakım Bulunamadı</h4>
+                <p class="text-muted mb-3">Filtreleme kriterlerinize uygun bakım veya servis kaydı bulunmamaktadır.</p>
+                <a href="/Maintenance/Create" class="btn btn-primary">
+                    <i class="fa fa-wrench mr-1"></i> Yeni Bakım Kaydı Oluştur
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>Araç Bilgisi</th>
+                            <th>Bakım Türü</th>
+                            <th>Açıklama</th>
+                            <th>Başlangıç Tarihi</th>
+                            <th>Bitiş Tarihi</th>
+                            <th>Servis / Firma</th>
+                            <th class="text-center">Durum</th>
+                            <th class="text-right" style="width: 170px;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Maintenances)
+                        {
+                            <tr class="@(item.IsOngoing ? "table-warning font-weight-600" : "")">
+                                <td class="align-middle">
+                                    <span class="font-weight-bold text-primary font-14">@item.VehiclePlate</span>
+                                    <span class="text-muted small d-block">@item.VehicleBrandModel</span>
+                                </td>
+                                <td class="font-weight-bold align-middle text-dark">
+                                    @item.MaintenanceType
+                                </td>
+                                <td class="align-middle text-truncate" style="max-width: 200px;" title="@item.Description">
+                                    @(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)
+                                </td>
+                                <td class="align-middle small font-weight-bold">
+                                    @item.StartDate.ToString("dd.MM.yyyy")
+                                </td>
+                                <td class="align-middle small">
+                                    @if (item.EndDate.HasValue)
+                                    {
+                                        <span class="text-success font-weight-bold">@item.EndDate.Value.ToString("dd.MM.yyyy")</span>
+                                        <span class="text-muted small d-block">(@item.DurationDays gün sürdü)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning font-weight-bold">Devam Ediyor</span>
+                                        <span class="text-muted small d-block">(@item.DurationDays gündür serviste)</span>
+                                    }
+                                </td>
+                                <td class="align-middle small text-muted">
+                                    @(string.IsNullOrWhiteSpace(item.PerformedBy) ? "-" : item.PerformedBy)
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="badge @item.StatusBadgeClass px-2 py-1" style="border-radius: 12px; font-size: 0.8rem;">
+                                        @item.StatusDisplayName
+                                    </span>
+                                </td>
+                                <td class="align-middle text-right">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/Maintenance/Details/@item.Id" class="btn btn-outline-info" title="Detay">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+                                        @if (item.IsOngoing)
+                                        {
+                                            <button type="button" class="btn btn-outline-success" title="Bakımı Tamamla"
+                                                    onclick="openCompleteModal(@item.Id, '@item.VehiclePlate', '@item.MaintenanceType', '@item.StartDate.ToString("yyyy-MM-dd")')">
+                                                <i class="fa fa-check"></i>
+                                            </button>
+                                        }
+                                        <a href="/Maintenance/Edit/@item.Id" class="btn btn-outline-warning" title="Düzenle">
+                                            <i class="fa fa-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" title="Sil"
+                                                onclick="openDeleteModal(@item.Id, '@item.VehiclePlate', '@item.MaintenanceType')">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SAYFALAMA -->
+            @if (Model.TotalPages > 1)
+            {
+                <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">
+                        Toplam <strong>@Model.TotalCount</strong> kayıttan <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)</strong> arası gösteriliyor.
+                    </span>
+                    <ul class="pagination pagination-sm m-0">
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="/Maintenance?PageNumber=@(Model.PageNumber - 1)&PageSize=@Model.PageSize&VehicleId=@Model.VehicleId&IsOngoing=@Model.IsOngoing&MaintenanceType=@Model.MaintenanceType&SearchTerm=@Model.SearchTerm">Önceki</a>
+                        </li>
+                        @{
+                            int curPage = Model.PageNumber;
+                            int totPages = Model.TotalPages;
+                            int startP = Math.Max(1, curPage - 2);
+                            int endP = Math.Min(totPages, curPage + 2);
+
+                            if (curPage <= 3)
+                            {
+                                endP = Math.Min(totPages, 5);
+                            }
+                            if (curPage >= totPages - 2)
+                            {
+                                startP = Math.Max(1, totPages - 4);
+                            }
+                        }
+                        @if (startP > 1)
+                        {
+                            <li class="page-item @(1 == curPage ? "active" : "")">
+                                <a class="page-link" href="/Maintenance?PageNumber=1&PageSize=@Model.PageSize&VehicleId=@Model.VehicleId&IsOngoing=@Model.IsOngoing&MaintenanceType=@Model.MaintenanceType&SearchTerm=@Model.SearchTerm">1</a>
+                            </li>
+                            if (startP > 2)
+                            {
+                                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                            }
+                        }
+                        @for (int p = startP; p <= endP; p++)
+                        {
+                            <li class="page-item @(p == curPage ? "active" : "")">
+                                <a class="page-link" href="/Maintenance?PageNumber=@p&PageSize=@Model.PageSize&VehicleId=@Model.VehicleId&IsOngoing=@Model.IsOngoing&MaintenanceType=@Model.MaintenanceType&SearchTerm=@Model.SearchTerm">@p</a>
+                            </li>
+                        }
+                        @if (endP < totPages)
+                        {
+                            if (endP < totPages - 1)
+                            {
+                                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                            }
+                            <li class="page-item @(totPages == curPage ? "active" : "")">
+                                <a class="page-link" href="/Maintenance?PageNumber=@totPages&PageSize=@Model.PageSize&VehicleId=@Model.VehicleId&IsOngoing=@Model.IsOngoing&MaintenanceType=@Model.MaintenanceType&SearchTerm=@Model.SearchTerm">@totPages</a>
+                            </li>
+                        }
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="/Maintenance?PageNumber=@(Model.PageNumber + 1)&PageSize=@Model.PageSize&VehicleId=@Model.VehicleId&IsOngoing=@Model.IsOngoing&MaintenanceType=@Model.MaintenanceType&SearchTerm=@Model.SearchTerm">Sonraki</a>
+                        </li>
+                    </ul>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- BAKIMI TAMAMLA MODALI -->
+<div class="modal fade" id="completeMaintenanceModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-check-circle mr-2"></i> Bakımı Tamamla ve Aracı Müsait Yap
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="completeMaintenanceForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <p class="text-dark mb-3">
+                        <strong id="completeVehicleInfo" class="text-success font-weight-bold"></strong> bakımının tamamlandığını onaylıyor musunuz?
+                    </p>
+                    
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">Bakım Bitiş Tarihi <span class="text-danger">*</span></label>
+                        <input type="date" name="endDate" id="completeEndDateInput" class="form-control" required value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-dark">İşlemi Yapan Servis / Firma (Opsiyonel)</label>
+                        <input type="text" name="performedBy" class="form-control" placeholder="Örn: Yetkili Ford Servisi" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-success font-weight-bold px-4">
+                        <i class="fa fa-check mr-1"></i> Bakımı Tamamla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- SİLME ONAY MODALI (SOFT DELETE) -->
+<div class="modal fade" id="deleteMaintenanceModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-trash mr-2"></i> Bakım Kaydı Silme Onayı
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="deleteMaintenanceForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4 text-center">
+                    <i class="fa fa-exclamation-triangle text-danger mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="font-weight-bold text-dark mb-2">Bu bakım kaydını silmek istediğinize emin misiniz?</h5>
+                    <p class="text-muted mb-0 font-weight-600" id="deleteMaintenanceInfo"></p>
+                    <small class="text-muted d-block mt-2">Devam eden bir bakım silindiğinde araç durumu otomatik olarak 'Müsait' duruma getirilecektir.</small>
+                </div>
+                <div class="modal-footer bg-light justify-content-center">
+                    <button type="button" class="btn btn-secondary px-4" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger font-weight-bold px-4">
+                        <i class="fa fa-trash mr-1"></i> Evet, Sil
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/plugins/select2/select2.full.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2-filter').each(function() {
+            var $this = $(this);
+            var noResultsText = "Eşleşen sonuç bulunamadı";
+            if ($this.attr('id') === 'filterVehicle') {
+                noResultsText = "Eşleşen araç bulunamadı";
+            } else if ($this.attr('id') === 'filterMaintenanceType') {
+                noResultsText = "Eşleşen bakım türü bulunamadı";
+            } else if ($this.attr('id') === 'filterIsOngoing') {
+                noResultsText = "Eşleşen durum bulunamadı";
+            }
+
+            $this.select2({
+                width: '100%',
+                dropdownAutoWidth: true,
+                language: {
+                    noResults: function () {
+                        return noResultsText;
+                    }
+                }
+            }).on('select2:select', function () {
+                $(this).closest('form').submit();
+            });
+        });
+    });
+
+    function openCompleteModal(id, plate, type, startDate) {
+        $('#completeVehicleInfo').text(plate + ' - ' + type);
+        $('#completeEndDateInput').attr('min', startDate);
+        $('#completeMaintenanceForm').attr('action', '/Maintenance/Complete/' + id);
+        $('#completeMaintenanceModal').modal('show');
+    }
+
+    function openDeleteModal(id, plate, type) {
+        $('#deleteMaintenanceInfo').text(plate + ' - ' + type);
+        $('#deleteMaintenanceForm').attr('action', '/Maintenance/Delete/' + id);
+        $('#deleteMaintenanceModal').modal('show');
+    }
+</script>
+}

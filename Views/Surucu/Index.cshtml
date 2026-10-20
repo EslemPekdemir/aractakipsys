@@ -1,0 +1,544 @@
+<!-- File: Views/Surucu/Index.cshtml -->
+@model aractakipsys.Models.ViewModels.Surucu.DriverAssignmentListViewModel
+@{
+    Layout = "_SurucuLayout";
+    ViewData["Title"] = "Görevlerim";
+    var todayFormatted = DateTime.Now.ToString("dd MMMM yyyy, dddd", new System.Globalization.CultureInfo("tr-TR"));
+}
+
+<!-- ÜST KARŞILAMA VE TARİH BİLGİSİ -->
+<div class="d-flex justify-content-between align-items-center flex-wrap mb-3 pt-1" style="gap: 8px;">
+    <div style="min-width: 0; flex: 1 1 auto;">
+        <h5 class="font-weight-bold mb-0 text-dark text-truncate" style="font-size: 1.05rem;">
+            <i class="fa fa-user-circle text-primary mr-1"></i> @Model.DriverFullName
+        </h5>
+        <small class="text-muted d-block text-truncate" style="font-size: 0.8rem;"><i class="fa fa-building-o mr-1"></i>@Model.DriverDepartment</small>
+    </div>
+    <div class="text-right flex-shrink-0 ml-auto">
+        <span class="badge badge-light border text-muted px-2 py-1" style="font-size: 0.78rem; white-space: nowrap;">
+            <i class="fa fa-calendar mr-1"></i> @todayFormatted
+        </span>
+    </div>
+</div>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fa fa-exclamation-triangle mr-1"></i> @TempData["ErrorMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fa fa-check-circle mr-1"></i> @TempData["SuccessMessage"]
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+}
+
+<!-- GECE VARDİYASI / ACİL GÖREV BAŞLATMA BUTONU (Devam eden aktif görev yoksa) -->
+@if (Model.ActiveAssignment == null)
+{
+    <div class="mb-3">
+        <div class="card card-custom p-3 shadow-sm text-dark font-weight-bold emergency-card-btn" 
+             data-toggle="modal" data-target="#emergencyAssignmentModal"
+             role="button"
+             style="border-radius: 12px; border: 2px dashed #f59e0b; background: #fffbeb; cursor: pointer; transition: all 0.2s ease;">
+            <div class="d-flex align-items-center justify-content-between" style="gap: 12px;">
+                <div class="text-left" style="min-width: 0; flex: 1;">
+                    <span class="d-block font-weight-bold" style="color: #b45309; font-size: 0.95rem; white-space: normal;">
+                        <i class="fa fa-moon-o mr-1" style="color: #d97706;"></i> Gece Vardiyası / Acil Görev Başlat
+                    </span>
+                    <small class="text-muted font-weight-normal d-block mt-1" style="font-size: 0.8rem; line-height: 1.35; white-space: normal;">
+                        Birim şefi mesaide değilken otoparktaki müsait aracı seçip göreve çıkabilirsiniz
+                    </small>
+                </div>
+                <div class="flex-shrink-0">
+                    <span class="btn btn-sm btn-warning font-weight-bold px-3 py-2 shadow-sm text-nowrap" style="border-radius: 8px;">
+                        <i class="fa fa-bolt mr-1"></i> Başlat
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (!Model.HasAnyAssignments)
+{
+    <!-- BOŞ DURUM (EMPTY STATE) -->
+    <div class="card card-custom text-center p-5 mt-4">
+        <div class="mb-3">
+            <i class="fa fa-calendar-times-o text-muted" style="font-size: 3.5rem; opacity: 0.5;"></i>
+        </div>
+        <h5 class="font-weight-bold text-secondary">Atanmış Görev Yok</h5>
+        <p class="text-muted mb-0" style="font-size: 0.95rem;">Şu an için adınıza tanımlanmış aktif veya planlanan bir araç görevi bulunmamaktadır.</p>
+    </div>
+}
+else
+{
+    <!-- 1. DEVAM EDEN GÖREV (IN PROGRESS - EN ÜSTTE VE VURGULU) -->
+    @if (Model.ActiveAssignment != null)
+    {
+        <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-primary mr-2" style="width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span>
+                <h6 class="text-uppercase font-weight-bold text-primary m-0" style="letter-spacing: 0.5px; font-size: 0.85rem;">
+                    ŞU AN DEVAM EDEN GÖREVİNİZ
+                </h6>
+            </div>
+
+            <a href="/Surucu/Detay/@Model.ActiveAssignment.Id" class="text-decoration-none text-dark d-block">
+                <div class="card card-custom p-3 border-left border-primary" style="border-left-width: 6px !important; background: #eff6ff;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="h4 font-weight-bold text-dark mb-0 d-block">@Model.ActiveAssignment.PlateNumber</span>
+                            <span class="text-muted font-weight-600" style="font-size: 0.95rem;">@Model.ActiveAssignment.Brand @Model.ActiveAssignment.Model</span>
+                        </div>
+                        <span class="badge badge-status @Model.ActiveAssignment.StatusBadgeClass">
+                            <i class="fa fa-spinner fa-spin mr-1"></i> @Model.ActiveAssignment.StatusDisplayName
+                        </span>
+                    </div>
+
+                    <div class="p-2 mb-2 rounded bg-white border">
+                        <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">GÖREV AMACI</small>
+                        <div class="font-weight-bold text-dark text-truncate">@Model.ActiveAssignment.Purpose</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.85rem;">
+                        <span>
+                            <i class="fa fa-clock-o mr-1"></i> Başlangıç: @Model.ActiveAssignment.ActualStartTime?.ToString("HH:mm") (@Model.ActiveAssignment.StartKm KM)
+                        </span>
+                        <span class="font-weight-bold text-primary">
+                            Detay ve Bitir <i class="fa fa-chevron-right ml-1"></i>
+                        </span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    }
+
+    <!-- 1.1 ONAY BEKLEYEN TESLİM EDİLMİŞ GÖREVLER -->
+    @if (Model.PendingApprovalAssignments.Count > 0)
+    {
+        <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge mr-2" style="background-color: #f8ac59; width: 10px; height: 10px; border-radius: 50%; display: inline-block;"></span>
+                <h6 class="text-uppercase font-weight-bold m-0" style="color: #b45309; letter-spacing: 0.5px; font-size: 0.85rem;">
+                    TESLİM EDİLEN VE ONAY BEKLEYEN GÖREVLERİNİZ (@Model.PendingApprovalAssignments.Count)
+                </h6>
+            </div>
+
+            @foreach (var item in Model.PendingApprovalAssignments)
+            {
+                <a href="/Surucu/Detay/@item.Id" class="text-decoration-none text-dark d-block mb-2">
+                    <div class="card card-custom p-3 border-left shadow-sm" style="border-left: 6px solid #f8ac59 !important; background: #fffbeb;">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="h4 font-weight-bold text-dark mb-0 d-block">@item.PlateNumber</span>
+                                <span class="text-muted font-weight-600" style="font-size: 0.95rem;">@item.Brand @item.Model</span>
+                            </div>
+                            <span class="badge text-white px-2 py-1 font-weight-bold shadow-sm" style="background-color: #f8ac59; border-radius: 12px; font-size: 0.78rem;">
+                                <i class="fa fa-clock-o mr-1"></i> Teslim Edildi (Onay Bekliyor)
+                            </span>
+                        </div>
+
+                        <div class="p-2 mb-2 rounded bg-white border">
+                            <small class="text-muted d-block font-weight-bold" style="font-size: 0.72rem;">GÖREV AMACI</small>
+                            <div class="text-dark font-weight-bold text-truncate small">@item.Purpose</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center text-muted small">
+                            <span>
+                                <i class="fa fa-tachometer mr-1"></i> Bitiş KM: <strong>@(item.EndKm?.ToString("N0") ?? "-") KM</strong>
+                            </span>
+                            <span class="font-weight-bold" style="color: #b45309 !important;">
+                                Detaylar <i class="fa fa-chevron-right ml-1"></i>
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+
+    <!-- 2. BUGÜNÜN PLANLANAN GÖREVLERİ (PLANNED) -->
+    @if (Model.TodayPlannedAssignments.Count > 0)
+    {
+        <div class="mb-3">
+            <h6 class="text-uppercase font-weight-bold text-secondary mb-2" style="letter-spacing: 0.5px; font-size: 0.85rem;">
+                BUGÜNKÜ PLANLANAN GÖREVLER (@Model.TodayPlannedAssignments.Count)
+            </h6>
+
+            @foreach (var task in Model.TodayPlannedAssignments)
+            {
+                <a href="/Surucu/Detay/@task.Id" class="text-decoration-none text-dark d-block">
+                    <div class="card card-custom p-3 border-left border-warning" style="border-left-width: 5px !important;">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="h5 font-weight-bold text-dark mb-0 d-block">@task.PlateNumber</span>
+                                <span class="text-muted" style="font-size: 0.9rem;">@task.Brand @task.Model</span>
+                            </div>
+                            <span class="badge badge-status @task.StatusBadgeClass">
+                                @task.StatusDisplayName
+                            </span>
+                        </div>
+
+                        <div class="text-dark mb-2" style="font-size: 0.95rem;">
+                            <i class="fa fa-map-marker text-muted mr-1"></i> @task.Purpose
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.85rem;">
+                            <span>
+                                <i class="fa fa-clock-o mr-1"></i> @task.PlannedStartTime.ToString("HH:mm") - @task.PlannedEndTime.ToString("HH:mm")
+                            </span>
+                            <span class="text-success font-weight-bold">
+                                İncele / Başlat <i class="fa fa-chevron-right ml-1"></i>
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+
+    <!-- 3. YAKLAŞAN (GELECEK TARİHLİ) PLANLANAN GÖREVLER -->
+    @if (Model.UpcomingAssignments.Count > 0)
+    {
+        <div class="mb-3">
+            <h6 class="text-uppercase font-weight-bold text-secondary mb-2" style="letter-spacing: 0.5px; font-size: 0.85rem;">
+                YAKLAŞAN GÖREVLER (@Model.UpcomingAssignments.Count)
+            </h6>
+
+            @foreach (var task in Model.UpcomingAssignments)
+            {
+                <a href="/Surucu/Detay/@task.Id" class="text-decoration-none text-dark d-block">
+                    <div class="card card-custom p-3 border-left border-secondary" style="border-left-width: 4px !important;">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="h5 font-weight-bold text-dark mb-0 d-block">@task.PlateNumber</span>
+                                <span class="text-muted" style="font-size: 0.9rem;">@task.Brand @task.Model</span>
+                            </div>
+                            <span class="badge badge-status @task.StatusBadgeClass">
+                                @task.StatusDisplayName
+                            </span>
+                        </div>
+
+                        <div class="text-dark mb-2" style="font-size: 0.95rem;">
+                            <i class="fa fa-map-marker text-muted mr-1"></i> @task.Purpose
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.85rem;">
+                            <span>
+                                <i class="fa fa-calendar mr-1"></i> @task.PlannedStartTime.ToString("dd.MM.yyyy HH:mm")
+                            </span>
+                            <span class="text-primary font-weight-bold">
+                                Detay <i class="fa fa-chevron-right ml-1"></i>
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+    }
+
+    <!-- 4. GEÇMİŞ GÖREVLER (COMPLETED / CANCELLED - ACCORDION/KATLANABİLİR) -->
+    @if (Model.CompletedAssignments.Count > 0)
+    {
+        <div class="mt-4">
+            <button class="btn btn-outline-secondary btn-block text-left d-flex justify-content-between align-items-center py-2 px-3 mb-2" 
+                    type="button" data-toggle="collapse" data-target="#collapsePastAssignments" aria-expanded="false" aria-controls="collapsePastAssignments"
+                    style="border-radius: 8px; font-weight: 600; font-size: 0.9rem; white-space: normal;">
+                <span class="mr-2"><i class="fa fa-history mr-2"></i> Geçmiş Görevlerim (@Model.CompletedAssignments.Count)</span>
+                <i class="fa fa-chevron-down flex-shrink-0"></i>
+            </button>
+
+            <div class="collapse" id="collapsePastAssignments">
+                @foreach (var task in Model.CompletedAssignments)
+                {
+                    <a href="/Surucu/Detay/@task.Id" class="text-decoration-none text-dark d-block">
+                        <div class="card card-custom p-3 mb-2 opacity-75">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div>
+                                    <span class="font-weight-bold text-dark">@task.PlateNumber</span> - @task.Brand @task.Model
+                                </div>
+                                <span class="badge badge-status @task.StatusBadgeClass" style="font-size: 0.75rem;">
+                                    @task.StatusDisplayName
+                                </span>
+                            </div>
+                            <div class="text-muted small mb-1">@task.Purpose</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">
+                                <i class="fa fa-clock-o mr-1"></i> @task.PlannedStartTime.ToString("dd.MM.yyyy")
+                                @if (task.StartKm.HasValue && task.EndKm.HasValue)
+                                {
+                                    <span class="ml-2"><i class="fa fa-tachometer mr-1"></i> @(task.EndKm.Value - task.StartKm.Value) KM yol yapıldı</span>
+                                }
+                            </div>
+                        </div>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+}
+
+<!-- GECE VARDİYASI / ACİL GÖREV BAŞLAT MODALI -->
+<div class="modal fade" id="emergencyAssignmentModal" tabindex="-1" role="dialog" aria-labelledby="emergencyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content" style="border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
+            <div class="modal-header bg-white border-bottom py-3 px-4">
+                <h5 class="modal-title font-weight-bold text-dark mb-0" id="emergencyModalLabel" style="font-size: 1.05rem;">
+                    <i class="fa fa-car text-primary mr-2"></i>Nöbet / Gece Vardiyası Görev Formu
+                </h5>
+                <button type="button" class="close text-muted" data-dismiss="modal" aria-label="Kapat" style="outline: none;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-3 px-sm-4">
+                <div class="alert alert-info py-2 px-3 small mb-3 text-dark" style="border-radius: 6px; font-size: 0.82rem; line-height: 1.4; background-color: #f0f7ff; border-color: #cce3f9;">
+                    <i class="fa fa-info-circle mr-1 text-primary"></i>
+                    Bu form mesai dışı ve acil intikal durumlarında araç kullanımını kayıt altına almak içindir. Görev bilgileri sistemde başlatılacak ve sabah Şef onayına sunulacaktır.
+                </div>
+
+                <!-- 1. ARAÇ SEÇİMİ -->
+                <div class="form-group mb-3">
+                    <label for="selectEmergencyVehicle" class="font-weight-bold text-dark small mb-1">
+                        Kullanılacak Araç <span class="text-danger">*</span>
+                    </label>
+                    @if (Model.AvailableVehicles != null && Model.AvailableVehicles.Count > 0)
+                    {
+                        <select class="form-control font-weight-bold" id="selectEmergencyVehicle" style="height: 38px; font-size: 0.88rem;">
+                            <option value="" selected disabled>-- Müsait Araç Seçiniz --</option>
+                            @foreach (var v in Model.AvailableVehicles)
+                            {
+                                <option value="@v.Id" data-km="@v.CurrentKm" data-plate="@v.PlateNumber">
+                                    @v.PlateNumber - @v.BrandModel (@v.CurrentKm.ToString("N0") KM)
+                                </option>
+                            }
+                        </select>
+                        <small class="form-text text-muted" style="font-size: 0.78rem;">
+                            Yalnızca otoparkta müsait olan araçlar listelenmektedir (@Model.AvailableVehicles.Count araç müsait).
+                        </small>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger py-2 px-3 small mb-0" style="border-radius: 6px; font-size: 0.82rem;">
+                            <i class="fa fa-exclamation-circle mr-1"></i> Şu an otoparkta müsait durumda araç bulunmamaktadır.
+                        </div>
+                    }
+                </div>
+
+                <!-- 2. TALEP EDEN BİRİM & HIZLI SEÇİMLER -->
+                <div class="form-group mb-3">
+                    <label for="inputEmergencyDept" class="font-weight-bold text-dark small mb-1">
+                        Talep Eden Birim <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" class="form-control" id="inputEmergencyDept" 
+                           value="Gece Vardiyası / Nöbet" maxlength="150" placeholder="Örn: Güvenlik Birimi, Sağlık, Rektörlük"
+                           style="height: 38px; font-size: 0.88rem;">
+                    <div class="mt-2 d-flex flex-wrap" style="gap: 6px;">
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-dept" data-dept="Güvenlik Birimi" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">Güvenlik</button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-dept" data-dept="Acil Sağlık / Hastane" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">Acil Sağlık</button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-dept" data-dept="Rektörlük Nöbetçi" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">Rektörlük</button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-dept" data-dept="Teknik Bakım / Arıza" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">Arıza / Teknik</button>
+                    </div>
+                </div>
+
+                <!-- 3. GÖREV AMACI VE GÜZERGAH -->
+                <div class="form-group mb-3">
+                    <label for="inputEmergencyPurpose" class="font-weight-bold text-dark small mb-1">
+                        Görev Amacı ve Güzergah <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="inputEmergencyPurpose" rows="2" maxlength="300"
+                              placeholder="Örn: Gece kampüs güvenlik devriyesi, acil sevk vb."
+                              style="font-size: 0.88rem; line-height: 1.4;"></textarea>
+                </div>
+
+                <!-- 4. BAŞLANGIÇ KİLOMETRESİ -->
+                <div class="form-group mb-3">
+                    <label for="inputEmergencyStartKm" class="font-weight-bold text-dark small mb-1">
+                        Başlangıç Kilometresi (KM) <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="number" class="form-control font-weight-bold text-dark" id="inputEmergencyStartKm" 
+                               placeholder="Seçilen araca göre otomatik gelir" min="0"
+                               style="height: 38px; font-size: 0.88rem;">
+                        <div class="input-group-append">
+                            <span class="input-group-text font-weight-bold bg-light text-muted" style="font-size: 0.82rem; height: 38px;">KM</span>
+                        </div>
+                    </div>
+                    <small class="form-text text-muted" id="vehicleKmHelpText" style="font-size: 0.78rem;">
+                        Lütfen önce araç seçiniz.
+                    </small>
+                </div>
+
+                <!-- 5. TAHMİNİ SÜRE (MANUEL VE HIZLI SEÇİM) -->
+                <div class="form-group mb-3">
+                    <label for="inputEmergencyHours" class="font-weight-bold text-dark small mb-1">
+                        Tahmini Görev Süresi (Saat) <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="number" class="form-control font-weight-bold text-dark" id="inputEmergencyHours" 
+                               value="4" min="1" max="72" placeholder="Örn: 4"
+                               style="height: 38px; font-size: 0.88rem;">
+                        <div class="input-group-append">
+                            <span class="input-group-text font-weight-bold bg-light text-muted" style="font-size: 0.82rem; height: 38px;">Saat</span>
+                        </div>
+                    </div>
+                    <!-- Hızlı Süre Butonları -->
+                    <div class="d-flex flex-wrap mt-2" style="gap: 6px;">
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-hour" data-hours="1" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">1 Saat</button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-hour" data-hours="2" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">2 Saat</button>
+                        <button type="button" class="btn btn-xs btn-primary font-weight-bold btn-quick-hour active" data-hours="4" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">4 Saat</button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-hour" data-hours="6" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">6 Saat</button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-hour" data-hours="8" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">8 Saat</button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-hour" data-hours="12" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">12 Saat</button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary btn-quick-hour" data-hours="24" style="font-size: 0.8rem; padding: 4px 10px; border-radius: 4px;">24 Saat</button>
+                    </div>
+                    <small class="form-text text-muted mt-1" style="font-size: 0.78rem;">
+                        Kutuya doğrudan saat yazabilir veya yukarıdaki hazır seçenekleri belirleyebilirsiniz (1 - 72 saat).
+                    </small>
+                </div>
+
+                <div id="emergencyErrorAlert" class="alert alert-danger d-none p-2 mb-0 mt-3" style="font-size: 0.85rem; border-radius: 6px;"></div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3 border-top d-flex justify-content-end align-items-center">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3" data-dismiss="modal" style="height: 36px; border-radius: 6px; font-size: 0.85rem;">Vazgeç</button>
+                <button type="button" class="btn btn-sm btn-primary font-weight-bold px-4" id="btnConfirmEmergencyStart" style="height: 36px; border-radius: 6px; font-size: 0.85rem;"
+                        @(Model.AvailableVehicles == null || Model.AvailableVehicles.Count == 0 ? "disabled" : "")>
+                    <i class="fa fa-play mr-1"></i> Görevi Başlat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        const token = $('input[name="__RequestVerificationToken"]').val();
+
+        // Araç seçildiğinde başlangıç KM'sini ve yardım metnini güncelle
+        $('#selectEmergencyVehicle').on('change', function () {
+            const $selectedOption = $(this).find('option:selected');
+            const km = parseInt($selectedOption.data('km'), 10);
+            const plate = $selectedOption.data('plate');
+
+            if (!isNaN(km)) {
+                $('#inputEmergencyStartKm').val(km).attr('min', km);
+                $('#vehicleKmHelpText').html('Kayıtlı son KM: <strong>' + km.toLocaleString() + ' KM</strong> (' + plate + '). Bu değerden küçük girilemez.');
+            }
+        });
+
+        // Hızlı birim butonları
+        $('.btn-quick-dept').on('click', function () {
+            const dept = $(this).data('dept');
+            $('#inputEmergencyDept').val(dept);
+        });
+
+        // Hızlı süre butonları
+        $('.btn-quick-hour').on('click', function () {
+            const h = $(this).data('hours');
+            $('#inputEmergencyHours').val(h);
+            $('.btn-quick-hour').removeClass('btn-primary active font-weight-bold').addClass('btn-outline-secondary');
+            $(this).removeClass('btn-outline-secondary').addClass('btn-primary active font-weight-bold');
+        });
+
+        // Manuel süre yazıldığında butonların aktifliğini güncelle
+        $('#inputEmergencyHours').on('input', function () {
+            const val = parseInt($(this).val(), 10);
+            $('.btn-quick-hour').removeClass('btn-primary active font-weight-bold').addClass('btn-outline-secondary');
+            $('.btn-quick-hour[data-hours="' + val + '"]').removeClass('btn-outline-secondary').addClass('btn-primary active font-weight-bold');
+        });
+
+        // Acil Görev Başlat AJAX Gönderimi
+        $('#btnConfirmEmergencyStart').on('click', function () {
+            const vehicleId = parseInt($('#selectEmergencyVehicle').val(), 10);
+            const dept = $('#inputEmergencyDept').val().trim();
+            const purpose = $('#inputEmergencyPurpose').val().trim();
+            const startKm = parseInt($('#inputEmergencyStartKm').val(), 10);
+            const estimatedHours = parseInt($('#inputEmergencyHours').val(), 10);
+            const $btn = $(this);
+            const $errorDiv = $('#emergencyErrorAlert');
+
+            $errorDiv.addClass('d-none').text('');
+
+            if (isNaN(vehicleId) || vehicleId <= 0) {
+                $errorDiv.removeClass('d-none').text('Lütfen kullanılacak aracı seçiniz.');
+                return;
+            }
+
+            if (!dept) {
+                $errorDiv.removeClass('d-none').text('Lütfen talep eden birimi belirtiniz.');
+                return;
+            }
+
+            if (!purpose) {
+                $errorDiv.removeClass('d-none').text('Lütfen görev amacını ve güzergahı belirtiniz.');
+                return;
+            }
+
+            const minKm = parseInt($('#selectEmergencyVehicle').find('option:selected').data('km'), 10);
+            if (isNaN(startKm) || startKm < 0) {
+                $errorDiv.removeClass('d-none').text('Lütfen geçerli bir başlangıç kilometresi giriniz.');
+                return;
+            }
+
+            if (!isNaN(minKm) && startKm < minKm) {
+                $errorDiv.removeClass('d-none').text('Başlangıç KM (' + startKm.toLocaleString() + '), aracın son kilometresinden (' + minKm.toLocaleString() + ') küçük olamaz.');
+                return;
+            }
+
+            if (isNaN(estimatedHours) || estimatedHours < 1 || estimatedHours > 72) {
+                $errorDiv.removeClass('d-none').text('Lütfen 1 ile 72 saat arasında geçerli bir tahmini görev süresi giriniz.');
+                return;
+            }
+
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Başlatılıyor...');
+
+            $.ajax({
+                url: '/Surucu/AcilGorevBaslat',
+                type: 'POST',
+                contentType: 'application/json',
+                headers: {
+                    'RequestVerificationToken': token
+                },
+                data: JSON.stringify({
+                    vehicleId: vehicleId,
+                    requestedByDepartment: dept,
+                    purpose: purpose,
+                    startKm: startKm,
+                    estimatedHours: estimatedHours
+                }),
+                success: function (res) {
+                    if (res.success || res.Success) {
+                        const assignId = (res.data && res.data.assignmentId) || (res.Data && res.Data.assignmentId);
+                        if (assignId) {
+                            window.location.href = '/Surucu/Detay/' + assignId;
+                        } else {
+                            window.location.reload();
+                        }
+                    } else {
+                        $errorDiv.removeClass('d-none').text(res.message || res.Message || 'Görev başlatılamadı.');
+                        $btn.prop('disabled', false).html('<i class="fa fa-play-circle mr-1"></i> Görevi Başlat');
+                    }
+                },
+                error: function (xhr) {
+                    let errMsg = 'İşlem sırasında bir hata oluştu.';
+                    if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.Message)) {
+                        errMsg = xhr.responseJSON.message || xhr.responseJSON.Message;
+                    }
+                    $errorDiv.removeClass('d-none').text(errMsg);
+                    $btn.prop('disabled', false).html('<i class="fa fa-play-circle mr-1"></i> Görevi Başlat');
+                }
+            });
+        });
+    });
+</script>
+}

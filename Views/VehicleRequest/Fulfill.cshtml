@@ -1,0 +1,512 @@
+@model aractakipsys.Models.ViewModels.VehicleRequest.VehicleRequestFulfillViewModel
+@{
+    ViewData["Title"] = "Talebi Karşıla / Görevlendir";
+}
+
+@section Styles {
+    <link href="~/css/plugins/select2/select2.min.css" rel="stylesheet">
+    <style>
+        .select2-container {
+            width: 100% !important;
+        }
+        .select2-container--default .select2-selection--single {
+            height: 42px !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            display: flex !important;
+            align-items: center !important;
+            padding: 4px 10px !important;
+            background-color: #ffffff !important;
+            transition: border-color 0.2s;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #1ab394 !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 32px !important;
+            color: #1e293b !important;
+            font-size: 0.9rem !important;
+            font-weight: 600 !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+            right: 10px !important;
+        }
+        .select2-dropdown {
+            border: 1px solid #1ab394 !important;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15) !important;
+            z-index: 10050 !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+        .select2-dropdown.select2-dropdown--below {
+            border-top: none !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+            border-bottom-left-radius: 8px !important;
+            border-bottom-right-radius: 8px !important;
+        }
+        .select2-dropdown.select2-dropdown--above {
+            border-bottom: none !important;
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            border-top-left-radius: 8px !important;
+            border-top-right-radius: 8px !important;
+        }
+        .select2-container--open.select2-container--below .select2-selection--single {
+            border-bottom-left-radius: 0 !important;
+            border-bottom-right-radius: 0 !important;
+            border-color: #1ab394 !important;
+        }
+        .select2-container--open.select2-container--above .select2-selection--single {
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+            border-color: #1ab394 !important;
+        }
+        .select2-results__options {
+            max-height: 240px !important;
+            padding: 4px !important;
+            overflow-y: auto !important;
+        }
+        .select2-results__option {
+            padding: 8px 12px !important;
+            font-size: 0.88rem !important;
+            border-radius: 4px !important;
+            margin-bottom: 2px !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            line-height: 1.4 !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #1ab394 !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-results__option[aria-disabled=true] {
+            color: #94a3b8 !important;
+            background-color: #f8fafc !important;
+            border: 1px dashed #e2e8f0 !important;
+            margin-top: 4px !important;
+        }
+
+        /* Inspinia Temasına Sadık Checkbox (Tik) Stili */
+        .inspinia-check-group {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 2px;
+        }
+        .inspinia-check-group input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+        .inspinia-check-box {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            background-color: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 4px;
+            margin-right: 8px;
+            transition: all 0.15s ease-in-out;
+            flex-shrink: 0;
+        }
+        .inspinia-check-box i {
+            display: none;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 900;
+        }
+        .inspinia-check-group input[type="checkbox"]:checked ~ .inspinia-check-box {
+            background-color: #1ab394;
+            border-color: #1ab394;
+        }
+        .inspinia-check-group input[type="checkbox"]:checked ~ .inspinia-check-box i {
+            display: block;
+        }
+        .inspinia-check-group:hover input[type="checkbox"]:not(:checked) ~ .inspinia-check-box {
+            border-color: #1ab394;
+        }
+        .inspinia-check-text {
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+    </style>
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Araç Talebini Karşıla</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/VehicleRequest">Araç Talepleri</a></li>
+            <li class="breadcrumb-item active"><strong>Talebi Karşıla (#TALEP-@Model.RequestId.ToString("D4"))</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-2 d-flex align-items-center justify-content-end">
+        <a href="/VehicleRequest" class="btn btn-outline-secondary btn-sm font-weight-bold">
+            <i class="fa fa-arrow-left mr-1"></i> Taleplere Dön
+        </a>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content">
+    <div class="row">
+        <!-- SOL: TALEP BİLGİ KARTI -->
+        <div class="col-lg-4 mb-4">
+            <div class="ibox">
+                <div class="ibox-title bg-light">
+                    <h5 class="font-weight-bold mb-0">
+                        <i class="fa fa-file-text-o text-primary mr-2"></i> Talep Detayları
+                    </h5>
+                    <span class="badge badge-warning float-right">Beklemede</span>
+                </div>
+                <div class="ibox-content">
+                    <div class="mb-3">
+                        <label class="text-muted small text-uppercase font-weight-bold d-block mb-1">Talep No</label>
+                        <span class="font-weight-bold text-dark" style="font-size: 1.05rem;">#TALEP-@Model.RequestId.ToString("D4")</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small text-uppercase font-weight-bold d-block mb-1">Talep Eden Personel</label>
+                        <div class="font-weight-bold text-dark"><i class="fa fa-user mr-1 text-muted"></i> @Model.RequesterFullName</div>
+                        <div class="small text-muted"><i class="fa fa-envelope mr-1 text-muted"></i> @Model.RequesterEmail</div>
+                        <div class="small text-muted"><i class="fa fa-phone mr-1 text-muted"></i> @Model.RequesterPhone</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small text-uppercase font-weight-bold d-block mb-1">Talep Eden Birim / Fakülte</label>
+                        <div class="font-weight-bold text-dark">
+                            <i class="fa fa-university mr-1 text-primary"></i>
+                            @(string.IsNullOrWhiteSpace(Model.Department) ? "Belirtilmedi" : Model.Department)
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small text-uppercase font-weight-bold d-block mb-1">Başvuru Tarihi</label>
+                        <span class="text-secondary small font-weight-bold">
+                            <i class="fa fa-calendar mr-1 text-muted"></i> @Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        </span>
+                    </div>
+                    <div class="mb-0">
+                        <label class="text-muted small text-uppercase font-weight-bold d-block mb-1">Talep Gerekçesi / Görev Amacı</label>
+                        <div class="p-3 bg-light rounded border text-secondary" style="font-size: 0.9rem; line-height: 1.5;">
+                            @Model.Purpose
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info shadow-sm" style="font-size: 0.88rem;">
+                <i class="fa fa-info-circle mr-1"></i>
+                Bu mini-form onaylandığında sistemde resmi bir <strong>Görevlendirme (Assignment)</strong> oluşturulur. Mevcut çakışma, ehliyet süresi ve araç müsaitlik kontrolleri otomatik olarak denetlenir.
+            </div>
+        </div>
+
+        <!-- SAĞ: GÖREVLENDİRME MİNİ-FORMU -->
+        <div class="col-lg-8">
+            <div class="ibox">
+                <div class="ibox-title">
+                    <h5 class="font-weight-bold">Görevlendirme Bilgilerini Belirle</h5>
+                </div>
+                <div class="ibox-content">
+                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+                    {
+                        <div class="alert alert-danger p-3 mb-4 rounded" role="alert">
+                            <i class="fa fa-exclamation-triangle mr-2"></i>
+                            @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        </div>
+                    }
+
+                    <form asp-action="Fulfill" asp-route-id="@Model.RequestId" method="post" id="fulfillForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="RequestId" />
+                        <input type="hidden" asp-for="Department" />
+                        <input type="hidden" asp-for="RequesterFullName" />
+                        <input type="hidden" asp-for="RequesterEmail" />
+                        <input type="hidden" asp-for="RequesterPhone" />
+                        <input type="hidden" asp-for="CreatedAt" />
+
+                        <!-- TARİH VE SAAT SEÇİMİ -->
+                        <div class="row">
+                            <div class="col-12 col-sm-6 form-group mb-3">
+                                <label asp-for="PlannedStartTime" class="font-weight-bold">
+                                    <i class="fa fa-calendar mr-1 text-primary"></i> Planlanan Başlangıç Zamanı <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="PlannedStartTime" type="datetime-local" 
+                                       value="@Model.PlannedStartTime.ToString("yyyy-MM-ddTHH:mm")" 
+                                       class="form-control font-weight-bold" required />
+                                <span asp-validation-for="PlannedStartTime" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 col-sm-6 form-group mb-3">
+                                <label asp-for="PlannedEndTime" class="font-weight-bold">
+                                    <i class="fa fa-calendar-check-o mr-1 text-primary"></i> Planlanan Bitiş Zamanı <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="PlannedEndTime" type="datetime-local" 
+                                       value="@Model.PlannedEndTime.ToString("yyyy-MM-ddTHH:mm")" 
+                                       class="form-control font-weight-bold" required />
+                                <span asp-validation-for="PlannedEndTime" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- ARAÇ SEÇİMİ -->
+                        <div class="form-group mb-3">
+                            <label asp-for="VehicleId" class="font-weight-bold">
+                                <i class="fa fa-car mr-1 text-primary"></i> Tahsis Edilecek Araç <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="VehicleId" class="form-control select2" required>
+                                <option value="">-- Araç Seçiniz --</option>
+                                @foreach (var v in Model.AvailableVehicles)
+                                {
+                                    <option value="@v.Id" disabled="@(!v.IsAvailable)" selected="@(v.Id == Model.VehicleId)">
+                                        @v.DisplayText
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="VehicleId" class="text-danger small"></span>
+                            <small class="form-text text-muted">
+                                Seçilen saat aralığında başka görevi olan veya bakımda olan araçlar kilitlidir.
+                            </small>
+                        </div>
+
+                        <!-- ŞOFÖR SEÇİMİ -->
+                        <div class="form-group mb-3">
+                            <label asp-for="DriverId" class="font-weight-bold">
+                                <i class="fa fa-user-circle mr-1 text-primary"></i> Görevlendirilecek Şoför <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="DriverId" class="form-control select2" required>
+                                <option value="">-- Şoför Seçiniz --</option>
+                                @foreach (var d in Model.AvailableDrivers)
+                                {
+                                    <option value="@d.Id" disabled="@(!d.IsAvailable)" selected="@(d.Id == Model.DriverId)">
+                                        @d.DisplayText
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="DriverId" class="text-danger small"></span>
+                            <small class="form-text text-muted">
+                                Ehliyet süresi dolmuş veya belirtilen saat aralığında çakışan görevi olan şoförler seçilemez.
+                            </small>
+                        </div>
+
+                        <!-- ŞOFÖR BİLGİSİ E-POSTA PAYLAŞIM AYARI -->
+                        <div class="form-group mb-3">
+                            <label class="inspinia-check-group" for="IncludeDriverInfoInEmail">
+                                <input type="checkbox" id="IncludeDriverInfoInEmail" asp-for="IncludeDriverInfoInEmail" />
+                                <span class="inspinia-check-box">
+                                    <i class="fa fa-check"></i>
+                                </span>
+                                <span class="inspinia-check-text">
+                                    Görevli şoförün adı ve telefon numarası talep sahibine giden e-postada yer alsın
+                                </span>
+                            </label>
+                            <small class="form-text text-muted d-block" style="margin-left: 26px; font-size: 0.78rem;">
+                                İşaretlenirse talep sahibine iletilen onay e-postasında şoförün adı ve arama butonu yer alır. İşaret kaldırılırsa gizli tutulur.
+                            </small>
+                        </div>
+
+                        <!-- GÖNDEREN BÜRO İSMİ (VARSAYILAN / TIKLAYINCA DÜZENLENEBİLİR) -->
+                        <div class="form-group mb-4">
+                            <div class="d-flex align-items-center flex-wrap" style="font-size: 0.84rem;">
+                                <span class="text-muted mr-1">
+                                    <i class="fa fa-building-o text-primary mr-1"></i> E-Posta Gönderen Büro:
+                                </span>
+                                <span id="bureauDisplayBadge" class="font-weight-bold text-dark px-2 py-1 rounded" 
+                                      style="background-color: #f1f5f9; cursor: pointer; border: 1px dashed #cbd5e1;" 
+                                      onclick="toggleBureauEdit(true)" 
+                                      title="İsmi değiştirmek için tıklayınız">
+                                    <span id="bureauDisplayText">@(string.IsNullOrWhiteSpace(Model.DepartmentTitle) ? "Düzce Üniversitesi Ulaşım Şefliği" : Model.DepartmentTitle)</span>
+                                    <i class="fa fa-pencil text-muted ml-1" style="font-size: 10px;"></i>
+                                </span>
+                                <div id="bureauEditBox" class="d-none align-items-center ml-1 mt-1 mt-sm-0">
+                                    <input type="text" asp-for="DepartmentTitle" id="bureauInput" 
+                                           class="form-control form-control-sm font-weight-bold" 
+                                           value="@(string.IsNullOrWhiteSpace(Model.DepartmentTitle) ? "Düzce Üniversitesi Ulaşım Şefliği" : Model.DepartmentTitle)"
+                                           style="width: 270px; height: 30px; font-size: 0.84rem; display: inline-block;" />
+                                    <button type="button" class="btn btn-xs btn-primary ml-1" onclick="toggleBureauEdit(false)" title="Tamam">
+                                        <i class="fa fa-check"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted" style="margin-left: 20px; font-size: 0.76rem; margin-top: 2px;">
+                                Onay e-postasındaki imza ve hitapta yer alır. Değiştirmek isterseniz ismin üzerine tıklayın.
+                            </small>
+                        </div>
+
+                        <!-- GÖREV AMACI / AÇIKLAMASI (SADECE OKUNABİLİR) -->
+                        <div class="form-group mb-3">
+                            <label asp-for="Purpose" class="font-weight-bold text-dark">
+                                <i class="fa fa-file-text-o mr-1 text-primary"></i> Talep Edilen Görev Açıklaması ve Güzergah
+                            </label>
+                            <textarea asp-for="Purpose" class="form-control" rows="3" readonly="readonly" 
+                                      style="background-color: #f8fafc; cursor: not-allowed; border-color: #e2e8f0; color: #334155; font-size: 0.9rem;" required></textarea>
+                            <span asp-validation-for="Purpose" class="text-danger small"></span>
+                            <small class="form-text text-muted" style="font-size: 0.76rem;">
+                                Talep sahibi tarafından belirtilen resmi gerekçedir.
+                            </small>
+                        </div>
+
+                        <!-- ŞEF NOTU / ÖZEL TALİMAT (İSTEĞE BAĞLI ALAN) -->
+                        <div class="form-group mb-4">
+                            <label asp-for="ChiefNote" class="font-weight-bold text-dark">
+                                <i class="fa fa-pencil-square-o mr-1 text-warning"></i> Şef Notu / Özel Talimat <span class="text-muted font-weight-normal" style="font-size: 0.8rem;">(İsteğe Bağlı)</span>
+                            </label>
+                            <textarea asp-for="ChiefNote" class="form-control" rows="2" 
+                                      placeholder="Varsa talep sahibine iletilecek özel bir biniş yeri, hareket saati veya talimat notu giriniz..."></textarea>
+                            <span asp-validation-for="ChiefNote" class="text-danger small"></span>
+                            <small class="form-text text-muted" style="font-size: 0.76rem;">
+                                Doldurulduğu takdirde onay e-postasında <strong>Şeflik Notu</strong> olarak karşı tarafa iletilir.
+                            </small>
+                        </div>
+
+                        <!-- BUTONLAR -->
+                        <div class="d-flex flex-column-reverse flex-sm-row justify-content-between align-items-stretch align-items-sm-center pt-3 border-top">
+                            <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center">
+                                <a href="/VehicleRequest" class="btn btn-white font-weight-bold mt-2 mt-sm-0 text-center mr-sm-2">
+                                    <i class="fa fa-arrow-left mr-1"></i> Vazgeç
+                                </a>
+                                <button type="button" class="btn btn-outline-danger font-weight-bold mt-2 mt-sm-0" onclick="openRejectModal()">
+                                    <i class="fa fa-ban mr-1"></i> Talebi Reddet
+                                </button>
+                            </div>
+                            <button type="submit" class="btn btn-primary px-4 font-weight-bold shadow-sm mt-2 mt-sm-0" id="btnFulfillSubmit">
+                                <i class="fa fa-check mr-2"></i> Görevlendirmeyi Onayla ve Oluştur
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RET GEREKÇESİ MODALI -->
+<div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="rejectForm" method="post" action="/VehicleRequest/Reject/@Model.RequestId">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title font-weight-bold" id="rejectModalLabel">
+                        <i class="fa fa-ban mr-2"></i> Araç Talebini Reddet
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        <strong>@Model.RequesterFullName</strong> tarafından iletilen <strong>#TALEP-@Model.RequestId.ToString("D4")</strong> numaralı araç talebini reddetmek üzeresiniz.
+                    </p>
+                    <div class="form-group">
+                        <label for="rejectionReason" class="font-weight-bold">Ret Gerekçesi <span class="text-danger">*</span></label>
+                        <textarea name="rejectionReason" id="rejectionReason" class="form-control" rows="4" 
+                                  placeholder="Örn: Belirtilen tarihlerde uygun araç bulunamamıştır / Görevlendirme programı doludur..." required></textarea>
+                        <small class="form-text text-muted">
+                            Bu gerekçe talep sahibine bilgilendirme e-postası ile iletilecektir.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger font-weight-bold">
+                        <i class="fa fa-ban mr-1"></i> Talebi Reddet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function openRejectModal() {
+            $('#rejectionReason').val('');
+            $('#rejectModal').modal('show');
+        }
+
+        function toggleBureauEdit(editing) {
+            if (editing) {
+                $('#bureauDisplayBadge').addClass('d-none');
+                $('#bureauEditBox').removeClass('d-none').addClass('d-inline-flex');
+                $('#bureauInput').focus().select();
+            } else {
+                var val = $('#bureauInput').val().trim();
+                if (!val) {
+                    val = 'Düzce Üniversitesi Ulaşım Şefliği';
+                    $('#bureauInput').val(val);
+                }
+                $('#bureauDisplayText').text(val);
+                $('#bureauEditBox').removeClass('d-inline-flex').addClass('d-none');
+                $('#bureauDisplayBadge').removeClass('d-none');
+            }
+        }
+
+        $(document).ready(function () {
+            $('#bureauInput').on('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    toggleBureauEdit(false);
+                }
+            });
+
+            // Select2'nin her zaman form kutusunun hemen altına (aşağıya) açılmasını garanti et
+            if ($.fn.select2 && $.fn.select2.amd) {
+                try {
+                    $.fn.select2.amd.require(['select2/dropdown/attachBody'], function (AttachBody) {
+                        AttachBody.prototype._positionDropdown = function () {
+                            var offset = this.$container.offset();
+                            var height = this.$container.outerHeight(false);
+                            
+                            this.$dropdown.removeClass('select2-dropdown--above').addClass('select2-dropdown--below');
+                            this.$container.removeClass('select2-container--above').addClass('select2-container--below');
+                            
+                            this.$dropdownContainer.css({
+                                top: (offset.top + height) + 'px',
+                                left: offset.left + 'px'
+                            });
+                        };
+                    });
+                } catch (e) {
+                    console.warn('Select2 attachBody patch could not be applied:', e);
+                }
+            }
+
+            $('.select2').select2({
+                width: '100%',
+                dropdownAutoWidth: false,
+                language: {
+                    noResults: function () {
+                        return "Eşleşen kayıt bulunamadı";
+                    }
+                }
+            });
+
+            // Açıldığında dropdown genişliğini form kontrolüyle birebir eşle (kart dışına taşmayı kesin önler)
+            $('.select2').on('select2:open', function () {
+                var $select = $(this);
+                var $container = $select.next('.select2-container');
+                var $dropdown = $('.select2-dropdown');
+                if ($container.length && $dropdown.length) {
+                    $dropdown.css('width', $container.outerWidth() + 'px');
+                }
+            });
+
+            $('#fulfillForm').on('submit', function () {
+                if ($(this).valid()) {
+                    var btn = $('#btnFulfillSubmit');
+                    btn.prop('disabled', true);
+                    btn.html('<i class="fa fa-spinner fa-spin mr-2"></i> Kontroller Yapılıyor ve Kaydediliyor...');
+                }
+            });
+        });
+    </script>
+}

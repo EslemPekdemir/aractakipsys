@@ -1,0 +1,208 @@
+<!-- File: Views/Maintenance/Edit.cshtml -->
+@model aractakipsys.Models.ViewModels.Maintenance.MaintenanceEditViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Bakım Kaydını Düzenle #" + Model.Id;
+}
+
+@section Styles {
+    <link href="~/css/plugins/select2/select2.min.css" rel="stylesheet">
+    <style>
+        .select2-container--default .select2-selection--single {
+            height: 38px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 36px;
+        }
+        .select2-dropdown {
+            border: 1px solid #1ab394;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2050;
+        }
+        .select2-results__options {
+            max-height: 220px !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #1ab394;
+        }
+    </style>
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Bakım Kaydını Düzenle</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/Maintenance">Bakımlar</a></li>
+            <li class="breadcrumb-item active"><strong>Bakım #@Model.Id</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-2 text-right d-flex align-items-center justify-content-end">
+        <a href="/Maintenance" class="btn btn-outline-secondary">
+            <i class="fa fa-arrow-left mr-1"></i> Listeye Dön
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <h5>Bakım Kaydı Düzenleme Formu</h5>
+            </div>
+            <div class="ibox-content p-4">
+                <form method="post" action="/Maintenance/Edit/@Model.Id">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="VehicleId" />
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" role="alert"></div>
+
+                    <!-- İKİ KOLONLU FORM -->
+                    <div class="row">
+                        <!-- SOL KOLON: ARAÇ VE BAKIM TÜRÜ -->
+                        <div class="col-md-6 border-right">
+                            <h5 class="font-weight-bold text-primary mb-3 border-bottom pb-2">
+                                <i class="fa fa-car mr-1"></i> 1. Araç ve İşlem Bilgileri
+                            </h5>
+
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold">Bakımdaki Araç</label>
+                                <input type="text" class="form-control bg-light" readonly value="@Model.VehiclePlate - @Model.VehicleBrandModel" />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="MaintenanceType" class="font-weight-bold">Bakım Türü <span class="text-danger">*</span></label>
+                                <select asp-for="MaintenanceType" class="form-control" id="maintenanceTypeSelect">
+                                    <option value=""></option>
+                                    <option value="Periyodik Bakım">Periyodik Bakım</option>
+                                    <option value="Ağır Bakım / Triger">Ağır Bakım / Triger</option>
+                                    <option value="Yağ ve Filtre Değişimi">Yağ ve Filtre Değişimi</option>
+                                    <option value="Fren Sistemi ve Balata Değişimi">Fren Sistemi ve Balata Değişimi</option>
+                                    <option value="Lastik Değişimi / Rot-Balans">Lastik Değişimi / Rot-Balans</option>
+                                    <option value="Akü ve Elektrik Aksamı">Akü ve Elektrik Aksamı</option>
+                                    <option value="Kaporta / Boya Onarımı">Kaporta / Boya Onarımı</option>
+                                    <option value="TÜVTÜRK Muayene Hazırlık">TÜVTÜRK Muayene Hazırlık</option>
+                                    <option value="Klima ve Kalorifer Bakımı">Klima ve Kalorifer Bakımı</option>
+                                    <option value="Şanzıman ve Debriyaj">Şanzıman ve Debriyaj</option>
+                                    <option value="Süspansiyon ve Ön Takım">Süspansiyon ve Ön Takım</option>
+                                    <option value="Egzoz ve Emisyon">Egzoz ve Emisyon</option>
+                                    <option value="Genel Arıza Tespiti">Genel Arıza Tespiti</option>
+                                    @if (!string.IsNullOrEmpty(Model.MaintenanceType) && !new[] { "Periyodik Bakım", "Ağır Bakım / Triger", "Yağ ve Filtre Değişimi", "Fren Sistemi ve Balata Değişimi", "Lastik Değişimi / Rot-Balans", "Akü ve Elektrik Aksamı", "Kaporta / Boya Onarımı", "TÜVTÜRK Muayene Hazırlık", "Klima ve Kalorifer Bakımı", "Şanzıman ve Debriyaj", "Süspansiyon ve Ön Takım", "Egzoz ve Emisyon", "Genel Arıza Tespiti" }.Contains(Model.MaintenanceType))
+                                    {
+                                        <option value="@Model.MaintenanceType" selected="selected">@Model.MaintenanceType</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="MaintenanceType" class="text-danger small font-weight-bold"></span>
+                                <small class="form-text text-muted">Listeden kaydırarak seçebilir veya kutuya yazarak yeni tür ekleyebilirsiniz.</small>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="Description" class="font-weight-bold">İşlem Detayları ve Açıklama</label>
+                                <textarea asp-for="Description" rows="4" class="form-control"></textarea>
+                                <span asp-validation-for="Description" class="text-danger small font-weight-bold"></span>
+                            </div>
+                        </div>
+
+                        <!-- SAĞ KOLON: TARİH VE SERVİS BİLGİSİ -->
+                        <div class="col-md-6 pl-md-4 mt-4 mt-md-0">
+                            <h5 class="font-weight-bold text-primary mb-3 border-bottom pb-2">
+                                <i class="fa fa-calendar mr-1"></i> 2. Zaman ve Servis Bilgisi
+                            </h5>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="StartDate" class="font-weight-bold">Bakım Başlangıç Tarihi <span class="text-danger">*</span></label>
+                                <input asp-for="StartDate" type="date" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                                <span asp-validation-for="StartDate" class="text-danger small font-weight-bold"></span>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="EndDate" class="font-weight-bold">Bakım Bitiş Tarihi</label>
+                                <input asp-for="EndDate" type="date" class="form-control" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+                                <span asp-validation-for="EndDate" class="text-danger small font-weight-bold"></span>
+                                <small class="form-text text-muted">Bitiş tarihi girilip kaydedildiğinde araç durumu 'Müsait' yapılır.</small>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="PerformedBy" class="font-weight-bold">İşlemi Yapan Servis / Firma</label>
+                                <input asp-for="PerformedBy" class="form-control" />
+                                <span asp-validation-for="PerformedBy" class="text-danger small font-weight-bold"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ALT BUTONLAR -->
+                    <div class="hr-line-dashed mt-4"></div>
+                    <div class="d-flex flex-column flex-sm-row justify-content-end align-items-stretch align-items-sm-center">
+                        <a href="/Maintenance" class="btn btn-outline-secondary mr-0 mr-sm-2 mb-2 mb-sm-0 px-4 font-weight-bold">
+                            <i class="fa fa-times mr-1"></i> İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary mb-0 px-5 font-weight-bold shadow-sm">
+                            <i class="fa fa-check mr-1"></i> Değişiklikleri Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="~/js/plugins/select2/select2.full.min.js"></script>
+<script>
+    $(document).ready(function () {
+        var $typeSelect = $('#maintenanceTypeSelect').select2({
+            width: '100%',
+            placeholder: '-- Lütfen Bakım Türü Seçiniz veya Yazınız --',
+            allowClear: true,
+            tags: true,
+            createTag: function (params) {
+                var term = $.trim(params.term);
+                if (term === '') {
+                    return null;
+                }
+                return {
+                    id: term,
+                    text: term,
+                    isNew: true
+                };
+            },
+            templateResult: function (data) {
+                if (data.isNew) {
+                    return $('<span><i class="fa fa-plus-circle text-success mr-1"></i><strong>' + data.text + '</strong> <span class="badge badge-primary ml-1">Yeni Tür Olarak Ekle</span></span>');
+                }
+                return data.text;
+            },
+            dropdownAutoWidth: true,
+            language: {
+                noResults: function () {
+                    return "Eşleşen hazır tür yok. Yazdığınız metin yeni tür olarak kaydedilecektir.";
+                }
+            }
+        });
+
+        // Çarpı (temizleme) butonuna basıldığında kutuyu anında tamamen sıfırla, placeholder'ı getir ve menünün açılmasını engelle
+        $(document).on('mousedown touchstart', '#maintenanceTypeSelect + .select2 .select2-selection__clear', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $('#maintenanceTypeSelect').val('').trigger('change');
+        });
+
+        $typeSelect.on('select2:unselect', function () {
+            var $self = $(this);
+            setTimeout(function () {
+                $self.val('').trigger('change');
+            }, 1);
+        });
+    });
+</script>
+}

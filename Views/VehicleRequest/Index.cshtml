@@ -1,0 +1,386 @@
+@model aractakipsys.Models.ViewModels.VehicleRequest.VehicleRequestFilterViewModel
+@using aractakipsys.Models.Enums
+@{
+    ViewData["Title"] = "Araç Talepleri";
+}
+
+@section Styles {
+    <link href="~/css/plugins/select2/select2.min.css" rel="stylesheet">
+    <style>
+        .select2-container--default .select2-selection--single {
+            height: 35px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            padding: 3px 6px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 27px;
+            color: #495057;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 33px;
+        }
+        .select2-dropdown {
+            border: 1px solid #1ab394;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2050;
+        }
+        .select2-results__options {
+            max-height: 200px !important; /* Dikey kaydırma / scroll */
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #1ab394;
+        }
+    </style>
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Araç Talepleri Yönetimi</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item active"><strong>Araç Talepleri</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-2 d-flex align-items-center justify-content-end">
+        <a href="/AracTalebi" target="_blank" class="btn btn-outline-primary btn-sm shadow-sm font-weight-bold">
+            <i class="fa fa-external-link mr-1"></i> Talep Formunu Aç
+        </a>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-check-circle mr-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-exclamation-triangle mr-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    <!-- ÜST FİLTRE ÇUBUĞU (DİĞER SAYFALARLA AYNI STANDART SELECT / DROPDOWN) -->
+    <div class="ibox float-e-margins mb-3">
+        <div class="ibox-content p-3 border-left border-primary" style="border-left-width: 4px !important;">
+            <form method="get" action="/VehicleRequest" class="row align-items-end">
+                <div class="col-xl-2 col-lg-2 col-md-6 col-sm-6 mb-2">
+                    <label class="small font-weight-bold text-muted mb-1">Durum</label>
+                    <select name="status" class="form-control select2-filter" id="filterStatus">
+                        <option value="" selected="@(Model.Status == null ? "selected" : null)">Tüm Durumlar (@Model.TotalCount)</option>
+                        <option value="Pending" selected="@(Model.Status == VehicleRequestStatus.Pending ? "selected" : null)">Bekleyenler (@Model.PendingCount)</option>
+                        <option value="Fulfilled" selected="@(Model.Status == VehicleRequestStatus.Fulfilled ? "selected" : null)">Karşılananlar (@Model.FulfilledCount)</option>
+                        <option value="Rejected" selected="@(Model.Status == VehicleRequestStatus.Rejected ? "selected" : null)">Reddedilenler (@Model.RejectedCount)</option>
+                    </select>
+                </div>
+                <div class="col-xl-2 col-lg-2 col-md-6 col-sm-6 mb-2">
+                    <label class="small font-weight-bold text-muted mb-1">Birim / Fakülte</label>
+                    <select name="department" class="form-control select2-filter" id="filterDepartment">
+                        <option value="">Tüm Birimler / Fakülteler</option>
+                        @if (Model.AvailableDepartments != null)
+                        {
+                            foreach (var dept in Model.AvailableDepartments)
+                            {
+                                <option value="@dept" selected="@(Model.Department == dept ? "selected" : null)">@dept</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-xl-2 col-lg-2 col-md-3 col-sm-6 mb-2">
+                    <label class="small font-weight-bold text-muted mb-1">Başlangıç Tarihi</label>
+                    <input type="date" name="startDate" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" class="form-control date-filter" style="height: 35px;" />
+                </div>
+                <div class="col-xl-2 col-lg-2 col-md-3 col-sm-6 mb-2">
+                    <label class="small font-weight-bold text-muted mb-1">Bitiş Tarihi</label>
+                    <input type="date" name="endDate" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" class="form-control date-filter" style="height: 35px;" />
+                </div>
+                <div class="col-xl-4 col-lg-4 col-md-6 col-sm-12 mb-2">
+                    <label class="small font-weight-bold text-muted mb-1">Arama</label>
+                    <div class="d-flex align-items-center" style="gap: 6px;">
+                        <div class="input-group flex-grow-1">
+                            <input type="text" name="searchTerm" value="@Model.SearchTerm" class="form-control" style="height: 35px;" placeholder="Ad, e-posta, tel veya amaç..." />
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-primary" style="height: 35px; padding: 0 14px;" title="Filtrele / Ara"><i class="fa fa-search"></i></button>
+                            </div>
+                        </div>
+                        @if (Model.Status.HasValue || !string.IsNullOrWhiteSpace(Model.Department) || Model.StartDate.HasValue || Model.EndDate.HasValue || !string.IsNullOrWhiteSpace(Model.SearchTerm))
+                        {
+                            <a href="/VehicleRequest" class="btn btn-outline-secondary font-weight-bold d-inline-flex align-items-center" style="height: 35px; padding: 0 12px; white-space: nowrap;" title="Filtreleri Temizle">
+                                <i class="fa fa-times mr-1"></i> Temizle
+                            </a>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TALEP TABLOSU -->
+    <div class="ibox">
+        <div class="ibox-title">
+            <h5>Gelen Araç Talepleri Listesi</h5>
+            <div class="ibox-tools">
+                <span class="text-muted small">Toplam <strong>@Model.TotalCount</strong> talep bulundu</span>
+            </div>
+        </div>
+        <div class="ibox-content p-0">
+            @if (Model.Items == null || Model.Items.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <i class="fa fa-inbox text-muted" style="font-size: 3.5rem;"></i>
+                    <h5 class="text-muted mt-3">Bu filtreye uygun herhangi bir araç talebi bulunamadı.</h5>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead>
+                            <tr class="bg-light text-secondary">
+                                <th class="text-nowrap" style="width: 90px;">No</th>
+                                <th class="text-nowrap">Birim / Fakülte</th>
+                                <th class="text-nowrap">Talep Eden</th>
+                                <th class="text-nowrap">İletişim</th>
+                                <th style="min-width: 200px;">Talep Amacı</th>
+                                <th class="text-nowrap">Tarih</th>
+                                <th class="text-center text-nowrap">Durum</th>
+                                <th class="text-nowrap">İşlem / Karşılayan</th>
+                                <th class="text-right text-nowrap" style="min-width: 140px; width: 170px;">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td class="align-middle font-weight-bold">
+                                        #TALEP-@item.Id.ToString("D4")
+                                    </td>
+                                    <td class="align-middle">
+                                        @if (!string.IsNullOrWhiteSpace(item.Department))
+                                        {
+                                            <span class="badge badge-light border text-dark font-weight-bold px-2 py-1 shadow-xs" style="border-radius: 6px; max-width: 220px; display: inline-block; white-space: normal; text-align: left;" title="@item.Department">
+                                                <i class="fa fa-university mr-1 text-primary"></i>@item.Department
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Belirtilmedi</span>
+                                        }
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="font-weight-bold text-dark">@item.RequesterFullName</div>
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="small"><i class="fa fa-envelope mr-1 text-muted"></i>@item.RequesterEmail</div>
+                                        <div class="small text-muted"><i class="fa fa-phone mr-1 text-muted"></i>@item.RequesterPhone</div>
+                                    </td>
+                                    <td class="align-middle">
+                                        <span class="d-inline-block text-truncate" style="max-width: 250px;" title="@item.Purpose">
+                                            @item.Purpose
+                                        </span>
+                                    </td>
+                                    <td class="align-middle small">
+                                        @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                    </td>
+                                    <td class="align-middle">
+                                        @if (item.Status == VehicleRequestStatus.Pending)
+                                        {
+                                            <span class="badge badge-warning px-2 py-1"><i class="fa fa-clock-o mr-1"></i> Beklemede</span>
+                                        }
+                                        else if (item.Status == VehicleRequestStatus.Fulfilled)
+                                        {
+                                            <span class="badge badge-success px-2 py-1"><i class="fa fa-check mr-1"></i> Karşılandı</span>
+                                        }
+                                        else if (item.Status == VehicleRequestStatus.Rejected)
+                                        {
+                                            <span class="badge badge-danger px-2 py-1" title="@item.RejectionReason"><i class="fa fa-ban mr-1"></i> Reddedildi</span>
+                                        }
+                                    </td>
+                                    <td class="align-middle small">
+                                        @if (item.Status == VehicleRequestStatus.Fulfilled)
+                                        {
+                                            <div><strong class="text-success">Görev #@item.FulfilledAssignmentId</strong></div>
+                                            <div class="text-muted">@(item.FulfilledByUserName ?? "Yetkili")</div>
+                                        }
+                                        else if (item.Status == VehicleRequestStatus.Rejected)
+                                        {
+                                            <div class="text-danger small" title="@item.RejectionReason">
+                                                Gerekçe: @(string.IsNullOrWhiteSpace(item.RejectionReason) ? "Belirtilmedi" : (item.RejectionReason.Length > 25 ? item.RejectionReason.Substring(0, 25) + "..." : item.RejectionReason))
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="align-middle text-right">
+                                        @if (item.Status == VehicleRequestStatus.Pending)
+                                        {
+                                            <div class="btn-group">
+                                                <a href="/VehicleRequest/Fulfill/@item.Id" class="btn btn-primary btn-sm shadow-sm" title="Talebi Karşıla / Görevlendir">
+                                                    <i class="fa fa-check mr-1"></i> Karşıla
+                                                </a>
+                                                <button type="button" class="btn btn-danger btn-sm shadow-sm ml-1" 
+                                                        onclick="openRejectModal(@item.Id, '@item.RequesterFullName.Replace("'", "\\'")')" title="Talebi Reddet">
+                                                    <i class="fa fa-times"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                        else if (item.Status == VehicleRequestStatus.Fulfilled && item.FulfilledAssignmentId.HasValue)
+                                        {
+                                            <a href="/Assignment/Details/@item.FulfilledAssignmentId" class="btn btn-info btn-sm shadow-sm" title="Oluşturulan Göreve Git">
+                                                <i class="fa fa-external-link mr-1"></i> Görevi Gör
+                                            </a>
+                                        }
+                                        else if (item.Status == VehicleRequestStatus.Rejected)
+                                        {
+                                            <button type="button" class="btn btn-white btn-sm" onclick="alert('Ret Gerekçesi: ' + '@item.RejectionReason?.Replace("'", "\\'")')" title="Ret Gerekçesini Oku">
+                                                <i class="fa fa-info-circle text-danger mr-1"></i> Gerekçe
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- SAYFALAMA -->
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                        <span class="small text-muted">Sayfa @Model.PageNumber / @Model.TotalPages</span>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new { pageNumber = Model.PageNumber - 1, status = Model.Status, department = Model.Department, startDate = Model.StartDate?.ToString("yyyy-MM-dd"), endDate = Model.EndDate?.ToString("yyyy-MM-dd"), searchTerm = Model.SearchTerm })">&laquo; Önceki</a>
+                            </li>
+                            @{
+                                int curPage = Model.PageNumber;
+                                int totPages = Model.TotalPages;
+                                int startP = Math.Max(1, curPage - 2);
+                                int endP = Math.Min(totPages, curPage + 2);
+
+                                if (curPage <= 3)
+                                {
+                                    endP = Math.Min(totPages, 5);
+                                }
+                                if (curPage >= totPages - 2)
+                                {
+                                    startP = Math.Max(1, totPages - 4);
+                                }
+                            }
+                            @if (startP > 1)
+                            {
+                                <li class="page-item @(1 == curPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", new { pageNumber = 1, status = Model.Status, department = Model.Department, startDate = Model.StartDate?.ToString("yyyy-MM-dd"), endDate = Model.EndDate?.ToString("yyyy-MM-dd"), searchTerm = Model.SearchTerm })">1</a>
+                                </li>
+                                if (startP > 2)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                }
+                            }
+                            @for (int p = startP; p <= endP; p++)
+                            {
+                                <li class="page-item @(p == curPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", new { pageNumber = p, status = Model.Status, department = Model.Department, startDate = Model.StartDate?.ToString("yyyy-MM-dd"), endDate = Model.EndDate?.ToString("yyyy-MM-dd"), searchTerm = Model.SearchTerm })">@p</a>
+                                </li>
+                            }
+                            @if (endP < totPages)
+                            {
+                                if (endP < totPages - 1)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                }
+                                <li class="page-item @(totPages == curPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", new { pageNumber = totPages, status = Model.Status, department = Model.Department, startDate = Model.StartDate?.ToString("yyyy-MM-dd"), endDate = Model.EndDate?.ToString("yyyy-MM-dd"), searchTerm = Model.SearchTerm })">@totPages</a>
+                                </li>
+                            }
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new { pageNumber = Model.PageNumber + 1, status = Model.Status, department = Model.Department, startDate = Model.StartDate?.ToString("yyyy-MM-dd"), endDate = Model.EndDate?.ToString("yyyy-MM-dd"), searchTerm = Model.SearchTerm })">Sonraki &raquo;</a>
+                            </li>
+                        </ul>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- RET GEREKÇESİ MODALI -->
+<div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="rejectForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title font-weight-bold" id="rejectModalLabel">
+                        <i class="fa fa-ban mr-2"></i> Araç Talebini Reddet
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>
+                        <strong id="rejectRequesterName"></strong> tarafından iletilen araç talebini reddetmek üzeresiniz.
+                    </p>
+                    <div class="form-group">
+                        <label for="rejectionReason" class="font-weight-bold">Ret Gerekçesi <span class="text-danger">*</span></label>
+                        <textarea name="rejectionReason" id="rejectionReason" class="form-control" rows="4" 
+                                  placeholder="Örn: Belirtilen tarihlerde uygun araç bulunamamıştır / Görevlendirme programı doludur..." required></textarea>
+                        <small class="form-text text-muted">
+                            Bu gerekçe talep sahibine bilgilendirme e-postası ile iletilecektir.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger font-weight-bold">
+                        <i class="fa fa-ban mr-1"></i> Talebi Reddet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/plugins/select2/select2.full.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.select2-filter').select2({
+                width: '100%',
+                dropdownAutoWidth: true,
+                language: {
+                    noResults: function () {
+                        return "Eşleşen sonuç bulunamadı";
+                    }
+                }
+            }).on('select2:select', function () {
+                $(this).closest('form').submit();
+            });
+
+            $('.date-filter').on('change', function () {
+                $(this).closest('form').submit();
+            });
+        });
+
+        function openRejectModal(requestId, requesterName) {
+            $('#rejectRequesterName').text(requesterName);
+            $('#rejectForm').attr('action', '/VehicleRequest/Reject/' + requestId);
+            $('#rejectionReason').val('');
+            $('#rejectModal').modal('show');
+        }
+    </script>
+}

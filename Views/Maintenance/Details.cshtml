@@ -1,0 +1,261 @@
+<!-- File: Views/Maintenance/Details.cshtml -->
+@model aractakipsys.Models.ViewModels.Maintenance.MaintenanceDetailsViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Bakım Detayı #" + Model.Id;
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-8">
+        <h2 class="font-weight-bold">
+            Bakım Detayı <span class="text-primary font-weight-bold">#@Model.Id</span>
+            <span class="badge ml-2 @Model.StatusBadgeClass" style="border-radius: 12px; font-size: 0.9rem; vertical-align: middle;">
+                @Model.StatusDisplayName
+            </span>
+        </h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/Maintenance">Bakımlar</a></li>
+            <li class="breadcrumb-item active"><strong>Bakım #@Model.Id</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-4 text-right d-flex align-items-center justify-content-end">
+        <a href="/Maintenance" class="btn btn-outline-secondary mr-2">
+            <i class="fa fa-arrow-left mr-1"></i> Listeye Dön
+        </a>
+        @if (Model.IsOngoing)
+        {
+            <button type="button" class="btn btn-success mr-2 font-weight-bold shadow-sm"
+                    onclick="openCompleteModal(@Model.Id, '@Model.VehiclePlate', '@Model.MaintenanceType', '@Model.StartDate.ToString("yyyy-MM-dd")')">
+                <i class="fa fa-check mr-1"></i> Bakımı Tamamla
+            </button>
+        }
+        <a href="/Maintenance/Edit/@Model.Id" class="btn btn-outline-warning mr-2">
+            <i class="fa fa-pencil mr-1"></i> Düzenle
+        </a>
+        <button type="button" class="btn btn-outline-danger"
+                onclick="openDeleteModal(@Model.Id, '@Model.VehiclePlate', '@Model.MaintenanceType')">
+            <i class="fa fa-trash mr-1"></i> Sil
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- SOL KOLON: BAKIM DETAYLARI -->
+    <div class="col-lg-7">
+        <div class="ibox float-e-margins mb-4">
+            <div class="ibox-title">
+                <h5><i class="fa fa-wrench mr-1 text-primary"></i> Bakım / Servis İşlem Bilgileri</h5>
+            </div>
+            <div class="ibox-content p-4">
+                <table class="table table-bordered mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="bg-light font-weight-bold" style="width: 35%;">Bakım Türü</td>
+                            <td class="font-weight-bold text-dark font-15">@Model.MaintenanceType</td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light font-weight-bold">İşlem Durumu</td>
+                            <td>
+                                <span class="badge @Model.StatusBadgeClass px-2 py-1" style="border-radius: 10px;">
+                                    @Model.StatusDisplayName
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light font-weight-bold">Başlangıç Tarihi</td>
+                            <td class="font-weight-bold text-dark">@Model.StartDate.ToString("dd.MM.yyyy")</td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light font-weight-bold">Bitiş Tarihi</td>
+                            <td>
+                                @if (Model.EndDate.HasValue)
+                                {
+                                    <span class="text-success font-weight-bold">@Model.EndDate.Value.ToString("dd.MM.yyyy")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-warning font-weight-bold">Devam Ediyor (Serviste)</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light font-weight-bold">İşlem Süresi</td>
+                            <td>
+                                <strong class="text-primary font-weight-bold">@Model.DurationDays gün</strong>
+                                @if (Model.IsOngoing)
+                                {
+                                    <small class="text-muted ml-1">(Bugün itibarıyla)</small>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light font-weight-bold">Yapan Servis / Firma</td>
+                            <td class="font-weight-600">@(string.IsNullOrWhiteSpace(Model.PerformedBy) ? "-" : Model.PerformedBy)</td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light font-weight-bold">İşlem Açıklaması</td>
+                            <td>@(string.IsNullOrWhiteSpace(Model.Description) ? "Açıklama girilmemiş." : Model.Description)</td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light font-weight-bold">Kayıt Tarihi</td>
+                            <td class="small text-muted">@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAĞ KOLON: ARAÇ KÜNYESİ -->
+    <div class="col-lg-5">
+        <div class="ibox float-e-margins mb-4">
+            <div class="ibox-title d-flex justify-content-between align-items-center">
+                <h5><i class="fa fa-car mr-1 text-primary"></i> Bakımdaki Araç Künyesi</h5>
+                <a href="/Vehicle/Details/@Model.VehicleId" class="btn btn-xs btn-outline-primary">
+                    <i class="fa fa-external-link"></i> Araç Detayı
+                </a>
+            </div>
+            <div class="ibox-content p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-primary text-white text-center rounded p-3 mr-3" style="min-width: 60px;">
+                        <i class="fa fa-car" style="font-size: 1.8rem;"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-weight-bold text-primary mb-0">@Model.VehiclePlate</h4>
+                        <span class="text-dark font-weight-600">@Model.VehicleBrandModel</span>
+                    </div>
+                </div>
+                <table class="table table-sm table-bordered mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="bg-light text-muted" style="width: 45%;">Araç Tipi</td>
+                            <td class="font-weight-600">@Model.VehicleType</td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light text-muted">Renk</td>
+                            <td>@Model.VehicleColor</td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light text-muted">Güncel Kilometre</td>
+                            <td class="font-weight-bold text-dark">@Model.VehicleCurrentKm.ToString("N0") KM</td>
+                        </tr>
+                        <tr>
+                            <td class="bg-light text-muted">Mevcut Durum</td>
+                            <td>
+                                @if (Model.VehicleStatus == VehicleStatus.Maintenance)
+                                {
+                                    <span class="badge bg-warning text-dark px-2 py-1">Bakımda</span>
+                                }
+                                else if (Model.VehicleStatus == VehicleStatus.Idle)
+                                {
+                                    <span class="badge bg-success text-white px-2 py-1">Müsait</span>
+                                }
+                                else if (Model.VehicleStatus == VehicleStatus.OnDuty)
+                                {
+                                    <span class="badge bg-primary text-white px-2 py-1">Görevde</span>
+                                }
+                                else if (Model.VehicleStatus == VehicleStatus.DocumentExpired)
+                                {
+                                    <span class="badge bg-danger text-white px-2 py-1"><i class="fa fa-exclamation-triangle mr-1"></i> Belgesi Geçersiz</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary text-white px-2 py-1">Hizmet Dışı</span>
+                                }
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BAKIMI TAMAMLA MODALI -->
+<div class="modal fade" id="completeMaintenanceModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-check-circle mr-2"></i> Bakımı Tamamla ve Aracı Müsait Yap
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="completeMaintenanceForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <p class="text-dark mb-3">
+                        <strong id="completeVehicleInfo" class="text-success font-weight-bold"></strong> bakımının tamamlandığını onaylıyor musunuz?
+                    </p>
+                    
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">Bakım Bitiş Tarihi <span class="text-danger">*</span></label>
+                        <input type="date" name="endDate" id="completeEndDateInput" class="form-control" required value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-dark">İşlemi Yapan Servis / Firma (Opsiyonel)</label>
+                        <input type="text" name="performedBy" class="form-control" placeholder="Örn: Yetkili Ford Servisi" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-success font-weight-bold px-4">
+                        <i class="fa fa-check mr-1"></i> Bakımı Tamamla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- SİLME ONAY MODALI (SOFT DELETE) -->
+<div class="modal fade" id="deleteMaintenanceModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-trash mr-2"></i> Bakım Kaydı Silme Onayı
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="deleteMaintenanceForm" method="post" action="">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4 text-center">
+                    <i class="fa fa-exclamation-triangle text-danger mb-3" style="font-size: 3rem;"></i>
+                    <h5 class="font-weight-bold text-dark mb-2">Bu bakım kaydını silmek istediğinize emin misiniz?</h5>
+                    <p class="text-muted mb-0 font-weight-600" id="deleteMaintenanceInfo"></p>
+                    <small class="text-muted d-block mt-2">Devam eden bir bakım silindiğinde araç durumu otomatik olarak 'Müsait' duruma getirilecektir.</small>
+                </div>
+                <div class="modal-footer bg-light justify-content-center">
+                    <button type="button" class="btn btn-secondary px-4" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger font-weight-bold px-4">
+                        <i class="fa fa-trash mr-1"></i> Evet, Sil
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function openCompleteModal(id, plate, type, startDate) {
+        $('#completeVehicleInfo').text(plate + ' - ' + type);
+        $('#completeEndDateInput').attr('min', startDate);
+        $('#completeMaintenanceForm').attr('action', '/Maintenance/Complete/' + id);
+        $('#completeMaintenanceModal').modal('show');
+    }
+
+    function openDeleteModal(id, plate, type) {
+        $('#deleteMaintenanceInfo').text(plate + ' - ' + type);
+        $('#deleteMaintenanceForm').attr('action', '/Maintenance/Delete/' + id);
+        $('#deleteMaintenanceModal').modal('show');
+    }
+</script>
+}

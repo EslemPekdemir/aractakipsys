@@ -1,0 +1,172 @@
+<!-- File: Views/Sef/Create.cshtml -->
+@model aractakipsys.Models.ViewModels.Sef.SefCreateViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Yeni Ulaşım Şefi Tanımla";
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-8">
+        <h2 class="font-weight-bold">Yeni Ulaşım Şefi Tanımla</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/Sef">Ulaşım Şefleri</a></li>
+            <li class="breadcrumb-item active"><strong>Yeni Şef</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-4 text-right d-flex align-items-center justify-content-end">
+        <a href="/Sef" class="btn btn-outline-secondary font-weight-bold">
+            <i class="fa fa-arrow-left mr-1"></i> Listeye Geri Dön
+        </a>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight p-0">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="ibox shadow-sm">
+                <div class="ibox-title bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="font-weight-bold text-dark mb-0">
+                        <i class="fa fa-user-plus text-primary mr-1"></i> Şef Bilgileri ve İlk Giriş Parolası
+                    </h5>
+                    <small class="text-muted">Tüm zorunlu alanları eksiksiz doldurunuz</small>
+                </div>
+                <div class="ibox-content p-4">
+                    <form asp-action="Create" method="post" id="sefCreateForm">
+                        @Html.AntiForgeryToken()
+
+                        @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="fa fa-exclamation-circle mr-2"></i>
+                                @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                                {
+                                    <div>@error.ErrorMessage</div>
+                                }
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        }
+
+                        <!-- AD SOYAD -->
+                        <div class="form-group mb-3">
+                            <label asp-for="FullName" class="font-weight-bold text-dark small mb-1">
+                                Ad Soyad <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fa fa-user"></i></span>
+                                </div>
+                                <input asp-for="FullName" class="form-control" placeholder="Örn: Ahmet Yılmaz" autofocus required />
+                            </div>
+                            <span asp-validation-for="FullName" class="text-danger small font-weight-bold"></span>
+                        </div>
+
+                        <div class="row">
+                            <!-- KULLANICI ADI -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="UserName" class="font-weight-bold text-dark small mb-1">
+                                    Kullanıcı Adı <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fa fa-at"></i></span>
+                                    </div>
+                                    <input asp-for="UserName" class="form-control" placeholder="Örn: ahmet.sef" required />
+                                </div>
+                                <small class="text-muted font-11">* Giriş yaparken kullanılacaktır.</small>
+                                <span asp-validation-for="UserName" class="text-danger small font-weight-bold d-block"></span>
+                            </div>
+
+                            <!-- E-POSTA -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="font-weight-bold text-dark small mb-1">
+                                    Kurumsal E-Posta <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fa fa-envelope"></i></span>
+                                    </div>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="ornek@duzce.edu.tr" required />
+                                </div>
+                                <small class="text-muted font-11">* @@duzce.edu.tr uzantılı olmalıdır.</small>
+                                <span asp-validation-for="Email" class="text-danger small font-weight-bold d-block"></span>
+                            </div>
+                        </div>
+
+                        <!-- TELEFON -->
+                        <div class="form-group mb-3">
+                            <label asp-for="PhoneNumber" class="font-weight-bold text-dark small mb-1">
+                                Telefon Numarası
+                            </label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fa fa-phone"></i></span>
+                                </div>
+                                <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="05xx xxx xx xx" />
+                            </div>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small font-weight-bold"></span>
+                        </div>
+
+                        <div class="hr-line-dashed my-3"></div>
+
+                        <div class="row">
+                            <!-- İLK ŞİFRE -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Password" class="font-weight-bold text-dark small mb-1">
+                                    İlk Giriş Şifresi <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                                    </div>
+                                    <input asp-for="Password" type="password" class="form-control" placeholder="En az 10 karakter" required minlength="10" />
+                                </div>
+                                <span asp-validation-for="Password" class="text-danger small font-weight-bold"></span>
+                            </div>
+
+                            <!-- ŞİFRE TEKRAR -->
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ConfirmPassword" class="font-weight-bold text-dark small mb-1">
+                                    Şifre Tekrar <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                                    </div>
+                                    <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Şifreyi tekrar giriniz" required minlength="10" />
+                                </div>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small font-weight-bold"></span>
+                            </div>
+                        </div>
+
+                        <!-- HESAP DURUMU -->
+                        <div class="form-group mb-4">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" asp-for="IsActive" class="custom-control-input" id="checkIsActive" checked />
+                                <label class="custom-control-label font-weight-bold text-dark" for="checkIsActive">
+                                    Hesap Aktif Olsun (Şef hemen sisteme giriş yapabilsin)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- SUBMIT -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <a href="/Sef" class="btn btn-outline-secondary font-weight-bold px-4">
+                                İptal
+                            </a>
+                            <button type="submit" class="btn btn-primary font-weight-bold px-4 shadow-sm">
+                                <i class="fa fa-check mr-1"></i> Şefi Kaydet ve Yetkilendir
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

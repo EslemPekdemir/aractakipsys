@@ -1,0 +1,292 @@
+<!-- File: Views/Vehicle/Create.cshtml -->
+@model aractakipsys.Models.ViewModels.Vehicle.VehicleCreateViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Yeni Araç Ekle";
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Yeni Araç Ekle</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/Vehicle">Araçlar</a></li>
+            <li class="breadcrumb-item active"><strong>Yeni Ekle</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-2 text-right d-flex align-items-center justify-content-end">
+        <a href="/Vehicle" class="btn btn-outline-secondary">
+            <i class="fa fa-arrow-left mr-1"></i> Listeye Dön
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <h5>Araç Tanım Formu</h5>
+            </div>
+            <div class="ibox-content p-4">
+                <form method="post" action="/Vehicle/Create">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4" role="alert"></div>
+
+                    <!-- İKİ KOLONLU FORM (ARAYUZ-SPESIFIKASYONU Bölüm 5) -->
+                    <div class="row">
+                        <!-- SOL KOLON -->
+                        <div class="col-md-6 border-right">
+                            <h5 class="font-weight-bold text-primary mb-3 border-bottom pb-2">
+                                <i class="fa fa-id-card-o mr-1"></i> Temel Araç Bilgileri
+                            </h5>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="PlateNumber" class="font-weight-bold">Plaka <span class="text-danger">*</span></label>
+                                <input asp-for="PlateNumber" class="form-control text-uppercase" placeholder="Örn: 81 DU 101" style="letter-spacing: 1px;" />
+                                <span asp-validation-for="PlateNumber" class="text-danger small font-weight-bold"></span>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                                    <label asp-for="Brand" class="font-weight-bold">Marka <span class="text-danger">*</span></label>
+                                    <input asp-for="Brand" class="form-control" placeholder="Örn: Renault" />
+                                    <span asp-validation-for="Brand" class="text-danger small font-weight-bold"></span>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label asp-for="Model" class="font-weight-bold">Model <span class="text-danger">*</span></label>
+                                    <input asp-for="Model" list="modelSuggestions" class="form-control" placeholder="Yazınız veya seçiniz (Örn: Megane, Egea...)" autocomplete="off" />
+                                    <datalist id="modelSuggestions">
+                                        <option value="Megane" />
+                                        <option value="Egea" />
+                                        <option value="Clio" />
+                                        <option value="Corolla" />
+                                        <option value="Focus" />
+                                        <option value="Passat" />
+                                        <option value="Octavia" />
+                                        <option value="Superb" />
+                                        <option value="Tourneo Custom" />
+                                        <option value="Tourneo Courier" />
+                                        <option value="Transit" />
+                                        <option value="Crafter" />
+                                        <option value="Sprinter" />
+                                        <option value="Ducato" />
+                                        <option value="Master" />
+                                        <option value="Trafic" />
+                                        <option value="Transporter" />
+                                        <option value="Caddy" />
+                                        <option value="Doblo" />
+                                        <option value="Fiorino" />
+                                        <option value="Duster" />
+                                        <option value="Hilux" />
+                                        <option value="Amarok" />
+                                        <option value="Ranger" />
+                                    </datalist>
+                                    <span asp-validation-for="Model" class="text-danger small font-weight-bold"></span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                                    <label asp-for="Year" class="font-weight-bold">Model Yılı <span class="text-danger">*</span></label>
+                                    <input asp-for="Year" type="number" class="form-control" min="1990" max="2100" />
+                                    <span asp-validation-for="Year" class="text-danger small font-weight-bold"></span>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label asp-for="Color" class="font-weight-bold">Renk <span class="text-danger">*</span></label>
+                                    <input asp-for="Color" class="form-control" placeholder="Örn: Beyaz" />
+                                    <span asp-validation-for="Color" class="text-danger small font-weight-bold"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="CurrentKm" class="font-weight-bold">Başlangıç Kilometresi (KM) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input asp-for="CurrentKm" type="number" class="form-control" min="0" />
+                                    <div class="input-group-append">
+                                        <span class="input-group-text font-weight-bold">KM</span>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="CurrentKm" class="text-danger small font-weight-bold"></span>
+                                <small class="form-text text-muted">Aracın sisteme kaydedildiği andaki sayaç kilometresidir.</small>
+                            </div>
+
+                            <!-- MUAYENE & SİGORTA BİLGİLERİ (ZORUNLU) -->
+                            <h5 class="font-weight-bold text-danger mt-4 mb-3 border-bottom pb-2">
+                                <i class="fa fa-shield mr-1"></i> Muayene & Sigorta Geçerlilik Tarihleri
+                            </h5>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                                    <label asp-for="InspectionStartDate" class="font-weight-bold">
+                                        Muayene Başlangıç <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fa fa-calendar-plus-o text-danger"></i></span>
+                                        </div>
+                                        <input asp-for="InspectionStartDate" type="date" class="form-control" />
+                                    </div>
+                                    <span asp-validation-for="InspectionStartDate" class="text-danger small font-weight-bold"></span>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label asp-for="InspectionExpiryDate" class="font-weight-bold">
+                                        Muayene Bitiş <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fa fa-calendar-check-o text-danger"></i></span>
+                                        </div>
+                                        <input asp-for="InspectionExpiryDate" type="date" class="form-control" />
+                                    </div>
+                                    <span asp-validation-for="InspectionExpiryDate" class="text-danger small font-weight-bold"></span>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                                    <label asp-for="InsuranceStartDate" class="font-weight-bold">
+                                        Sigorta Başlangıç <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fa fa-calendar-plus-o text-danger"></i></span>
+                                        </div>
+                                        <input asp-for="InsuranceStartDate" type="date" class="form-control" />
+                                    </div>
+                                    <span asp-validation-for="InsuranceStartDate" class="text-danger small font-weight-bold"></span>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label asp-for="InsuranceExpiryDate" class="font-weight-bold">
+                                        Sigorta Bitiş <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fa fa-calendar-check-o text-danger"></i></span>
+                                        </div>
+                                        <input asp-for="InsuranceExpiryDate" type="date" class="form-control" />
+                                    </div>
+                                    <span asp-validation-for="InsuranceExpiryDate" class="text-danger small font-weight-bold"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SAĞ KOLON -->
+                        <div class="col-md-6 pl-md-4 mt-4 mt-md-0">
+                            <h5 class="font-weight-bold text-primary mb-3 border-bottom pb-2">
+                                <i class="fa fa-cogs mr-1"></i> Teknik Özellikler
+                            </h5>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                                    <label asp-for="VehicleType" class="font-weight-bold">Araç Tipi <span class="text-danger">*</span></label>
+                                    <input asp-for="VehicleType" list="vehicleTypeSuggestions" class="form-control" placeholder="Seçiniz veya yazınız (Örn: Sedan, SUV, Minibüs...)" autocomplete="off" />
+                                    <datalist id="vehicleTypeSuggestions">
+                                        <option value="Sedan" />
+                                        <option value="Hatchback" />
+                                        <option value="SUV" />
+                                        <option value="Crossover" />
+                                        <option value="Station Wagon" />
+                                        <option value="Minibüs" />
+                                        <option value="Midibüs" />
+                                        <option value="Otobüs" />
+                                        <option value="Panelvan" />
+                                        <option value="Kamyonet" />
+                                        <option value="Pikap" />
+                                        <option value="Kamyon" />
+                                        <option value="Makam Aracı" />
+                                        <option value="Hizmet Aracı" />
+                                        <option value="Diğer" />
+                                    </datalist>
+                                    <span asp-validation-for="VehicleType" class="text-danger small font-weight-bold"></span>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label asp-for="FuelType" class="font-weight-bold">Yakıt Tipi <span class="text-danger">*</span></label>
+                                    <input asp-for="FuelType" list="fuelTypeSuggestions" class="form-control" placeholder="Seçiniz veya yazınız (Örn: Dizel, Benzin...)" autocomplete="off" />
+                                    <datalist id="fuelTypeSuggestions">
+                                        <option value="Dizel" />
+                                        <option value="Benzin" />
+                                        <option value="LPG" />
+                                        <option value="Benzin & LPG" />
+                                        <option value="Hibrit" />
+                                        <option value="Plug-in Hibrit (PHEV)" />
+                                        <option value="Elektrik" />
+                                        <option value="CNG (Doğalgaz)" />
+                                        <option value="Diğer" />
+                                    </datalist>
+                                    <span asp-validation-for="FuelType" class="text-danger small font-weight-bold"></span>
+                                </div>
+                            </div>
+
+                            <!-- LASTİK BİLGİLERİ (OPSİYONEL) -->
+                            <h5 class="font-weight-bold text-warning mt-4 mb-3 border-bottom pb-2">
+                                <i class="fa fa-circle-o-notch mr-1"></i> Lastik Durumu & Mevsimi
+                            </h5>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="TireBrand" class="font-weight-bold">Lastik Marka / Modeli</label>
+                                <input asp-for="TireBrand" class="form-control" placeholder="Örn: Michelin Primacy 4 (205/55 R16)" />
+                                <span asp-validation-for="TireBrand" class="text-danger small font-weight-bold"></span>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-6 mb-3 mb-sm-0">
+                                    <label asp-for="TireYear" class="font-weight-bold">Lastik Üretim Yılı (DOT)</label>
+                                    <input asp-for="TireYear" type="number" class="form-control" placeholder="Örn: 2024" min="2000" max="2100" />
+                                    <span asp-validation-for="TireYear" class="text-danger small font-weight-bold"></span>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <label asp-for="TireSeason" class="font-weight-bold">Lastik Mevsimi</label>
+                                    <input asp-for="TireSeason" list="tireSeasonSuggestions" class="form-control" placeholder="Seçiniz veya yazınız (Örn: 4 Mevsim...)" autocomplete="off" />
+                                    <datalist id="tireSeasonSuggestions">
+                                        <option value="Yazlık" />
+                                        <option value="Kışlık" />
+                                        <option value="4 Mevsim" />
+                                        <option value="Dört Mevsim (M+S)" />
+                                        <option value="Çivili Kışlık" />
+                                        <option value="Arazi / All-Terrain (A/T)" />
+                                    </datalist>
+                                    <span asp-validation-for="TireSeason" class="text-danger small font-weight-bold"></span>
+                                </div>
+                            </div>
+
+                            <!-- CEZA & GENEL NOTLAR -->
+                            <h5 class="font-weight-bold text-secondary mt-4 mb-3 border-bottom pb-2">
+                                <i class="fa fa-file-text-o mr-1"></i> Ceza ve Genel Notlar
+                            </h5>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="FineNotes" class="font-weight-bold text-dark">
+                                    <i class="fa fa-exclamation-triangle text-warning mr-1"></i> Ceza Bilgisi / Şef Notu (Manuel)
+                                </label>
+                                <textarea asp-for="FineNotes" rows="2" class="form-control" placeholder="Varsa araca ait ödenmemiş ceza, tutanak no, ceza tarihi veya detayları..."></textarea>
+                                <span asp-validation-for="FineNotes" class="text-danger small font-weight-bold"></span>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="Notes" class="font-weight-bold">Genel Notlar / Açıklama</label>
+                                <textarea asp-for="Notes" rows="2" class="form-control" placeholder="Araç donanım bilgisi, tahsis edildiği birim veya özel notlar..."></textarea>
+                                <span asp-validation-for="Notes" class="text-danger small font-weight-bold"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ALT BUTONLAR (ARAYUZ-SPESIFIKASYONU Bölüm 5) -->
+                    <div class="hr-line-dashed mt-4"></div>
+                    <div class="d-flex flex-column flex-sm-row justify-content-end align-items-stretch align-items-sm-center">
+                        <a href="/Vehicle" class="btn btn-outline-secondary mb-2 mb-sm-0 mr-sm-2 px-4 font-weight-bold text-center">
+                            <i class="fa fa-times mr-1"></i> İptal
+                        </a>
+                        <button type="submit" class="btn btn-primary mb-0 px-5 font-weight-bold shadow-sm">
+                            <i class="fa fa-check mr-1"></i> Aracı Kaydet
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
