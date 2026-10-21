@@ -60,6 +60,9 @@ public class ReportService : IReportService
             .Include(a => a.Vehicle)
             .Include(a => a.Driver)
                 .ThenInclude(d => d.User)
+            .Include(a => a.AssignmentDrivers)
+                .ThenInclude(ad => ad.Driver)
+                    .ThenInclude(d => d.User)
             .Where(a => !a.IsDeleted && a.Status == AssignmentStatus.Completed);
 
         // Araç Filtresi
@@ -68,10 +71,11 @@ public class ReportService : IReportService
             query = query.Where(a => a.VehicleId == filter.VehicleId.Value);
         }
 
-        // Şoför Filtresi
+        // Şoför Filtresi (Faz 2-A: Çoklu şoför ve AssignmentDrivers desteği)
         if (filter.DriverId.HasValue && filter.DriverId.Value > 0)
         {
-            query = query.Where(a => a.DriverId == filter.DriverId.Value);
+            query = query.Where(a => a.DriverId == filter.DriverId.Value ||
+                                     a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == filter.DriverId.Value));
         }
 
         // Tarih Filtresi (Fiili başlangıç zamanı, yoksa planlanan başlangıç üzerinden)
@@ -92,21 +96,58 @@ public class ReportService : IReportService
 
         var assignments = await query.ToListAsync();
 
-        var reportItems = assignments.Select(a => new UsageReportItemViewModel
+        var reportItems = assignments.Select(a =>
         {
-            AssignmentId = a.Id,
-            PlateNumber = a.Vehicle?.PlateNumber ?? "-",
-            VehicleBrandModel = $"{a.Vehicle?.Brand} {a.Vehicle?.Model}".Trim(),
-            DriverFullName = a.Driver?.User?.FullName ?? "-",
-            DriverDepartment = a.Driver?.Department ?? "-",
-            Purpose = a.Purpose,
-            RequestedByDepartment = a.RequestedByDepartment,
-            PlannedStartTime = a.PlannedStartTime,
-            PlannedEndTime = a.PlannedEndTime,
-            ActualStartTime = a.ActualStartTime,
-            ActualEndTime = a.ActualEndTime,
-            StartKm = a.StartKm,
-            EndKm = a.EndKm
+            string driverName;
+            string driverDept;
+
+            if (a.IsDriverless)
+            {
+                driverName = "Şoförsüz Görevlendirme";
+                driverDept = "-";
+            }
+            else if (a.IsExternalDriver)
+            {
+                driverName = a.ExternalDriverFullName ?? "Dış Şoför";
+                driverDept = a.ExternalDriverDepartment ?? "Dış Görevli";
+            }
+            else
+            {
+                var assigned = a.AssignmentDrivers?
+                    .Where(ad => !ad.IsDeleted)
+                    .OrderByDescending(ad => ad.IsPrimary)
+                    .Select(ad => ad.Driver?.User?.FullName)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .ToList();
+
+                if (assigned != null && assigned.Count > 0)
+                {
+                    driverName = string.Join(", ", assigned);
+                    driverDept = a.AssignmentDrivers.FirstOrDefault(ad => !ad.IsDeleted && ad.IsPrimary)?.Driver?.Department ?? a.Driver?.Department ?? "-";
+                }
+                else
+                {
+                    driverName = a.Driver?.User?.FullName ?? "-";
+                    driverDept = a.Driver?.Department ?? "-";
+                }
+            }
+
+            return new UsageReportItemViewModel
+            {
+                AssignmentId = a.Id,
+                PlateNumber = a.Vehicle?.PlateNumber ?? "-",
+                VehicleBrandModel = $"{a.Vehicle?.Brand} {a.Vehicle?.Model}".Trim(),
+                DriverFullName = driverName,
+                DriverDepartment = driverDept,
+                Purpose = a.Purpose,
+                RequestedByDepartment = a.RequestedByDepartment,
+                PlannedStartTime = a.PlannedStartTime,
+                PlannedEndTime = a.PlannedEndTime,
+                ActualStartTime = a.ActualStartTime,
+                ActualEndTime = a.ActualEndTime,
+                StartKm = a.StartKm,
+                EndKm = a.EndKm
+            };
         }).ToList();
 
         // Rapor özeti ve başlıkları

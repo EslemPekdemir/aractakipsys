@@ -10,8 +10,23 @@ public class Assignment : BaseAuditableEntity
     [Required]
     public int VehicleId { get; set; }
 
-    [Required]
-    public int DriverId { get; set; }
+    public int? DriverId { get; set; }
+
+    [StringLength(250)]
+    public string? Destination { get; set; }
+
+    [StringLength(500)]
+    public string? Route { get; set; }
+
+    public bool IsDriverless { get; set; } = false;
+
+    public bool IsExternalDriver { get; set; } = false;
+
+    [StringLength(150)]
+    public string? ExternalDriverFullName { get; set; }
+
+    [StringLength(150)]
+    public string? ExternalDriverDepartment { get; set; }
 
     [StringLength(150)]
     public string? RequestedByDepartment { get; set; }
@@ -97,10 +112,35 @@ public class Assignment : BaseAuditableEntity
     [StringLength(450)]
     public string? SignedDocumentUploadedByUserId { get; set; }
 
+    // Güzergah Dışı Sevk Alanları (Acil Durumlar İçin Şef Kaydı - Faz 3)
+    [StringLength(150)]
+    public string? OffRouteDispatcherName { get; set; }
+
+    [StringLength(100)]
+    public string? OffRouteDispatcherTitle { get; set; }
+
+    [StringLength(500)]
+    public string? OffRouteReason { get; set; }
+
+    public DateTime? OffRouteReportedAt { get; set; }
+
+    [StringLength(450)]
+    public string? OffRouteReportedByUserId { get; set; }
+
+    // Şoför Araç Kontrol Tikleri (Faz 3)
+    public bool CheckOil { get; set; } = false;
+    public bool CheckWater { get; set; } = false;
+    public bool CheckFuel { get; set; } = false;
+    public bool CheckHydraulic { get; set; } = false;
+    public bool CheckTires { get; set; } = false;
+    public DateTime? ChecksCompletedAt { get; set; }
+
     // Navigation Properties
     public Vehicle Vehicle { get; set; } = null!;
-    public Driver Driver { get; set; } = null!;
+    public Driver? Driver { get; set; }
+    public ICollection<AssignmentDriver> AssignmentDrivers { get; set; } = new List<AssignmentDriver>();
     public ApplicationUser? StartApprovedByUser { get; set; }
     public ApplicationUser? EndApprovedByUser { get; set; }
     public ApplicationUser? SignedDocumentUploadedByUser { get; set; }
+    public ApplicationUser? OffRouteReportedByUser { get; set; }
 }

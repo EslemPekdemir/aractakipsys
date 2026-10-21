@@ -266,6 +266,34 @@ namespace aractakipsys.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<bool>("CheckFuel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("CheckHydraulic")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("CheckOil")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("CheckTires")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("CheckWater")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("ChecksCompletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -273,7 +301,11 @@ namespace aractakipsys.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("DriverId")
+                    b.Property<string>("Destination")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<int?>("DriverId")
                         .HasColumnType("int");
 
                     b.Property<string>("DriverReturnNotes")
@@ -296,12 +328,49 @@ namespace aractakipsys.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("ExternalDriverDepartment")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ExternalDriverFullName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
                     b.Property<decimal?>("HourlyRate")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<bool>("IsDriverless")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsExternalDriver")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("OffRouteDispatcherName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("OffRouteDispatcherTitle")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OffRouteReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("OffRouteReportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("OffRouteReportedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<decimal?>("PerDiemAmount")
                         .HasPrecision(18, 2)
@@ -338,6 +407,10 @@ namespace aractakipsys.Migrations
                     b.Property<string>("RequestedByDepartment")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Route")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("SignedDocumentOriginalFileName")
                         .HasMaxLength(255)
@@ -389,6 +462,8 @@ namespace aractakipsys.Migrations
 
                     b.HasIndex("EndApprovedByUserId");
 
+                    b.HasIndex("OffRouteReportedByUserId");
+
                     b.HasIndex("SignedDocumentUploadedByUserId");
 
                     b.HasIndex("StartApprovedByUserId");
@@ -398,6 +473,52 @@ namespace aractakipsys.Migrations
                     b.HasIndex("VehicleId", "PlannedStartTime", "PlannedEndTime");
 
                     b.ToTable("Assignments");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.AssignmentDriver", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DriverId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPrimary")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("AssignmentId", "DriverId")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.ToTable("AssignmentDrivers");
                 });
 
             modelBuilder.Entity("aractakipsys.Models.Entities.AuditLog", b =>
@@ -656,6 +777,82 @@ namespace aractakipsys.Migrations
                     b.ToTable("Vehicles");
                 });
 
+            modelBuilder.Entity("aractakipsys.Models.Entities.VehicleFaultReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CurrentKm")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("DriverId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("ReportDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewerNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ReviewerUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(450)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("ReportDate");
+
+                    b.HasIndex("ReviewerUserId");
+
+                    b.HasIndex("VehicleId", "Status");
+
+                    b.ToTable("VehicleFaultReports");
+                });
+
             modelBuilder.Entity("aractakipsys.Models.Entities.VehicleRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -801,12 +998,16 @@ namespace aractakipsys.Migrations
                     b.HasOne("aractakipsys.Models.Entities.Driver", "Driver")
                         .WithMany()
                         .HasForeignKey("DriverId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "EndApprovedByUser")
                         .WithMany()
                         .HasForeignKey("EndApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "OffRouteReportedByUser")
+                        .WithMany()
+                        .HasForeignKey("OffRouteReportedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "SignedDocumentUploadedByUser")
@@ -829,11 +1030,32 @@ namespace aractakipsys.Migrations
 
                     b.Navigation("EndApprovedByUser");
 
+                    b.Navigation("OffRouteReportedByUser");
+
                     b.Navigation("SignedDocumentUploadedByUser");
 
                     b.Navigation("StartApprovedByUser");
 
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.AssignmentDriver", b =>
+                {
+                    b.HasOne("aractakipsys.Models.Entities.Assignment", "Assignment")
+                        .WithMany("AssignmentDrivers")
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("aractakipsys.Models.Entities.Driver", "Driver")
+                        .WithMany("AssignmentDrivers")
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("Driver");
                 });
 
             modelBuilder.Entity("aractakipsys.Models.Entities.AuditLog", b =>
@@ -868,6 +1090,38 @@ namespace aractakipsys.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("aractakipsys.Models.Entities.VehicleFaultReport", b =>
+                {
+                    b.HasOne("aractakipsys.Models.Entities.Assignment", "Assignment")
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("aractakipsys.Models.Entities.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "ReviewerUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("aractakipsys.Models.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("ReviewerUser");
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("aractakipsys.Models.Entities.VehicleRequest", b =>
                 {
                     b.HasOne("aractakipsys.Models.Entities.Assignment", "FulfilledAssignment")
@@ -883,6 +1137,16 @@ namespace aractakipsys.Migrations
                     b.Navigation("FulfilledAssignment");
 
                     b.Navigation("FulfilledByUser");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.Assignment", b =>
+                {
+                    b.Navigation("AssignmentDrivers");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.Driver", b =>
+                {
+                    b.Navigation("AssignmentDrivers");
                 });
 #pragma warning restore 612, 618
         }

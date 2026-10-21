@@ -47,4 +47,13 @@ public static class EnumExtensions
         AuditAction.Delete => "Silme",
         _ => action.ToString()
     };
+
+    public static string ToTurkishString(this FaultReportStatus status) => status switch
+    {
+        FaultReportStatus.Pending => "Beklemede (Şef Onayı Bekliyor)",
+        FaultReportStatus.Approved => "İncelendi / Onaylandı",
+        FaultReportStatus.Resolved => "Onarıldı / Çözüldü",
+        FaultReportStatus.Rejected => "Reddedildi / İptal",
+        _ => status.ToString()
+    };
 }

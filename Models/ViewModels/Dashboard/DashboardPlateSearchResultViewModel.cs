@@ -37,7 +37,7 @@ public class DashboardPlateSearchResultViewModel
 public class DashboardVehicleDriverHistoryViewModel
 {
     public int AssignmentId { get; set; }
-    public int DriverId { get; set; }
+    public int? DriverId { get; set; }
     public string DriverFullName { get; set; } = string.Empty;
     public string? DriverPhone { get; set; }
     public DateTime? CompletedDate { get; set; }

@@ -468,4 +468,31 @@ public class VehicleService : IVehicleService
             ExpiringVehicles = items
         };
     }
+
+    public async Task<(bool Success, string Message)> CorrectVehicleKmAsync(int vehicleId, int correctKm, string reason, string userId)
+    {
+        var vehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.Id == vehicleId);
+        if (vehicle == null)
+        {
+            return (false, "Araç bulunamadı.");
+        }
+
+        var oldKm = vehicle.CurrentKm;
+        vehicle.CurrentKm = correctKm;
+        vehicle.UpdatedAt = DateTime.UtcNow;
+        vehicle.UpdatedBy = userId;
+
+        await _context.SaveChangesAsync();
+
+        await _auditLogService.LogAsync(
+            nameof(Vehicle),
+            vehicle.Id,
+            AuditAction.Update,
+            userId,
+            new { CurrentKm = oldKm },
+            new { CurrentKm = correctKm, Reason = reason, Note = "Araç KM Düzeltmesi (Servis Katmanı)" }
+        );
+
+        return (true, $"Araç {vehicle.PlateNumber} KM değeri {oldKm:N0} -> {correctKm:N0} olarak başarıyla güncellendi.");
+    }
 }

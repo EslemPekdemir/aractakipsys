@@ -23,6 +23,7 @@ public class Driver : BaseAuditableEntity
 
     public bool IsActive { get; set; } = true;
 
-    // Navigation Property
+    // Navigation Properties
     public ApplicationUser User { get; set; } = null!;
+    public ICollection<AssignmentDriver> AssignmentDrivers { get; set; } = new List<AssignmentDriver>();
 }

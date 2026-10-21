@@ -1,0 +1,170 @@
+<!-- File: Views/FaultReport/Detail.cshtml -->
+@model aractakipsys.Models.ViewModels.FaultReport.FaultReportItemViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = $"Arıza Bildirimi Detayı #{Model.Id:D4} - {Model.VehiclePlate}";
+}
+
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-sm-8">
+        <h2><i class="fa fa-wrench text-danger mr-2"></i> Arıza Bildirimi İnceleme & Onaylama</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+            <li class="breadcrumb-item"><a href="/FaultReport">Arıza Bildirimleri</a></li>
+            <li class="breadcrumb-item active"><strong>#@Model.Id.ToString("D4")</strong></li>
+        </ol>
+    </div>
+    <div class="col-sm-4 text-right pt-4">
+        <a href="/FaultReport/DownloadPdf/@Model.Id" class="btn btn-danger font-weight-bold shadow-sm mr-1" target="_blank">
+            <i class="fa fa-file-pdf-o mr-1"></i> Arıza Formu PDF İndir
+        </a>
+        <a href="/FaultReport/DownloadBlankPdf" class="btn btn-outline btn-default shadow-sm" target="_blank">
+            <i class="fa fa-print mr-1"></i> Boş Şablon
+        </a>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fa fa-check-circle mr-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Kapat"><span aria-hidden="true">&times;</span></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fa fa-exclamation-triangle mr-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Kapat"><span aria-hidden="true">&times;</span></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- SOL PANEL: BİLDİRİM VE DÜZENLEME FORMU -->
+        <div class="col-lg-8">
+            <div class="ibox shadow-sm">
+                <div class="ibox-title bg-white d-flex justify-content-between align-items-center">
+                    <h5><i class="fa fa-edit text-primary mr-1"></i> Arıza Bildirim Formu (Düzenle ve Onayla)</h5>
+                    <span class="badge @Model.StatusBadgeClass px-3 py-1 font-weight-bold">@Model.StatusDisplayName</span>
+                </div>
+                <div class="ibox-content">
+                    <form method="post" action="/FaultReport/Approve">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="Id" value="@Model.Id" />
+                        <input type="hidden" name="VehicleId" value="@Model.VehicleId" />
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold small text-muted">ARAÇ PLAKASI</label>
+                                <input type="text" class="form-control font-weight-bold text-primary" name="VehiclePlate" value="@Model.VehiclePlate" readonly />
+                                <small class="text-muted">@Model.VehicleBrandModel</small>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold small text-muted">ŞOFÖRÜN ADI SOYADI</label>
+                                <input type="text" class="form-control" name="DriverFullName" value="@Model.DriverFullName" />
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold small text-muted">BİLDİRİM TARİHİ</label>
+                                <input type="text" class="form-control" name="ReportDate" value="@Model.ReportDate.ToString("yyyy-MM-ddTHH:mm")" readonly />
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold small text-muted">ARAÇ KM <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control font-weight-bold" name="CurrentKm" value="@Model.CurrentKm" min="0" required />
+                                    <div class="input-group-append"><span class="input-group-text font-weight-bold">KM</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold small text-muted">ARIZA AÇIKLAMASI <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="Description" rows="5" required maxlength="1000">@Model.Description</textarea>
+                            <small class="form-text text-muted">Bu alan matbu "DÜZCE ÜNİVERSİTESİ ARAÇ ARIZA BİLDİRİM FORMU"nda 'Arıza Açıklaması' bölümüne basılacaktır.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="font-weight-bold small text-muted">ULAŞTIRMA AMİRİ / ŞEF İNCELEME NOTU</label>
+                            <textarea class="form-control" name="ReviewerNotes" rows="2" maxlength="500" placeholder="Yapılan tespit, parça siparişi veya servise yönlendirme notları...">@Model.ReviewerNotes</textarea>
+                        </div>
+
+                        <div class="hr-line-dashed"></div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="/FaultReport" class="btn btn-white"><i class="fa fa-arrow-left mr-1"></i> Listeye Dön</a>
+                            <button type="submit" class="btn btn-primary font-weight-bold px-4 shadow-sm">
+                                <i class="fa fa-check-circle mr-1"></i> Formu Güncelle ve Onayla
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- SAĞ PANEL: DURUM & AKSİYONLAR -->
+        <div class="col-lg-4">
+            <div class="ibox shadow-sm">
+                <div class="ibox-title bg-white">
+                    <h5><i class="fa fa-info-circle text-info mr-1"></i> İşlem ve Durum Yönetimi</h5>
+                </div>
+                <div class="ibox-content">
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Kayıt Numarası:</span>
+                            <strong>#@Model.Id.ToString("D5")</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Mevcut Durum:</span>
+                            <span class="badge @Model.StatusBadgeClass">@Model.StatusDisplayName</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Bildirim Tarihi:</span>
+                            <span>@Model.ReportDate.ToString("dd.MM.yyyy HH:mm")</span>
+                        </li>
+                        @if (!string.IsNullOrEmpty(Model.ReviewerFullName))
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <span class="text-muted">İnceleyen Yetkili:</span>
+                                <strong>@Model.ReviewerFullName</strong>
+                            </li>
+                        }
+                        @if (Model.ReviewedAt.HasValue)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <span class="text-muted">İnceleme Tarihi:</span>
+                                <span>@Model.ReviewedAt.Value.ToString("dd.MM.yyyy HH:mm")</span>
+                            </li>
+                        }
+                    </ul>
+
+                    <div class="border-top pt-3">
+                        <label class="font-weight-bold small text-muted mb-2 d-block">ARIZA SONUÇLANDIRMA</label>
+
+                        <form method="post" action="/FaultReport/UpdateStatus/@Model.Id" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="status" value="Resolved" />
+                            <button type="submit" class="btn btn-outline btn-success btn-block text-left mb-2">
+                                <i class="fa fa-check mr-2"></i> <strong>Arıza Onarıldı / Çözüldü</strong> Olarak İşaretle
+                            </button>
+                        </form>
+
+                        <form method="post" action="/FaultReport/UpdateStatus/@Model.Id">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="status" value="Rejected" />
+                            <button type="submit" class="btn btn-outline btn-danger btn-block text-left">
+                                <i class="fa fa-times mr-2"></i> <strong>Bildirimi Reddet / İptal Et</strong>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="alert alert-info small mt-3 mb-0">
+                        <i class="fa fa-lightbulb-o mr-1"></i> Arıza bildirimi onaylandığında bilgiler resmi forma aktarılır. Araç durumu mevcut kural ve süreçlerle yönetilmeye devam eder.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

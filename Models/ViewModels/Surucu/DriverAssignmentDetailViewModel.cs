@@ -25,7 +25,9 @@ public class DriverAssignmentDetailViewModel
     public string VehicleStatusStr { get => VehicleStatus.ToTurkishString(); set { } }
 
     // Görev Bilgileri
+    public string Destination { get; set; } = string.Empty;
     public string Purpose { get; set; } = string.Empty;
+    public string? Route { get; set; }
     public string? RequestedByDepartment { get; set; }
     public DateTime PlannedStartTime { get; set; }
     public DateTime PlannedEndTime { get; set; }
@@ -42,6 +44,15 @@ public class DriverAssignmentDetailViewModel
     public string? StartApprovedByUserId { get; set; }
     public bool EndReportedBySelf { get; set; }
     public string? EndApprovedByUserId { get; set; }
+
+    // Araç Kontrol Tikleri (Faz 3)
+    public bool CheckOil { get; set; }
+    public bool CheckWater { get; set; }
+    public bool CheckFuel { get; set; }
+    public bool CheckHydraulic { get; set; }
+    public bool CheckTires { get; set; }
+    public DateTime? ChecksCompletedAt { get; set; }
+    public bool AreChecksCompleted => ChecksCompletedAt.HasValue || CheckOil || CheckWater || CheckFuel || CheckHydraulic || CheckTires;
 
     public bool IsStartApprovalPending => Status != AssignmentStatus.Cancelled && Status != AssignmentStatus.Completed && StartReportedBySelf && string.IsNullOrEmpty(StartApprovedByUserId);
     public bool IsEndApprovalPending => Status != AssignmentStatus.Cancelled && Status != AssignmentStatus.Completed && EndReportedBySelf && string.IsNullOrEmpty(EndApprovedByUserId);

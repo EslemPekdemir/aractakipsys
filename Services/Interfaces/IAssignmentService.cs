@@ -23,6 +23,7 @@ public interface IAssignmentService
     // CRUD Operasyonları
     Task<(bool Success, string Message, int AssignmentId)> CreateAssignmentAsync(AssignmentCreateViewModel model, string adminUserId);
     Task<(bool Success, string Message)> UpdateAssignmentAsync(AssignmentEditViewModel model, string adminUserId);
+    Task SyncAssignmentDriversAsync(Assignment assignment, List<int>? driverIds, bool isDriverless, bool isExternalDriver, string userId);
     Task<(bool Success, string Message)> ExtendAssignmentDurationAsync(int id, DateTime newPlannedEndTime, string? reason, string adminUserId);
     Task<(bool Success, string Message)> CancelAssignmentAsync(int id, string cancellationReason, string adminUserId);
 
@@ -32,8 +33,8 @@ public interface IAssignmentService
     Task<(bool Success, string Message)> ApproveEndAsync(AssignmentApproveEndViewModel model, string approverUserId);
 
     // Yetkili Tarafından Doğrudan Başlatma / Bitirme (Şoför Bildirimi Olmaksızın)
-    Task<(bool Success, string Message)> StartAssignmentDirectAsync(int assignmentId, string userId, int? startKm = null);
-    Task<(bool Success, string Message)> EndAssignmentDirectAsync(int assignmentId, string userId, int endKm, string? driverReturnNotes = null);
+    Task<(bool Success, string Message)> StartAssignmentDirectAsync(int assignmentId, string userId, int? startKm = null, bool confirmKmDifference = false);
+    Task<(bool Success, string Message)> EndAssignmentDirectAsync(int assignmentId, string userId, int endKm, string? driverReturnNotes = null, bool confirmKmDifference = false);
 
     // Harcırah & Maliyet Bilgilerini Sonradan Revize Etme (Fatura / Muhasebe Düzeltmesi)
     Task<(bool Success, string Message)> UpdateFinancialDetailsAsync(AssignmentFinancialRevisionViewModel model, string userId);
@@ -42,4 +43,7 @@ public interface IAssignmentService
     Task<(bool Success, string? ErrorMessage)> UploadSignedDocumentAsync(int assignmentId, Microsoft.AspNetCore.Http.IFormFile file, string userId);
     Task<(byte[]? FileContents, string? ContentType, string? OriginalFileName)?> GetSignedDocumentFileAsync(int assignmentId);
     Task<SignedDocumentArchiveViewModel> GetSignedDocumentArchiveAsync(SignedDocumentArchiveFilterViewModel filter);
+
+    // Acil Güzergah Dışı Sevk Kaydı (Faz 3)
+    Task<(bool Success, string Message)> SaveOffRouteDispatchAsync(OffRouteDispatchViewModel model, string userId);
 }

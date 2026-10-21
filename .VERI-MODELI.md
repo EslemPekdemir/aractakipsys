@@ -405,3 +405,72 @@ Ayrı bir entity YOKTUR — `Kullanici` rolündeki kullanıcılar sadece `Applic
 - **Şifreli Token Yapısı:** Sunucu tarafında üretilen 5 karakterli güvenlik kodu, `IDataProtector` kullanılarak `CAPTCHA:{kod}:{sonGecerlilikZamani}:{tekilGuvenlikKimligi}` payload formatında şifrelenir ve istemciye `CaptchaToken` gizli alanı olarak iletilir.
 - **Zaman Sınırı (TTL):** Her token üretim anından itibaren tam **3 dakika** geçerlidir; süresi geçen token'lar doğrudan geçersiz sayılır.
 - **Tek Kullanımlık (Nonce):** Botların ve replay saldırılarının önüne geçmek için her kod rastgele `nonce` ile imzalanır. Form gönderildiğinde token çözülür, girilen kod ile çözülen kod karşılaştırılır.
+
+---
+
+## 13. FAZ 3 GÜNCELLEMELERİ — GÖREV EMRİ, ARAÇ KONTROL TİKLERİ VE ARIZA BİLDİRİMİ
+
+### 13.1 Assignment Tablosu Ek Alanları
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| OffRouteDispatcherName | string? | MaxLength(150), nullable — Acil durumlarda güzergah dışına sevk eden yetkili adı soyadı |
+| OffRouteDispatcherTitle | string? | MaxLength(100), nullable — Güzergah dışına sevk eden yetkili unvanı |
+| OffRouteReason | string? | MaxLength(500), nullable — Güzergah dışına sevk gerekçesi |
+| OffRouteReportedAt | DateTime? | Nullable — Sisteme işlenme tarihi |
+| OffRouteReportedByUserId | string? | Nullable, FK → ApplicationUser.Id — Sisteme işleyen Şef/Admin |
+| CheckOil | bool | Default false — Yağ kontrolü yapıldı mı? |
+| CheckWater | bool | Default false — Su kontrolü yapıldı mı? |
+| CheckFuel | bool | Default false — Yakıt kontrolü yapıldı mı? |
+| CheckHydraulic | bool | Default false — Hidrolik kontrolü yapıldı mı? |
+| CheckTires | bool | Default false — Lastik kontrolü yapıldı mı? |
+| ChecksCompletedAt | DateTime? | Nullable — Kontrol tiklerinin şoför tarafından kaydedildiği tarih/saat |
+
+### 13.2 VehicleFaultReport (Araç Arıza Bildirimi — `BaseAuditableEntity`'den türer)
+Şoförlerin mobil panelden veya Şeflerin yönetim panelinden bildirdiği araç arıza ve kusur kayıtları.
+
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| *(Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)* | — | `BaseAuditableEntity`'den gelir |
+| VehicleId | int | Required, FK → Vehicle.Id (Restrict) |
+| DriverId | int | Required, FK → Driver.Id (Restrict) |
+| AssignmentId | int? | Nullable, FK → Assignment.Id (Restrict) |
+| CurrentKm | int | Required — Bildirim anındaki araç kilometresi |
+| Description | string | Required, MaxLength(2000) — Arıza detayı ve şoför açıklaması |
+| ReportDate | DateTime | Required, Default UtcNow — Bildirim tarihi |
+| Status | enum `FaultReportStatus` | Required, Default `Pending` (`Pending`, `Approved`, `Resolved`, `Rejected`) |
+| ReviewerUserId | string? | Nullable, FK → ApplicationUser.Id — İnceleyen/onaylayan Şef/Admin |
+| ReviewerNotes | string? | Nullable, MaxLength(1000) — Şef inceleme notu ve sevk açıklaması |
+| ReviewedAt | DateTime? | Nullable — İnceleme/onay tarihi |
+
+> **İş Kuralı:** Arıza bildirimi açılması aracın `Vehicle.Status` durumunu **otomatik olarak değiştirmez**. Araç durumu mevcut idari kurallarla (Bakım kaydı açılarak vb.) yönetilir.
+
+---
+
+## 14. FAZ 2 - A KISMI GÜNCELLEMELERİ — ÇOKLU ŞOFÖR, ŞOFÖRSÜZ GÖREV, DIŞ ŞOFÖR VE GÖREV YERİ/GÜZERGAH
+
+### 14.1 Assignment Tablosu Ek ve Güncellenen Alanları
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| `Destination` | string? | MaxLength(250), nullable — Görev Yeri (serbest metin adres). Eski kayıtlar için nullable kalır; yeni kayıtlarda form seviyesinde zorunludur. |
+| `Route` | string? | MaxLength(500), nullable — Güzergah (manuel serbest metin). |
+| `IsDriverless` | bool | Default false — Şoförsüz görevlendirme (personel kullanımı). |
+| `IsExternalDriver` | bool | Default false — Kurum dışı şoför görevlendirme. |
+| `ExternalDriverFullName` | string? | MaxLength(150), nullable — Kurum dışı şoför Adı Soyadı. |
+| `ExternalDriverDepartment` | string? | MaxLength(150), nullable — Kurum dışı şoförün bağlı olduğu birim/kurum. |
+| `DriverId` | int? | **Nullable** — Asil / 1. Şoför referansı. Şoförsüz veya dış şoförlü görevlerde `null` olur. |
+
+### 14.2 AssignmentDriver (Çoklu Şoför Ara Tablosu — `BaseAuditableEntity`'den türer)
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| *(Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)* | — | `BaseAuditableEntity`'den gelir |
+| `AssignmentId` | int | Required, FK → Assignment.Id (Restrict) |
+| `DriverId` | int | Required, FK → Driver.Id (Restrict) |
+| `IsPrimary` | bool | Default false — 1. (Asil) Şoför mü? |
+
+- **İndeks:** `(AssignmentId, DriverId)` üzerinde filtrelenmiş unique index (`[IsDeleted] = 0`).
+- **Üç Şoför Modu (Birbirini Kesin Olarak Dışlar):**
+  1. *Kurum Şoförlü:* 1 veya birden fazla kurum şoförü (`AssignmentDrivers.Count >= 1`, `DriverId = ilk şoför`).
+  2. *Kurum Dışı Şoför:* Yalnızca dış şoför bilgisi girilir (`IsExternalDriver = true`, `DriverId = null`, `AssignmentDrivers` boş).
+  3. *Şoförsüz:* Araç personelde (`IsDriverless = true`, `DriverId = null`, `AssignmentDrivers` boş).
+
+

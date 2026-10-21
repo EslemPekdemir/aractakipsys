@@ -14,4 +14,5 @@ public interface IVehicleService
     Task<(bool Success, string Message)> UpdateVehicleAsync(VehicleEditViewModel model, string userId);
     Task<(bool Success, string Message)> DeleteVehicleAsync(int id, string userId);
     Task<DocumentExpiryNotificationSummaryViewModel> GetExpiringDocumentsSummaryAsync();
+    Task<(bool Success, string Message)> CorrectVehicleKmAsync(int vehicleId, int correctKm, string reason, string userId);
 }

@@ -14,6 +14,27 @@ public class AssignmentConfiguration : IEntityTypeConfiguration<Assignment>
         builder.HasIndex(x => new { x.VehicleId, x.PlannedStartTime, x.PlannedEndTime });
         builder.HasIndex(x => new { x.DriverId, x.PlannedStartTime, x.PlannedEndTime });
 
+        builder.Property(x => x.DriverId)
+            .IsRequired(false);
+
+        builder.Property(x => x.Destination)
+            .HasMaxLength(250);
+
+        builder.Property(x => x.Route)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.IsDriverless)
+            .HasDefaultValue(false);
+
+        builder.Property(x => x.IsExternalDriver)
+            .HasDefaultValue(false);
+
+        builder.Property(x => x.ExternalDriverFullName)
+            .HasMaxLength(150);
+
+        builder.Property(x => x.ExternalDriverDepartment)
+            .HasMaxLength(150);
+
         builder.Property(x => x.RequestedByDepartment)
             .HasMaxLength(150);
 
@@ -80,6 +101,7 @@ public class AssignmentConfiguration : IEntityTypeConfiguration<Assignment>
         builder.HasOne(x => x.Driver)
             .WithMany()
             .HasForeignKey(x => x.DriverId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.StartApprovedByUser)
@@ -106,5 +128,39 @@ public class AssignmentConfiguration : IEntityTypeConfiguration<Assignment>
             .WithMany()
             .HasForeignKey(x => x.SignedDocumentUploadedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Güzergah Dışı Sevk Alanları Konfigürasyonu (Faz 3)
+        builder.Property(x => x.OffRouteDispatcherName)
+            .HasMaxLength(150);
+
+        builder.Property(x => x.OffRouteDispatcherTitle)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.OffRouteReason)
+            .HasMaxLength(500);
+
+        builder.Property(x => x.OffRouteReportedByUserId)
+            .HasMaxLength(450);
+
+        builder.HasOne(x => x.OffRouteReportedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.OffRouteReportedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Şoför Araç Kontrol Tikleri Konfigürasyonu (Faz 3)
+        builder.Property(x => x.CheckOil)
+            .HasDefaultValue(false);
+
+        builder.Property(x => x.CheckWater)
+            .HasDefaultValue(false);
+
+        builder.Property(x => x.CheckFuel)
+            .HasDefaultValue(false);
+
+        builder.Property(x => x.CheckHydraulic)
+            .HasDefaultValue(false);
+
+        builder.Property(x => x.CheckTires)
+            .HasDefaultValue(false);
     }
 }

@@ -16,6 +16,8 @@ public class AssignmentCardViewModel
     public int CurrentVehicleKm { get; set; }
     public int VehicleCurrentKm { get => CurrentVehicleKm; set => CurrentVehicleKm = value; }
     public string? RequestedByDepartment { get; set; }
+    public string? Destination { get; set; }
+    public string? Route { get; set; }
     public string Purpose { get; set; } = string.Empty;
     public DateTime PlannedStartTime { get; set; }
     public DateTime PlannedEndTime { get; set; }

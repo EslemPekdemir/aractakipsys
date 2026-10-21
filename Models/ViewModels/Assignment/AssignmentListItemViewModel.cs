@@ -9,9 +9,32 @@ public class AssignmentListItemViewModel
     public int VehicleId { get; set; }
     public string VehiclePlate { get; set; } = string.Empty;
     public string VehicleBrandModel { get; set; } = string.Empty;
-    public int DriverId { get; set; }
+    public int VehicleCurrentKm { get; set; }
+    public int? DriverId { get; set; }
     public string DriverFullName { get; set; } = string.Empty;
+    public List<string> AssignedDriverNames { get; set; } = new();
+    public int AdditionalDriverCount => AssignedDriverNames.Count > 1 ? AssignedDriverNames.Count - 1 : 0;
+
+    public bool IsDriverless { get; set; }
+    public bool IsExternalDriver { get; set; }
+    public string? ExternalDriverFullName { get; set; }
+    public string? ExternalDriverDepartment { get; set; }
+
+    public string DriverDisplayName
+    {
+        get
+        {
+            if (IsDriverless) return "Şoförsüz (Personel)";
+            if (IsExternalDriver) return !string.IsNullOrWhiteSpace(ExternalDriverFullName) ? $"{ExternalDriverFullName} ({ExternalDriverDepartment})" : "Dış Şoför";
+            if (AssignedDriverNames.Count > 1) return string.Join(", ", AssignedDriverNames);
+            if (!string.IsNullOrWhiteSpace(DriverFullName)) return DriverFullName;
+            return "Atanmadı";
+        }
+    }
+
     public string RequestedByDepartment { get; set; } = string.Empty;
+    public string? Destination { get; set; }
+    public string? Route { get; set; }
     public string Purpose { get; set; } = string.Empty;
     public DateTime PlannedStartTime { get; set; }
     public DateTime PlannedEndTime { get; set; }

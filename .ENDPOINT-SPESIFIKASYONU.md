@@ -293,3 +293,47 @@ Sisteme yüklenen tüm ikili dosyalarda (İmzalı Görev Belgeleri ve Profil Fot
   2. **Güvenli İsimlendirme:** Orijinal kullanıcı dosya adı asla doğrudan disk yolunda kullanılmaz; `Guid.NewGuid() + ext` formatında rastgele benzersiz isim türetilir (Path Traversal önleme).
   3. **Yetim Dosya Temizliği:** Profil güncellemesinde form validasyonu veya Identity DB işlemi hata verirse, az önce diske yazılan geçici dosya derhal silinir. Başarılı güncellemede ise eski profil fotoğrafı diskten temizlenerek sunucuda atıl dosya birikmesi engellenir.
 
+---
+
+## 25. FAZ 3 ENDPOINT'LERİ — TAŞIT GÖREV EMRİ, KONTROL TİKLERİ VE ARIZA BİLDİRİMİ
+
+### 25.1 Arıza Bildirimi — FaultReportController (`/FaultReport`)
+| Action | HTTP | Rol | Açıklama |
+|---|---|---|---|
+| Index | GET | Admin,Kullanici | Tüm arıza bildirimlerini durum filtresi (`Pending`, `Approved`, `Resolved`, `Rejected`) ile listeler. |
+| Detail/{id} | GET | Admin,Kullanici | Bildirim detayını gösterir; Şef inceleme ve onay formu içerir. |
+| Approve | POST | Admin,Kullanici | Şefin arıza kaydını onaylayıp not düşmesini sağlar. İlgili `AuditLog` kaydı üretilir. |
+| UpdateStatus | POST | Admin,Kullanici | Durumu doğrudan güncelleme (`Resolved`, `Rejected` vb.). |
+| DownloadPdf/{id} | GET | Admin,Kullanici | Onaylanmış veya doldurulmuş resmi "ARAÇ ARIZA BİLDİRİM FORMU" PDF'ini üretir (QuestPDF). |
+| DownloadBlankPdf | GET | Admin,Kullanici | Elle doldurulmak üzere boş "ARAÇ ARIZA BİLDİRİM FORMU" PDF'ini üretir. |
+| PendingNotificationSummary | GET (AJAX) | Admin,Kullanici | Navbar bildirim çanı için bekleyen arıza sayısını ve son kayıtları döner (30s periyodik kontrol). |
+
+### 25.2 Taşıt Görev Emri ve Güzergah Dışı Sevk — AssignmentController Ekleri
+| Action | HTTP | Rol | Açıklama |
+|---|---|---|---|
+| DownloadOrderDocument/{id} | GET | Admin,Kullanici | Resmi Taşıt Görev Emri PDF'i üretir. `?emptyValues=true` parametresi verilirse çıkış/giriş saat ve KM alanları elle doldurulmak üzere boş basılır. Belge tek sayfa A4 olarak üretilir. |
+| SaveOffRouteDispatch | POST | Admin,Kullanici | Acil durumlarda güzergah dışına sevk eden yetkili bilgilerini (`OffRouteDispatcherName`, `OffRouteDispatcherTitle`, `OffRouteReason`) sisteme işler ve `AuditLog` oluşturur. |
+
+### 25.3 Şoför Paneli Ekleri — SurucuController
+| Action | HTTP | Rol | Açıklama |
+|---|---|---|---|
+| GorevEmri/{id} | GET | Driver | Şoförün yalnızca kendisine atanmış göreve ait Taşıt Görev Emri PDF'ini indirmesini sağlar. **Yatay Yetki:** Başka şoförün görev ID'si istenirse `Forbid()` (403) döner. |
+| SaveVehicleChecks | POST (AJAX/Form) | Driver | Görev detayında şoförün Yağ, Su, Yakıt, Hidrolik ve Lastik kontrol tiklerini kaydeder. `Assignment` üzerine işlenir ve `AuditLog` yazılır. |
+| ReportFault | POST (AJAX/Form) | Driver | Şoförün araç arıza bildirimi açmasını sağlar. Kayıt `Pending` durumunda oluşur, Ulaşım Şefliği bildirim çanına anında düşer. `AuditLog` yazılır. |
+
+---
+
+## 26. FAZ 2 - A KISMI ENDPOINT GÜNCELLEMELERİ
+
+### 26.1 AssignmentController Güncellemeleri
+- `Create` (POST): `AssignmentCreateViewModel` içinde `List<int> DriverIds` (çoklu kurum şoförü), `IsDriverless`, `IsExternalDriver`, `ExternalDriverFullName`, `ExternalDriverDepartment`, `Destination`, `Route` alanlarını alır.
+- `Edit` (GET/POST): Çoklu şoför ve yeni alanları destekler.
+- `DownloadOrderDocument/{id}` (GET): `driverId` (int?) opsiyonel parametresi alır. Görevde birden fazla şoför varsa belirli şoförün adına görev emri basılmasını sağlar. Şoförsüz görevde şoför hanesi "Şoförsüz" basılır. Dış şoförde dış şoför adı ve birimi basılır.
+
+### 26.2 SurucuController Güncellemeleri (Yatay Yetki ve Çoklu Şoför)
+- `MyAssignments` & `AssignmentDetail`: `a.AssignmentDrivers.Any(ad => ad.Driver.UserId == currentUserId)` ile filtrelenir.
+- `StartAssignment`, `EndAssignment`, `SaveVehicleChecks`, `ReportFault`: Göreve atanmış HERHANGİ bir şoför işlem yapabilir; yapan şoförün adı notlara/kayda düşülür.
+- `GorevEmri/{id}`: Giriş yapan şoförün `driverId`'si ile kendi adına olan görev emri PDF'i üretilir (yatay yetki kontrolü).
+
+
+

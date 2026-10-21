@@ -69,12 +69,12 @@
                         </h6>
                     </div>
 
-                    <!-- İKİ KOLONLU FORM (ARAYUZ-SPESIFIKASYONU Bölüm 8) -->
+                    <!-- İKİ KOLONLU FORM (ARAYUZ-SPESIFIKASYONU Bölüm 8 & FAZ 2-A) -->
                     <div class="row">
                         <!-- SOL KOLON: ZAMAN VE GÜZERGAH -->
                         <div class="col-md-6 border-right">
                             <h5 class="font-weight-bold text-primary mb-3 border-bottom pb-2">
-                                <i class="fa fa-calendar-check-o mr-1"></i> 1. Görev Zaman Planlaması
+                                <i class="fa fa-calendar-check-o mr-1"></i> 1. Görev Zamanı ve Güzergah Bilgileri
                             </h5>
 
                             <div class="form-group mb-3">
@@ -111,14 +111,30 @@
                                 <span asp-validation-for="RequestedByDepartment" class="text-danger small font-weight-bold"></span>
                             </div>
 
+                            <!-- 3 AYRI ALAN (FAZ 2-A) -->
                             <div class="form-group mb-3">
-                                <label asp-for="Purpose" class="font-weight-bold">Görev Amacı ve Güzergah <span class="text-danger">*</span></label>
-                                <textarea asp-for="Purpose" rows="3" class="form-control" placeholder="Örn: TÜBİTAK Proje Çalıştayı için Ankara ODTÜ Teknokent gidiş-dönüş"></textarea>
+                                <label asp-for="Destination" class="font-weight-bold">Görev Yeri (Gidilen Yer) <span class="text-danger">*</span></label>
+                                <input asp-for="Destination" id="destinationInput" class="form-control" placeholder="Örn: Ankara ODTÜ Teknokent / Bolu Abant İzzet Baysal Ünv." />
+                                <span asp-validation-for="Destination" class="text-danger small font-weight-bold"></span>
+                                <small class="form-text text-muted">Taşıt Görev Emri'nde "Gidilen Yer" satırına yazılır.</small>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="Purpose" class="font-weight-bold">Görev Amacı <span class="text-danger">*</span></label>
+                                <textarea asp-for="Purpose" id="purposeInput" rows="2" class="form-control" placeholder="Örn: TÜBİTAK 1001 Proje Başlangıç Toplantısı ve Protokol İmza Töreni"></textarea>
                                 <span asp-validation-for="Purpose" class="text-danger small font-weight-bold"></span>
+                                <small class="form-text text-muted">Taşıt Görev Emri'nde "Görevin Konusu" kutusuna yazılır.</small>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label asp-for="Route" class="font-weight-bold">Güzergah (Serbest Metin)</label>
+                                <textarea asp-for="Route" id="routeInput" rows="2" class="form-control" placeholder="Örn: Düzce Kampüs -> Kaynaşlı -> Bolu Dağı -> Gerede -> Ankara ODTÜ"></textarea>
+                                <span asp-validation-for="Route" class="text-danger small font-weight-bold"></span>
+                                <small class="form-text text-muted">İzlenecek rota / ara duraklar. Taşıt Görev Emri'nde "Güzergah" satırına yazılır.</small>
                             </div>
                         </div>
 
-                        <!-- SAĞ KOLON: ARAÇ VE ŞOFÖR SEÇİMİ -->
+                        <!-- SAĞ KOLON: ARAÇ VE ŞOFÖR SEÇİMİ (FAZ 2-A ÇOKLU / ŞOFÖRSÜZ / DIŞ ŞOFÖR) -->
                         <div class="col-md-6 pl-md-4 mt-4 mt-md-0">
                             <h5 class="font-weight-bold text-primary mb-3 border-bottom pb-2">
                                 <i class="fa fa-car mr-1"></i> 2. Araç ve Şoför Tahsisi
@@ -152,23 +168,108 @@
                                 <small class="form-text text-muted">Bakımdaki veya çakışan görevdeki araçlar seçilemez.</small>
                             </div>
 
-                            <!-- ŞOFÖR DROPDOWN -->
-                            <div class="form-group mb-4">
-                                <label asp-for="DriverId" class="font-weight-bold d-flex justify-content-between">
-                                    <span>Görevlendirilecek Şoför <span class="text-danger">*</span></span>
-                                    <span class="badge bg-primary text-white" id="driverCountBadge">@Model.AvailableDrivers.Count(d => d.IsAvailable) Müsait</span>
-                                </label>
-                                <select asp-for="DriverId" class="form-control" id="driverSelect">
-                                    <option value="">-- Lütfen Şoför Seçiniz --</option>
-                                    @foreach (var d in Model.AvailableDrivers)
-                                    {
-                                        <option value="@d.Id" disabled="@(!d.IsAvailable ? "disabled" : null)" selected="@(Model.DriverId == d.Id ? "selected" : null)">
-                                            @d.DisplayText
-                                        </option>
-                                    }
-                                </select>
-                                <span asp-validation-for="DriverId" class="text-danger small font-weight-bold"></span>
-                                <small class="form-text text-muted">Ehliyet süresi yetersiz veya çakışan görevi olan şoförler seçilemez.</small>
+                            <!-- ŞOFÖR TAHSİS TÜRÜ SEÇİMİ (3 MOD) -->
+                            <div class="card bg-light border mb-3">
+                                <div class="card-body p-3">
+                                    <label class="font-weight-bold text-dark mb-2 d-block small text-uppercase">
+                                        <i class="fa fa-id-card-o text-primary mr-1"></i> Şoför Görevlendirme Modu
+                                    </label>
+                                    <div class="d-flex flex-column" style="gap: 8px;">
+                                        <div class="custom-control custom-radio">
+                                            <input type="radio" id="modeInternalDriver" name="driverModeRadio" value="internal" class="custom-control-input"
+                                                   checked="@(!Model.IsDriverless && !Model.IsExternalDriver ? "checked" : null)" onchange="onDriverModeChanged()">
+                                            <label class="custom-control-label font-weight-bold text-dark" for="modeInternalDriver">
+                                                <i class="fa fa-user text-primary mr-1"></i> Kurum Şoförü Görevlendir (Tek / Çoklu Şoför)
+                                            </label>
+                                        </div>
+                                        <div class="custom-control custom-radio">
+                                            <input type="radio" id="modeDriverless" name="driverModeRadio" value="driverless" class="custom-control-input"
+                                                   checked="@(Model.IsDriverless ? "checked" : null)" onchange="onDriverModeChanged()">
+                                            <label class="custom-control-label font-weight-bold text-dark" for="modeDriverless">
+                                                <i class="fa fa-user-times text-warning mr-1"></i> Şoförsüz Görevlendirme (Kurum personeli aracı kendisi kullanacak)
+                                            </label>
+                                        </div>
+                                        <div class="custom-control custom-radio">
+                                            <input type="radio" id="modeExternalDriver" name="driverModeRadio" value="external" class="custom-control-input"
+                                                   checked="@(Model.IsExternalDriver ? "checked" : null)" onchange="onDriverModeChanged()">
+                                            <label class="custom-control-label font-weight-bold text-dark" for="modeExternalDriver">
+                                                <i class="fa fa-id-badge text-info mr-1"></i> Dışarıdan Şoför (Kurum personeli olmayan görevli/şoför)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" asp-for="IsDriverless" id="hiddenIsDriverless" />
+                                    <input type="hidden" asp-for="IsExternalDriver" id="hiddenIsExternalDriver" />
+                                </div>
+                            </div>
+
+                            <!-- MOD 1: KURUM ŞOFÖRLERİ (BİRİNCİL + EK ŞOFÖRLER) -->
+                            <div id="internalDriversContainer" class="@(Model.IsDriverless || Model.IsExternalDriver ? "d-none" : "")">
+                                <!-- BİRİNCİL ŞOFÖR -->
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold d-flex justify-content-between">
+                                        <span><i class="fa fa-star text-warning mr-1"></i> Birincil Şoför <span class="text-danger">*</span></span>
+                                        <span class="badge bg-primary text-white" id="driverCountBadge">@Model.AvailableDrivers.Count(d => d.IsAvailable) Müsait</span>
+                                    </label>
+                                    <select asp-for="DriverId" class="form-control select2-driver" id="primaryDriverSelect">
+                                        <option value="">-- Lütfen Şoför Seçiniz --</option>
+                                        @foreach (var d in Model.AvailableDrivers)
+                                        {
+                                            <option value="@d.Id" disabled="@(!d.IsAvailable ? "disabled" : null)" selected="@(Model.DriverId == d.Id ? "selected" : null)">
+                                                @d.DisplayText
+                                            </option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="DriverId" class="text-danger small font-weight-bold"></span>
+                                    <small class="form-text text-muted">Ehliyet süresi yetersiz veya çakışan görevi olan şoförler seçilemez.</small>
+                                </div>
+
+                                <!-- EK ŞOFÖRLER LİSTESİ -->
+                                <div id="additionalDriversWrapper" class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="small font-weight-bold text-dark">
+                                            <i class="fa fa-users text-primary mr-1"></i> Ek Şoförler (İsteğe Bağlı)
+                                        </span>
+                                        <button type="button" class="btn btn-xs btn-outline-primary font-weight-bold shadow-sm" onclick="addDriverRow()">
+                                            <i class="fa fa-plus-circle mr-1"></i> Ek Şoför Ekle
+                                        </button>
+                                    </div>
+                                    <div id="additionalDriversList" style="display: flex; flex-direction: column; gap: 8px;">
+                                        <!-- Dinamik eklenen şoför satırları buraya gelecek -->
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Birden fazla şoför atandığında her şoför için ayrı Taşıt Görev Emri oluşturulur ve her şoförün ehliyet/çakışma kontrolü ayrı yapılır.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- MOD 2: ŞOFÖRSÜZ BİLGİLENDİRME -->
+                            <div id="driverlessAlertContainer" class="alert alert-secondary p-3 @(!Model.IsDriverless ? "d-none" : "")" style="border-left: 4px solid #6c757d; border-radius: 6px;">
+                                <h6 class="font-weight-bold text-dark mb-1">
+                                    <i class="fa fa-info-circle mr-1 text-secondary"></i> Şoförsüz Görevlendirme
+                                </h6>
+                                <p class="small text-muted mb-0">
+                                    Bu görevde kurum şoförü görevlendirilmemiştir. Araç teslimi, sefer başlangıcı ve bitişi birim yetkilisi / şef tarafından sistem üzerinden doğrudan onaylanarak gerçekleştirilecektir.
+                                </p>
+                            </div>
+
+                            <!-- MOD 3: DIŞARIDAN ŞOFÖR ALANLARI -->
+                            <div id="externalDriverContainer" class="p-3 bg-light border rounded @(!Model.IsExternalDriver ? "d-none" : "") mb-3">
+                                <h6 class="font-weight-bold text-dark mb-2">
+                                    <i class="fa fa-id-badge text-info mr-1"></i> Dış Şoför Bilgileri
+                                </h6>
+                                <div class="form-group mb-2">
+                                    <label asp-for="ExternalDriverFullName" class="font-weight-bold small">Dış Şoför Adı Soyadı <span class="text-danger">*</span></label>
+                                    <input asp-for="ExternalDriverFullName" id="externalDriverFullNameInput" class="form-control" placeholder="Örn: Ahmet Yılmaz (Firma Şoförü)" />
+                                    <span asp-validation-for="ExternalDriverFullName" class="text-danger small font-weight-bold"></span>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label asp-for="ExternalDriverDepartment" class="font-weight-bold small">Kurum / Firma / Departman Bilgisi</label>
+                                    <input asp-for="ExternalDriverDepartment" class="form-control" placeholder="Örn: Düzce Valiliği Protokol / Turizm Firması" />
+                                    <span asp-validation-for="ExternalDriverDepartment" class="text-danger small font-weight-bold"></span>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Dış şoförlü görevlerde resmi Taşıt Görev Emri'nde dış şoförün adı soyadı ve birimi yer alır; TC/ehliyet gibi kişisel kurum verileri maskelenir.
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -311,7 +412,7 @@
                         <a href="/Assignment" class="btn btn-outline-secondary mb-2 mb-sm-0 mr-sm-2 px-4 font-weight-bold text-center">
                             <i class="fa fa-times mr-1"></i> İptal
                         </a>
-                        <button type="submit" class="btn btn-primary mb-0 px-5 font-weight-bold shadow-sm">
+                        <button type="submit" id="btnSubmitAssignment" class="btn btn-primary mb-0 px-5 font-weight-bold shadow-sm">
                             <i class="fa fa-check mr-1"></i> Görevi Kaydet ve Ata
                         </button>
                     </div>
@@ -365,6 +466,14 @@
 @section Scripts {
 <script src="~/js/plugins/select2/select2.full.min.js"></script>
 <script>
+    // Mevcut şoför listesi önbelleği (Ek şoför satırları için)
+    let cachedDrivers = [
+        @foreach (var d in Model.AvailableDrivers)
+        {
+            <text>{ id: @d.Id, displayText: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(d.DisplayText)), isAvailable: @(d.IsAvailable ? "true" : "false") },</text>
+        }
+    ];
+
     $(document).ready(function () {
         $('#vehicleSelect').select2({
             width: '100%',
@@ -378,7 +487,14 @@
             }
         });
 
-        $('#driverSelect').select2({
+        initDriverSelect($('#primaryDriverSelect'));
+
+        // Sayfa açıldığında başlangıç/bitiş doluysa süreyi hesapla
+        updatePlannedDurationAndPerDiem();
+    });
+
+    function initDriverSelect($element) {
+        $element.select2({
             width: '100%',
             placeholder: '-- Lütfen Şoför Seçiniz --',
             allowClear: true,
@@ -389,10 +505,62 @@
                 }
             }
         });
+    }
 
-        // Sayfa açıldığında başlangıç/bitiş doluysa süreyi hesapla
-        updatePlannedDurationAndPerDiem();
-    });
+    // ŞOFÖR GÖREVLENDİRME MODU DEĞİŞİMİ (FAZ 2-A)
+    function onDriverModeChanged() {
+        const mode = $('input[name="driverModeRadio"]:checked').val();
+        if (mode === 'internal') {
+            $('#hiddenIsDriverless').val('false');
+            $('#hiddenIsExternalDriver').val('false');
+            $('#internalDriversContainer').removeClass('d-none');
+            $('#driverlessAlertContainer').addClass('d-none');
+            $('#externalDriverContainer').addClass('d-none');
+        } else if (mode === 'driverless') {
+            $('#hiddenIsDriverless').val('true');
+            $('#hiddenIsExternalDriver').val('false');
+            $('#internalDriversContainer').addClass('d-none');
+            $('#driverlessAlertContainer').removeClass('d-none');
+            $('#externalDriverContainer').addClass('d-none');
+        } else if (mode === 'external') {
+            $('#hiddenIsDriverless').val('false');
+            $('#hiddenIsExternalDriver').val('true');
+            $('#internalDriversContainer').addClass('d-none');
+            $('#driverlessAlertContainer').addClass('d-none');
+            $('#externalDriverContainer').removeClass('d-none');
+        }
+    }
+
+    // DİNAMİK EK ŞOFÖR SATIRI EKLEME
+    function addDriverRow() {
+        const rowId = 'driver_row_' + Date.now();
+        let optionsHtml = '<option value="">-- Ek Şoför Seçiniz --</option>';
+        cachedDrivers.forEach(function (d) {
+            const disabledAttr = d.isAvailable ? '' : 'disabled';
+            optionsHtml += '<option value="' + d.id + '" ' + disabledAttr + '>' + d.displayText + '</option>';
+        });
+
+        const rowHtml = `
+            <div class="additional-driver-row input-group mt-1" id="${rowId}">
+                <select name="DriverIds" class="form-control select2-driver additional-driver-select">
+                    ${optionsHtml}
+                </select>
+                <div class="input-group-append">
+                    <button type="button" class="btn btn-outline-danger" onclick="removeDriverRow('${rowId}')" title="Bu Şoförü Kaldır">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        $('#additionalDriversList').append(rowHtml);
+        initDriverSelect($('#' + rowId).find('.additional-driver-select'));
+    }
+
+    function removeDriverRow(rowId) {
+        $('#' + rowId).find('.additional-driver-select').select2('destroy');
+        $('#' + rowId).remove();
+    }
 
     // Ücret Hesaplama Tipi (Saatlik vs Günlük) Değişimi
     $('input[name="PerDiemType"]').on('change', function () {
@@ -484,9 +652,9 @@
         const startTime = $('#plannedStartTimeInput').val();
         const endTime = $('#plannedEndTimeInput').val();
         const dept = $.trim($('#RequestedByDepartment').val());
-        const purpose = $.trim($('#Purpose').val());
+        const destination = $.trim($('#destinationInput').val());
+        const purpose = $.trim($('#purposeInput').val());
         const vehicleId = $('#vehicleSelect').val();
-        const driverId = $('#driverSelect').val();
 
         if (!startTime) {
             hasError = true;
@@ -503,20 +671,53 @@
             errorMessages.push("Talep eden birim girilmelidir.");
             if (!$firstInvalid) $firstInvalid = $('#RequestedByDepartment');
         }
+        if (!destination) {
+            hasError = true;
+            errorMessages.push("Görev yeri (gidilen yer) girilmelidir.");
+            if (!$firstInvalid) $firstInvalid = $('#destinationInput');
+        }
         if (!purpose) {
             hasError = true;
-            errorMessages.push("Görev amacı ve güzergahı belirtilmelidir.");
-            if (!$firstInvalid) $firstInvalid = $('#Purpose');
+            errorMessages.push("Görev amacı belirtilmelidir.");
+            if (!$firstInvalid) $firstInvalid = $('#purposeInput');
         }
         if (!vehicleId || vehicleId === "0") {
             hasError = true;
             errorMessages.push("Lütfen görevlendirilecek bir araç seçiniz.");
             if (!$firstInvalid) $firstInvalid = $('#vehicleSelect').next('.select2-container');
         }
-        if (!driverId || driverId === "0") {
-            hasError = true;
-            errorMessages.push("Lütfen görevlendirilecek bir şoför seçiniz.");
-            if (!$firstInvalid) $firstInvalid = $('#driverSelect').next('.select2-container');
+
+        // Şoför Doğrulaması (Mod bazlı)
+        const driverMode = $('input[name="driverModeRadio"]:checked').val();
+        if (driverMode === 'internal') {
+            const primaryDriverId = $('#primaryDriverSelect').val();
+            if (!primaryDriverId || primaryDriverId === "0") {
+                hasError = true;
+                errorMessages.push("Lütfen birincil bir kurum şoförü seçiniz.");
+                if (!$firstInvalid) $firstInvalid = $('#primaryDriverSelect').next('.select2-container');
+            }
+
+            // Çift şoför seçimi kontrolü
+            const selectedDriverIds = [primaryDriverId];
+            $('.additional-driver-select').each(function () {
+                const val = $(this).val();
+                if (val && val !== "0") {
+                    if (selectedDriverIds.includes(val)) {
+                        hasError = true;
+                        errorMessages.push("Aynı şoför birden fazla kez atanamaz. Lütfen mükerrer şoför seçimini düzeltiniz.");
+                        if (!$firstInvalid) $firstInvalid = $(this).next('.select2-container');
+                    } else {
+                        selectedDriverIds.push(val);
+                    }
+                }
+            });
+        } else if (driverMode === 'external') {
+            const extName = $.trim($('#externalDriverFullNameInput').val());
+            if (!extName) {
+                hasError = true;
+                errorMessages.push("Dış şoförün adı soyadı girilmelidir.");
+                if (!$firstInvalid) $firstInvalid = $('#externalDriverFullNameInput');
+            }
         }
 
         if (hasError) {
@@ -593,20 +794,34 @@
                     $('#vehicleCountBadge').text(availVehicles + ' Müsait');
                     $vSelect.trigger('change.select2');
 
-                    // Şoför dropdown'ını güncelle
-                    const currentDriverId = $('#driverSelect').val();
-                    const $dSelect = $('#driverSelect');
+                    // Şoför önbelleğini ve birincil şoför dropdown'ını güncelle
+                    cachedDrivers = res.drivers;
+                    const currentPrimaryDriverId = $('#primaryDriverSelect').val();
+                    const $dSelect = $('#primaryDriverSelect');
                     $dSelect.empty().append('<option value="">-- Lütfen Şoför Seçiniz --</option>');
                     let availDrivers = 0;
 
                     res.drivers.forEach(function (d) {
                         if (d.isAvailable) availDrivers++;
                         const disabledAttr = d.isAvailable ? '' : 'disabled';
-                        const selectedAttr = (d.id == currentDriverId && d.isAvailable) ? 'selected' : '';
+                        const selectedAttr = (d.id == currentPrimaryDriverId && d.isAvailable) ? 'selected' : '';
                         $dSelect.append('<option value="' + d.id + '" ' + disabledAttr + ' ' + selectedAttr + '>' + d.displayText + '</option>');
                     });
                     $('#driverCountBadge').text(availDrivers + ' Müsait');
                     $dSelect.trigger('change.select2');
+
+                    // Varsa ek şoför dropdown'larını da yeni listeyle güncelle
+                    $('.additional-driver-select').each(function () {
+                        const currentVal = $(this).val();
+                        const $select = $(this);
+                        $select.empty().append('<option value="">-- Ek Şoför Seçiniz --</option>');
+                        res.drivers.forEach(function (d) {
+                            const disabledAttr = d.isAvailable ? '' : 'disabled';
+                            const selectedAttr = (d.id == currentVal && d.isAvailable) ? 'selected' : '';
+                            $select.append('<option value="' + d.id + '" ' + disabledAttr + ' ' + selectedAttr + '>' + d.displayText + '</option>');
+                        });
+                        $select.trigger('change.select2');
+                    });
                 } else {
                     $('#availabilityStatusBadge').removeClass('bg-warning bg-success').addClass('bg-danger').text('Geçersiz Tarih');
                 }
@@ -662,5 +877,18 @@
         }
         pendingVehicleId = null;
     }
+
+    // Çift Gönderim Engeli (Double Submit Prevention)
+    $('#createAssignmentForm').on('submit', function (e) {
+        const $btn = $('#btnSubmitAssignment');
+        if ($btn.data('submitting') === true) {
+            e.preventDefault();
+            return false;
+        }
+        $btn.data('submitting', true);
+        $btn.addClass('disabled').css('pointer-events', 'none');
+        $btn.html('<i class="fa fa-spinner fa-spin mr-1"></i> Kaydediliyor...');
+        return true;
+    });
 </script>
 }

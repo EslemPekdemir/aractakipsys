@@ -182,3 +182,54 @@ Kullanıcı deneyimini kurumsallaştırmak ve genel stok resim (`profile_small.j
   - `autocomplete="new-password"` ile tarayıcıların otomatik doldurma (autofill) mekanizması kilitlenmiştir.
   - Kullanıcı şifresini değiştirmek zorunda olmadan yalnızca Ad Soyad, E-posta, Telefon ve Fotoğrafını güncelleyebilir. Şifre alanları sadece yeni şifre belirlenmek istendiğinde doğrulanır.
 
+---
+
+## 12. TAŞIT GÖREV EMRİ (RESMİ BELGE FORMU — QuestPDF)
+
+- **Biçim ve Sayfa Yapısı:** A4 dikey (Portrait), kurumsal ve matbu form düzeninde. Sol üstte kurum logosu (`/images/logo.png` veya vektörel yer tutucu), üst başlık: *"T.C. DÜZCE ÜNİVERSİTESİ REKTÖRLÜĞÜ — TAŞIT GÖREV EMRİ"*.
+- **Tek Nüsha Standardı:** Belge **tek sayfa (1 tam A4)** olarak üretilir; sayfa üzerinde herhangi bir nüsha etiketi yer almaz.
+- **Dolu / Boş Çıktı Seçeneği:** Görev detay ekranındaki indirme butonunda bölünmüş açılır menü (Split Dropdown) yer alır:
+  - *"Taşıt Görev Emri (Dolu)"*: Sistemdeki çıkış/giriş saat ve KM bilgileriyle üretilir.
+  - *"Taşıt Görev Emri (Boş Çıktı)"*: Çıkış/giriş saat ve KM alanları elle doldurulmak üzere boş çizgilerle basılır.
+- **Güzergah Dışı Sevk Alanı:** Belge üzerinde her zaman boş basılır (yetkililer tarafından sahada elle doldurulması için). Doldurulan bilgiler sonradan Şef/Admin tarafından sistemdeki *"Güzergah Dışı Sevk"* modalı ile sisteme işlenebilir.
+- **Kontrol Kutuları ve Paraf:** Yağ, Su, Yakıt, Hidrolik ve Lastik kontrol kutuları; şoför onaylamışsa `[X]`, onaylamamışsa `[ ]` kutucukları ve şoför paraf alanı basılır.
+- **Yetkilendirme:** Şoförler mobil panelden yalnızca kendi görev emrini indirebilir (yatay yetki kontrolü ile korunmuştur).
+
+---
+
+## 13. ŞOFÖR ARAÇ KONTROL TİKLERİ (`/Surucu/Detay/{id}`)
+
+- **Mobil Kart ve Modal:** Şoför görev detay ekranında *"Araç Kontrolleri"* kartı yer alır.
+- **5 Zorunlu Kontrol:** Yağ Seviyesi, Radyatör Suyu, Yakıt Seviyesi, Hidrolik Yağları ve Lastik Basınç/Durumu.
+- **Kayıt ve Yetki:** Şoför sürüş öncesinde veya sürüşü tamamlarken kontrol tiklerini işaretleyip tek tıkla kaydedebilir. İşaretlenen kontroller yeşil onay rozetleriyle sabitlenir ve `AuditLog`'a yazılır. Şef ve Admin görev detayında kontrol durumunu görebilir.
+
+---
+
+## 14. ARAÇ ARIZA BİLDİRİM FORMU VE ŞEF BİLDİRİM ÇANI (`/FaultReport`)
+
+- **Şoför Mobil Bildirimi:** Şoför mobil panelinde bulunan kırmızı *"Arıza Bildir"* butonu ile arıza açıklamasını yazıp gönderebilir.
+- **Şef Navbar Bildirim Çanı (`#navFaultDropdown`):** Bekleyen arıza bildirimleri için üst gezinti çubuğunda kırmızı sayaç rozetli çan simgesi yer alır. Her 30 saniyede bir AJAX ile arka planda kontrol edilir; yeni arıza tespit edildiğinde sesli uyarı ve toast bildirimi verilir.
+- **Şef İnceleme ve Düzenleme Ekranı (`/FaultReport/Detail/{id}`):** Şef bildirimi inceleyip plaka, şoför, tarih, KM ve arıza açıklamasını düzenleyebilir, servis sevk notu düşerek onaylayabilir.
+- **Resmi Arıza Bildirim Formu PDF'i:** QuestPDF ile hazırlanan resmi form; logo, başlık, araç künyesi, çok satırlı arıza açıklaması ve alt imza bloklarını (Ulaştırma Amiri ve Şoför) içerir. Şef hem onaylanmış formu hem de sahada elle doldurulmak üzere *"Boş Form"* indirebilir.
+- **EBYS Damgası Kuralı:** Matbu formdaki EBYS üst veri damgası sistemsel olarak resmi PDF çıktısına **kesinlikle basılmaz**.
+- **Araç Durumu Koruması:** Arıza bildirimi açılması aracın operasyonel durumunu otomatik olarak değiştirmez.
+
+---
+
+## 15. FAZ 2 - A KISMI ARAYÜZ STANDARTLARI (ÇOKLU ŞOFÖR, ŞOFÖRSÜZ, DIŞ ŞOFÖR VE GÖREV YERİ/GÜZERGAH)
+
+- **Görev Yeri, Amaç ve Güzergah Alanları:**
+  - `Create` ve `Edit` formlarında "Görev Yeri" (`Destination`), "Görevin Konusu" (`Purpose`) ve "Güzergah" (`Route`) 3 ayrı serbest metin kutusu olarak konumlandırılır.
+- **Üç Şoför Modu Geçişi (Form):**
+  - "Kurum Şoförü", "Kurum Dışı Şoför" ve "Şoförsüz Görevlendirme" seçenekleri radyo/toggle şeklinde birbirini dışlar.
+  - "Ek Şoför Ekle" butonu: Kurum şoföründe tıklandığında dinamik Select2 satırı açar, her satır için canlı müsaitlik ve ehliyet uyarısı gösterir.
+- **Detay Ekranı (`/Assignment/Details/{id}`):**
+  - Çoklu şoför durumunda tüm şoförler listelenir.
+  - "Görev Emri (PDF)" butonunda her şoför için ayrı indirme bağlantısı içeren açılır menü sunulur.
+  - Şoförsüz ve dış şoförlü görevlerde Şef/Admin için doğrudan Başlat (`StartDirect`) ve Bitir (`EndDirect`) butonları aktiftir.
+- **Taşıt Görev Emri (PDF):**
+  - "Gidilen Yer" ile "Görevin Konusu" arasına tek satırlık "Güzergah" satırı eklenir (tek sayfa A4 matbu düzeni bozulmaz).
+  - Şoför kutusunda yalnızca Ad Soyad basılır (dış şoförde Ad Soyad + Birim; şoförsüz görevde "Şoförsüz"). TC, sicil veya ehliyet basılmaz.
+
+
+

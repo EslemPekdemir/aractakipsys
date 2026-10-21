@@ -1,5 +1,6 @@
 <!-- File: Views/Assignment/Index.cshtml -->
 @model aractakipsys.Models.ViewModels.Assignment.AssignmentFilterViewModel
+@inject aractakipsys.Services.Interfaces.IKmValidationService KmValidationService
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Görevler";
@@ -168,7 +169,7 @@
                             <th class="text-nowrap">Araç Bilgisi</th>
                             <th class="text-nowrap">Görevlendirilen Şoför</th>
                             <th class="text-nowrap">Talep Eden Birim</th>
-                            <th>Görev Amacı</th>
+                            <th>Görev Yeri ve Amacı</th>
                             <th class="text-nowrap">Planlanan Zaman</th>
                             <th class="text-right text-nowrap">Mesafe</th>
                             <th class="text-center text-nowrap">Durum</th>
@@ -189,13 +190,38 @@
                                     <span class="text-muted small d-block">@item.VehicleBrandModel</span>
                                 </td>
                                 <td class="font-weight-bold align-middle text-dark">
-                                    @item.DriverFullName
+                                    @if (item.IsDriverless)
+                                    {
+                                        <span class="badge badge-secondary px-2 py-1"><i class="fa fa-user-times mr-1"></i> Şoförsüz</span>
+                                    }
+                                    else if (item.IsExternalDriver)
+                                    {
+                                        <span class="badge badge-warning text-dark px-2 py-1" title="@item.ExternalDriverDepartment">
+                                            <i class="fa fa-id-badge mr-1"></i> @(string.IsNullOrWhiteSpace(item.ExternalDriverFullName) ? "Dış Şoför" : item.ExternalDriverFullName)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span>@item.DriverFullName</span>
+                                        @if (item.AdditionalDriverCount > 0)
+                                        {
+                                            <span class="badge badge-info ml-1" title="Ek şoförler atanmıştır">+@item.AdditionalDriverCount Şoför</span>
+                                        }
+                                    }
                                 </td>
                                 <td class="align-middle small text-muted text-truncate" style="max-width: 140px;" title="@item.RequestedByDepartment">
                                     @item.RequestedByDepartment
                                 </td>
-                                <td class="align-middle text-truncate" style="max-width: 160px;" title="@item.Purpose">
-                                    @item.Purpose
+                                <td class="align-middle" style="max-width: 170px;" title="@item.Destination - @item.Purpose">
+                                    @if (!string.IsNullOrWhiteSpace(item.Destination))
+                                    {
+                                        <div class="font-weight-bold text-dark text-truncate">@item.Destination</div>
+                                        <div class="text-muted small text-truncate" style="font-size: 0.78rem;">@item.Purpose</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-dark text-truncate">@item.Purpose</div>
+                                    }
                                 </td>
                                 <td class="align-middle small">
                                     <div class="font-weight-bold text-dark text-nowrap">@item.PlannedStartTime.ToString("dd.MM.yyyy")</div>
@@ -288,7 +314,7 @@
                                         else if (item.Status == AssignmentStatus.Planned && !item.StartReportedBySelf)
                                         {
                                             <button type="button" class="btn btn-outline-success font-weight-bold mr-1" title="Yetkili Olarak Doğrudan Başlat"
-                                                    onclick="openStartDirectModal(@item.Id, '@item.VehiclePlate', '@item.DriverFullName')">
+                                                    onclick="openStartDirectModal(@item.Id, '@item.VehiclePlate', '@item.DriverFullName', @item.VehicleCurrentKm)">
                                                 <i class="fa fa-play mr-1"></i> Başlat
                                             </button>
                                         }
@@ -433,18 +459,38 @@
                 @Html.AntiForgeryToken()
                 <div class="modal-body p-4">
                     <p class="text-dark mb-2">
-                        <strong id="startDirectInfo" class="text-primary font-weight-bold"></strong> görevini doğrudan başlatmak üzeresiniz.
+                        <strong id="startDirectInfo" class="text-primary font-weight-bold"></strong> görevini doğrudan başlatmak ve aracı sefere çıkarmak üzeresiniz.
                     </p>
                     <div class="form-group mt-3">
                         <label class="font-weight-bold text-dark">Başlangıç Kilometresi (Opsiyonel)</label>
-                        <input type="number" name="startKm" class="form-control" placeholder="Boş bırakılırsa aracın güncel kilometresi alınır">
-                        <small class="form-text text-muted">Şoför bildirmeden yetkili olarak aracı sefere çıkarıyorsunuz.</small>
+                        <input type="number" id="startDirectKmInput" name="startKm" class="form-control" placeholder="Boş bırakılırsa aracın güncel kilometresi alınır">
+                        <small class="form-text text-muted" id="startDirectKmHelp">Şoför bildirmeden yetkili olarak aracı sefere çıkarıyorsunuz.</small>
+                    </div>
+
+                    <!-- HATA UYARISI: Başlangıç KM < Güncel KM -->
+                    <div id="startDirectKmErrorAlert" class="alert alert-danger py-2 px-3 small d-none" style="border-left: 4px solid #ed5565;">
+                        <i class="fa fa-times-circle mr-1"></i> <span id="startDirectKmErrorText"></span>
+                    </div>
+
+                    <!-- KIRMIZI UYARI: Başlangıç KM > Güncel KM + Eşik -->
+                    <div id="startDirectKmWarningContainer" class="alert alert-danger py-3 px-3 d-none shadow-sm" style="background-color: #fff5f5; border: 1px solid #ed5565; border-radius: 8px;">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fa fa-exclamation-triangle text-danger mr-2" style="font-size: 1.3rem;"></i>
+                            <strong class="text-danger">DİKKAT: Belirgin Kilometre Farkı!</strong>
+                        </div>
+                        <p id="startDirectKmWarningText" class="small mb-2 text-dark font-weight-normal"></p>
+                        <div class="custom-control custom-checkbox mt-2">
+                            <input type="checkbox" class="custom-control-input" id="startDirectConfirmKmCheckbox" name="confirmKmDifference" value="true">
+                            <label class="custom-control-label font-weight-bold text-danger small" for="startDirectConfirmKmCheckbox" style="cursor: pointer;">
+                                Yüksek kilometre farkını onaylıyorum ve sorumluluğu kabul ediyorum.
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Vazgeç</button>
-                    <button type="submit" class="btn btn-success font-weight-bold px-4">
-                        <i class="fa fa-play mr-1"></i> Görevi Başlat
+                    <button type="submit" id="btnStartDirectSubmit" class="btn btn-success font-weight-bold px-4">
+                        <i class="fa fa-play mr-1"></i> Göreve Başla
                     </button>
                 </div>
             </form>
@@ -475,6 +521,27 @@
                         <input type="number" id="endDirectKmInput" name="endKm" class="form-control" required placeholder="Aracın güncel bitiş kilometresini giriniz">
                         <small id="endDirectKmHelp" class="form-text text-muted"></small>
                     </div>
+
+                    <!-- HATA UYARISI: Bitiş KM < Başlangıç KM -->
+                    <div id="endDirectKmErrorAlert" class="alert alert-danger py-2 px-3 small d-none" style="border-left: 4px solid #ed5565;">
+                        <i class="fa fa-times-circle mr-1"></i> <span id="endDirectKmErrorText"></span>
+                    </div>
+
+                    <!-- KIRMIZI UYARI: Bitiş KM > Başlangıç KM + Eşik -->
+                    <div id="endDirectKmWarningContainer" class="alert alert-danger py-3 px-3 d-none shadow-sm" style="background-color: #fff5f5; border: 1px solid #ed5565; border-radius: 8px;">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fa fa-exclamation-triangle text-danger mr-2" style="font-size: 1.3rem;"></i>
+                            <strong class="text-danger">DİKKAT: Belirgin Kilometre Farkı!</strong>
+                        </div>
+                        <p id="endDirectKmWarningText" class="small mb-2 text-dark font-weight-normal"></p>
+                        <div class="custom-control custom-checkbox mt-2">
+                            <input type="checkbox" class="custom-control-input" id="endDirectConfirmKmCheckbox" name="confirmKmDifference" value="true">
+                            <label class="custom-control-label font-weight-bold text-danger small" for="endDirectConfirmKmCheckbox" style="cursor: pointer;">
+                                Yüksek kilometre farkını onaylıyorum ve sorumluluğu kabul ediyorum.
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="form-group mt-3">
                         <label class="font-weight-bold text-dark">Teslim Notu (Opsiyonel)</label>
                         <textarea name="driverReturnNotes" class="form-control" rows="2" placeholder="Varsa teslim alma veya aracın durumu hakkında not..."></textarea>
@@ -482,7 +549,7 @@
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Vazgeç</button>
-                    <button type="submit" class="btn btn-primary font-weight-bold px-4">
+                    <button type="submit" id="btnEndDirectSubmit" class="btn btn-primary font-weight-bold px-4">
                         <i class="fa fa-check mr-1"></i> Görevi Bitir
                     </button>
                 </div>
@@ -808,13 +875,73 @@
         $('#cancelAssignmentModal').modal('show');
     }
 
-    function openStartDirectModal(assignmentId, plate, driverName) {
+    const KM_THRESHOLD = @KmValidationService.GetDiscrepancyThreshold();
+
+    function openStartDirectModal(assignmentId, plate, driverName, currentKm) {
+        $('#startDirectConfirmKmCheckbox').prop('checked', false);
+        $('#startDirectKmErrorAlert').addClass('d-none');
+        $('#startDirectKmWarningContainer').addClass('d-none');
+        $('#btnStartDirectSubmit').prop('disabled', false);
+        $('#startDirectKmInput').val('').data('current-km', currentKm || 0);
+        $('#startDirectKmInput').attr('placeholder', currentKm > 0 
+            ? 'Boş bırakılırsa güncel KM (' + currentKm.toLocaleString() + ' KM) alınır' 
+            : 'Boş bırakılırsa aracın güncel kilometresi alınır');
         $('#startDirectInfo').text(plate + ' / ' + driverName);
         $('#startDirectForm').attr('action', '/Assignment/StartDirect/' + assignmentId);
         $('#startDirectModal').modal('show');
     }
 
+    function checkStartDirectKm() {
+        const currentKm = parseInt($('#startDirectKmInput').data('current-km') || 0, 10);
+        const valStr = $('#startDirectKmInput').val();
+        const $errorAlert = $('#startDirectKmErrorAlert');
+        const $errorText = $('#startDirectKmErrorText');
+        const $warnContainer = $('#startDirectKmWarningContainer');
+        const $warnText = $('#startDirectKmWarningText');
+        const $confirmCheckbox = $('#startDirectConfirmKmCheckbox');
+        const $submitBtn = $('#btnStartDirectSubmit');
+
+        if (!valStr || valStr.trim() === '') {
+            $errorAlert.addClass('d-none');
+            $warnContainer.addClass('d-none');
+            $submitBtn.prop('disabled', false);
+            return;
+        }
+
+        const val = parseInt(valStr, 10);
+        if (isNaN(val)) return;
+
+        if (currentKm > 0 && val < currentKm) {
+            $errorText.text('Girilen başlangıç kilometresi (' + val.toLocaleString() + ' KM), aracın mevcut kilometresinden (' + currentKm.toLocaleString() + ' KM) küçük olamaz!');
+            $errorAlert.removeClass('d-none');
+            $warnContainer.addClass('d-none');
+            $submitBtn.prop('disabled', true);
+        } else if (currentKm > 0 && val > currentKm + KM_THRESHOLD) {
+            const diff = val - currentKm;
+            $errorAlert.addClass('d-none');
+            $warnText.html('Girilen başlangıç kilometresi (<strong>' + val.toLocaleString() + ' KM</strong>), aracın mevcut kilometresinden (<strong>' + currentKm.toLocaleString() + ' KM</strong>) <strong>' + diff.toLocaleString() + ' KM</strong> daha fazladır (Eşik: ' + KM_THRESHOLD.toLocaleString() + ' KM). Devam etmek için aşağıdaki onay kutusunu işaretleyiniz.');
+            $warnContainer.removeClass('d-none');
+            $submitBtn.prop('disabled', !$confirmCheckbox.is(':checked'));
+        } else {
+            $errorAlert.addClass('d-none');
+            $warnContainer.addClass('d-none');
+            $submitBtn.prop('disabled', false);
+        }
+    }
+
+    $('#startDirectKmInput').on('input change', checkStartDirectKm);
+    $('#startDirectConfirmKmCheckbox').on('change', function () {
+        $('#btnStartDirectSubmit').prop('disabled', !$(this).is(':checked'));
+    });
+
+    var _endDirectMinKm = 0;
     function openEndDirectModal(assignmentId, plate, driverName, startKm) {
+        _endDirectMinKm = startKm || 0;
+        $('#endDirectConfirmKmCheckbox').prop('checked', false);
+        $('#endDirectKmErrorAlert').addClass('d-none');
+        $('#endDirectKmWarningContainer').addClass('d-none');
+        $('#btnEndDirectSubmit').prop('disabled', false);
+        $('#endDirectKmInput').val('');
         $('#endDirectInfo').text(plate + ' / ' + driverName);
         $('#endDirectForm').attr('action', '/Assignment/EndDirect/' + assignmentId);
         if (startKm > 0) {
@@ -826,6 +953,48 @@
         }
         $('#endDirectModal').modal('show');
     }
+
+    function checkEndDirectKm() {
+        const valStr = $('#endDirectKmInput').val();
+        const $errorAlert = $('#endDirectKmErrorAlert');
+        const $errorText = $('#endDirectKmErrorText');
+        const $warnContainer = $('#endDirectKmWarningContainer');
+        const $warnText = $('#endDirectKmWarningText');
+        const $confirmCheckbox = $('#endDirectConfirmKmCheckbox');
+        const $submitBtn = $('#btnEndDirectSubmit');
+
+        if (!valStr || valStr.trim() === '') {
+            $errorAlert.addClass('d-none');
+            $warnContainer.addClass('d-none');
+            $submitBtn.prop('disabled', false);
+            return;
+        }
+
+        const val = parseInt(valStr, 10);
+        if (isNaN(val)) return;
+
+        if (_endDirectMinKm > 0 && val < _endDirectMinKm) {
+            $errorText.text('Bitiş kilometresi (' + val.toLocaleString() + ' KM), başlangıç kilometresinden (' + _endDirectMinKm.toLocaleString() + ' KM) küçük olamaz!');
+            $errorAlert.removeClass('d-none');
+            $warnContainer.addClass('d-none');
+            $submitBtn.prop('disabled', true);
+        } else if (_endDirectMinKm > 0 && val > _endDirectMinKm + KM_THRESHOLD) {
+            const diff = val - _endDirectMinKm;
+            $errorAlert.addClass('d-none');
+            $warnText.html('Girilen bitiş kilometresi (<strong>' + val.toLocaleString() + ' KM</strong>), başlangıç kilometresinden (<strong>' + _endDirectMinKm.toLocaleString() + ' KM</strong>) <strong>' + diff.toLocaleString() + ' KM</strong> daha fazladır (Eşik: ' + KM_THRESHOLD.toLocaleString() + ' KM). Devam etmek için aşağıdaki onay kutusunu işaretleyiniz.');
+            $warnContainer.removeClass('d-none');
+            $submitBtn.prop('disabled', !$confirmCheckbox.is(':checked'));
+        } else {
+            $errorAlert.addClass('d-none');
+            $warnContainer.addClass('d-none');
+            $submitBtn.prop('disabled', false);
+        }
+    }
+
+    $('#endDirectKmInput').on('input change', checkEndDirectKm);
+    $('#endDirectConfirmKmCheckbox').on('change', function () {
+        $('#btnEndDirectSubmit').prop('disabled', !$(this).is(':checked'));
+    });
 
     var _currentPlannedHours = 0;
     var _initialPlannedNights = 0;

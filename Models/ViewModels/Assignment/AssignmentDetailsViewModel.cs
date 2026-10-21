@@ -14,7 +14,7 @@ public class AssignmentDetailsViewModel
     public string FuelType { get; set; } = string.Empty;
     public int VehicleCurrentKm { get; set; }
 
-    public int DriverId { get; set; }
+    public int? DriverId { get; set; }
     public string DriverFullName { get; set; } = string.Empty;
     public string DriverPhone { get; set; } = string.Empty;
     public string DriverEmail { get; set; } = string.Empty;
@@ -28,7 +28,22 @@ public class AssignmentDetailsViewModel
     public DateTime DriverLicenseExpiryDate { get => LicenseExpiryDate; set => LicenseExpiryDate = value; }
 
     public string RequestedByDepartment { get; set; } = string.Empty;
+    public string? Destination { get; set; }
+    public string? Route { get; set; }
     public string Purpose { get; set; } = string.Empty;
+
+    // Şoför Seçim Modları ve Çoklu Şoför
+    public bool IsDriverless { get; set; }
+    public bool IsExternalDriver { get; set; }
+    public string? ExternalDriverFullName { get; set; }
+    public string? ExternalDriverDepartment { get; set; }
+
+    public List<AssignedDriverDetailItemViewModel> AssignedDrivers { get; set; } = new();
+
+    // İşlemi Yapan Şoför Bilgileri (Ayrı alanlar - PDF'e basılmaz)
+    public string? StartReportedByDriverName { get; set; }
+    public string? EndReportedByDriverName { get; set; }
+    public string? ChecksCompletedByDriverName { get; set; }
 
     public DateTime PlannedStartTime { get; set; }
     public DateTime PlannedEndTime { get; set; }
@@ -45,6 +60,7 @@ public class AssignmentDetailsViewModel
 
     public DateTime CreatedAt { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
+    public string? CreatedByUserName { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
     // Şoför Bildirim ve Onay Alanları
@@ -88,6 +104,23 @@ public class AssignmentDetailsViewModel
     public string? SignedDocumentUploadedByUserName { get; set; }
     public bool HasSignedDocument => !string.IsNullOrWhiteSpace(SignedDocumentPath);
 
+    // Güzergah Dışı Sevk Alanları (Faz 3)
+    public string? OffRouteDispatcherName { get; set; }
+    public string? OffRouteDispatcherTitle { get; set; }
+    public string? OffRouteReason { get; set; }
+    public DateTime? OffRouteReportedAt { get; set; }
+    public string? OffRouteReportedByUserName { get; set; }
+    public bool HasOffRouteDispatch => !string.IsNullOrWhiteSpace(OffRouteDispatcherName) || !string.IsNullOrWhiteSpace(OffRouteReason);
+
+    // Araç Kontrol Tikleri (Faz 3)
+    public bool CheckOil { get; set; }
+    public bool CheckWater { get; set; }
+    public bool CheckFuel { get; set; }
+    public bool CheckHydraulic { get; set; }
+    public bool CheckTires { get; set; }
+    public DateTime? ChecksCompletedAt { get; set; }
+    public bool AreChecksCompleted => ChecksCompletedAt.HasValue || CheckOil || CheckWater || CheckFuel || CheckHydraulic || CheckTires;
+
     public string StatusBadgeClass => Status switch
     {
         AssignmentStatus.Planned => "bg-secondary",
@@ -115,3 +148,21 @@ public class AssignmentCancelViewModel
     public string Purpose { get; set; } = string.Empty;
     public string CancellationReason { get; set; } = string.Empty;
 }
+
+public class AssignedDriverDetailItemViewModel
+{
+    public int AssignmentDriverId { get; set; }
+    public int DriverId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string DriverFullName { get => FullName; set => FullName = value; }
+    public string? Phone { get; set; }
+    public string? DriverPhone { get => Phone; set => Phone = value; }
+    public string? Email { get; set; }
+    public string? DriverEmail { get => Email; set => Email = value; }
+    public string? Department { get; set; }
+    public string? LicenseNumber { get; set; }
+    public string? LicenseClass { get; set; }
+    public DateTime LicenseExpiryDate { get; set; }
+    public bool IsPrimary { get; set; }
+}
+

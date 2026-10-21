@@ -6,11 +6,21 @@
 }
 
 <!-- ÜST NAVİGASYON (GERİ DÖN VE BAŞLIK) -->
-<div class="d-flex align-items-center mb-3 pt-1">
-    <a href="/Surucu" class="btn btn-light border btn-sm mr-2 text-dark font-weight-bold" style="border-radius: 8px;">
-        <i class="fa fa-arrow-left mr-1"></i> Görevler
-    </a>
-    <h5 class="m-0 font-weight-bold text-dark">Görev Detayı</h5>
+<div class="d-flex align-items-center justify-content-between mb-3 pt-1 flex-wrap" style="gap: 8px;">
+    <div class="d-flex align-items-center">
+        <a href="/Surucu" class="btn btn-light border btn-sm mr-2 text-dark font-weight-bold" style="border-radius: 8px;">
+            <i class="fa fa-arrow-left mr-1"></i> Görevler
+        </a>
+        <h5 class="m-0 font-weight-bold text-dark">Görev Detayı</h5>
+    </div>
+    <div class="d-flex align-items-center" style="gap: 6px;">
+        <a href="/Surucu/GorevEmri/@Model.AssignmentId" target="_blank" class="btn btn-outline-primary btn-sm font-weight-bold" style="border-radius: 8px;" title="Resmi Taşıt Görev Emri Belgesini İndir">
+            <i class="fa fa-file-pdf-o text-danger mr-1"></i> Görev Emri
+        </a>
+        <button type="button" class="btn btn-outline-danger btn-sm font-weight-bold" data-toggle="modal" data-target="#faultReportModal" style="border-radius: 8px;">
+            <i class="fa fa-wrench mr-1"></i> Arıza Bildir
+        </button>
+    </div>
 </div>
 
 <!-- GÖREV DURUM VE ARAÇ KARTI -->
@@ -76,11 +86,28 @@
     </h6>
 
     <div class="mb-3">
+        <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">GÖREV YERİ (GİDİLEN YER)</small>
+        <div class="p-2 rounded bg-light border text-primary font-weight-bold mt-1">
+            @Model.Destination
+        </div>
+    </div>
+
+    <div class="mb-3">
         <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">GÖREV AMACI</small>
         <div class="p-2 rounded bg-light border text-dark font-weight-600 mt-1">
             @Model.Purpose
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Route))
+    {
+        <div class="mb-3">
+            <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">GÜZERGAH / ROTA</small>
+            <div class="p-2 rounded bg-light border text-dark font-weight-600 mt-1">
+                @Model.Route
+            </div>
+        </div>
+    }
 
     @if (!string.IsNullOrEmpty(Model.RequestedByDepartment))
     {
@@ -197,6 +224,88 @@
             <small class="text-danger d-block font-weight-bold"><i class="fa fa-ban mr-1"></i> İPTAL SEBEBİ</small>
             <div class="text-dark small mt-1">@Model.CancellationReason</div>
         </div>
+    }
+</div>
+
+<!-- ARAÇ KONTROL TİKLERİ KARTI (FAZ 3) -->
+<div class="card card-custom p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+        <h6 class="font-weight-bold text-secondary m-0" style="font-size: 0.9rem;">
+            <i class="fa fa-check-square-o text-primary mr-1"></i> ARAÇ KONTROL TİKLERİ
+        </h6>
+        @if (Model.ChecksCompletedAt.HasValue)
+        {
+            <span class="badge badge-success font-weight-bold px-2 py-1" id="vehicleChecksStatusBadge" style="font-size: 0.75rem;">
+                <i class="fa fa-check mr-1"></i> Tamamlandı
+            </span>
+        }
+        else
+        {
+            <span class="badge badge-warning font-weight-bold px-2 py-1" id="vehicleChecksStatusBadge" style="font-size: 0.75rem;">
+                <i class="fa fa-clock-o mr-1"></i> Bekleniyor
+            </span>
+        }
+    </div>
+
+    @{
+        bool canToggleChecks = (Model.Status == aractakipsys.Models.Enums.AssignmentStatus.InProgress);
+    }
+
+    <div class="row">
+        <div class="col-6 mb-2">
+            <div class="check-toggle-item p-2 rounded border d-flex align-items-center @(canToggleChecks ? "clickable-check-item" : "readonly-check-item")"
+                 data-field="CheckOil" data-checked="@(Model.CheckOil ? "true" : "false")"
+                 style="@(canToggleChecks ? "cursor: pointer; background: #fff; transition: all 0.2s;" : "cursor: not-allowed; background: #f8f9fa; opacity: 0.85;")">
+                <i class="check-icon fa @(Model.CheckOil ? "fa-check-circle text-success" : "fa-circle-o text-muted") mr-2 font-18"></i>
+                <span class="check-label font-weight-bold @(Model.CheckOil ? "text-dark" : "text-muted")" style="font-size: 0.88rem;">Yağ Kontrolü</span>
+            </div>
+        </div>
+        <div class="col-6 mb-2">
+            <div class="check-toggle-item p-2 rounded border d-flex align-items-center @(canToggleChecks ? "clickable-check-item" : "readonly-check-item")"
+                 data-field="CheckWater" data-checked="@(Model.CheckWater ? "true" : "false")"
+                 style="@(canToggleChecks ? "cursor: pointer; background: #fff; transition: all 0.2s;" : "cursor: not-allowed; background: #f8f9fa; opacity: 0.85;")">
+                <i class="check-icon fa @(Model.CheckWater ? "fa-check-circle text-success" : "fa-circle-o text-muted") mr-2 font-18"></i>
+                <span class="check-label font-weight-bold @(Model.CheckWater ? "text-dark" : "text-muted")" style="font-size: 0.88rem;">Su Kontrolü</span>
+            </div>
+        </div>
+        <div class="col-6 mb-2">
+            <div class="check-toggle-item p-2 rounded border d-flex align-items-center @(canToggleChecks ? "clickable-check-item" : "readonly-check-item")"
+                 data-field="CheckFuel" data-checked="@(Model.CheckFuel ? "true" : "false")"
+                 style="@(canToggleChecks ? "cursor: pointer; background: #fff; transition: all 0.2s;" : "cursor: not-allowed; background: #f8f9fa; opacity: 0.85;")">
+                <i class="check-icon fa @(Model.CheckFuel ? "fa-check-circle text-success" : "fa-circle-o text-muted") mr-2 font-18"></i>
+                <span class="check-label font-weight-bold @(Model.CheckFuel ? "text-dark" : "text-muted")" style="font-size: 0.88rem;">Yakıt Kontrolü</span>
+            </div>
+        </div>
+        <div class="col-6 mb-2">
+            <div class="check-toggle-item p-2 rounded border d-flex align-items-center @(canToggleChecks ? "clickable-check-item" : "readonly-check-item")"
+                 data-field="CheckHydraulic" data-checked="@(Model.CheckHydraulic ? "true" : "false")"
+                 style="@(canToggleChecks ? "cursor: pointer; background: #fff; transition: all 0.2s;" : "cursor: not-allowed; background: #f8f9fa; opacity: 0.85;")">
+                <i class="check-icon fa @(Model.CheckHydraulic ? "fa-check-circle text-success" : "fa-circle-o text-muted") mr-2 font-18"></i>
+                <span class="check-label font-weight-bold @(Model.CheckHydraulic ? "text-dark" : "text-muted")" style="font-size: 0.88rem;">Hidrolik Kontrolü</span>
+            </div>
+        </div>
+        <div class="col-6 mb-2">
+            <div class="check-toggle-item p-2 rounded border d-flex align-items-center @(canToggleChecks ? "clickable-check-item" : "readonly-check-item")"
+                 data-field="CheckTires" data-checked="@(Model.CheckTires ? "true" : "false")"
+                 style="@(canToggleChecks ? "cursor: pointer; background: #fff; transition: all 0.2s;" : "cursor: not-allowed; background: #f8f9fa; opacity: 0.85;")">
+                <i class="check-icon fa @(Model.CheckTires ? "fa-check-circle text-success" : "fa-circle-o text-muted") mr-2 font-18"></i>
+                <span class="check-label font-weight-bold @(Model.CheckTires ? "text-dark" : "text-muted")" style="font-size: 0.88rem;">Lastik Kontrolü</span>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.ChecksCompletedAt.HasValue)
+    {
+        <div class="text-muted small mt-2 pt-2 border-top">
+            <i class="fa fa-info-circle mr-1"></i> Kontroller <strong>@Model.ChecksCompletedAt.Value.ToString("dd.MM.yyyy HH:mm")</strong> tarihinde kaydedilmiştir.
+        </div>
+    }
+
+    @if (Model.Status != AssignmentStatus.Cancelled)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm btn-block mt-3 font-weight-bold" data-toggle="modal" data-target="#vehicleChecksModal" style="border-radius: 8px;">
+            <i class="fa fa-pencil mr-1"></i> Kontrol Tiklerini Güncelle
+        </button>
     }
 </div>
 
@@ -347,6 +456,32 @@
                     </small>
                 </div>
 
+                <div class="form-group mb-3 bg-light p-3 rounded border">
+                    <label class="font-weight-bold text-dark d-block mb-2">
+                        <i class="fa fa-check-square-o text-primary mr-1"></i> Araç Teslim Kontrolleri
+                    </label>
+                    <div class="custom-control custom-checkbox mb-2">
+                        <input type="checkbox" class="custom-control-input" id="endCheckOil" @(Model.CheckOil ? "checked" : "")>
+                        <label class="custom-control-label font-weight-600 text-dark" for="endCheckOil">Motor Yağ Kontrolünü Yaptım</label>
+                    </div>
+                    <div class="custom-control custom-checkbox mb-2">
+                        <input type="checkbox" class="custom-control-input" id="endCheckWater" @(Model.CheckWater ? "checked" : "")>
+                        <label class="custom-control-label font-weight-600 text-dark" for="endCheckWater">Radyatör / Cam Suyu Kontrolünü Yaptım</label>
+                    </div>
+                    <div class="custom-control custom-checkbox mb-2">
+                        <input type="checkbox" class="custom-control-input" id="endCheckFuel" @(Model.CheckFuel ? "checked" : "")>
+                        <label class="custom-control-label font-weight-600 text-dark" for="endCheckFuel">Yakıt Seviyesini Kontrol Ettim</label>
+                    </div>
+                    <div class="custom-control custom-checkbox mb-2">
+                        <input type="checkbox" class="custom-control-input" id="endCheckHydraulic" @(Model.CheckHydraulic ? "checked" : "")>
+                        <label class="custom-control-label font-weight-600 text-dark" for="endCheckHydraulic">Fren / Direksiyon Hidroliğini Kontrol Ettim</label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="endCheckTires" @(Model.CheckTires ? "checked" : "")>
+                        <label class="custom-control-label font-weight-600 text-dark" for="endCheckTires">Lastik Hava Basıncı ve Dişlerini Kontrol Ettim</label>
+                    </div>
+                </div>
+
                 <div class="form-group mb-3">
                     <label for="inputReturnNotes" class="font-weight-bold text-dark">
                         Teslim Notu / Durum Açıklaması <span class="text-muted font-weight-normal">(Opsiyonel)</span>
@@ -367,11 +502,113 @@
     </div>
 </div>
 
+<!-- 3. KONTROL TİKLERİ MODAL (FAZ 3) -->
+<div class="modal fade" id="vehicleChecksModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div class="modal-header bg-primary text-white" style="border-radius: 12px 12px 0 0;">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-check-square-o mr-2"></i> Araç Kontrol Tikleri
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">
+                    Taşıt Görev Emri matbu formunda ve sistemde yer alan araç kontrollerini işaretleyiniz:
+                </p>
+                <div class="custom-control custom-checkbox mb-3">
+                    <input type="checkbox" class="custom-control-input" id="modalCheckOil" @(Model.CheckOil ? "checked" : "")>
+                    <label class="custom-control-label font-weight-bold text-dark" for="modalCheckOil">Motor Yağ Kontrolünü Yaptım</label>
+                </div>
+                <div class="custom-control custom-checkbox mb-3">
+                    <input type="checkbox" class="custom-control-input" id="modalCheckWater" @(Model.CheckWater ? "checked" : "")>
+                    <label class="custom-control-label font-weight-bold text-dark" for="modalCheckWater">Radyatör / Cam Suyu Kontrolünü Yaptım</label>
+                </div>
+                <div class="custom-control custom-checkbox mb-3">
+                    <input type="checkbox" class="custom-control-input" id="modalCheckFuel" @(Model.CheckFuel ? "checked" : "")>
+                    <label class="custom-control-label font-weight-bold text-dark" for="modalCheckFuel">Yakıt Seviyesini Kontrol Ettim</label>
+                </div>
+                <div class="custom-control custom-checkbox mb-3">
+                    <input type="checkbox" class="custom-control-input" id="modalCheckHydraulic" @(Model.CheckHydraulic ? "checked" : "")>
+                    <label class="custom-control-label font-weight-bold text-dark" for="modalCheckHydraulic">Fren / Direksiyon Hidroliğini Kontrol Ettim</label>
+                </div>
+                <div class="custom-control custom-checkbox mb-3">
+                    <input type="checkbox" class="custom-control-input" id="modalCheckTires" @(Model.CheckTires ? "checked" : "")>
+                    <label class="custom-control-label font-weight-bold text-dark" for="modalCheckTires">Lastik Hava Basıncı ve Dişlerini Kontrol Ettim</label>
+                </div>
+                <div id="checksErrorAlert" class="alert alert-danger d-none p-2 mb-0 small"></div>
+            </div>
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal" style="border-radius: 8px;">Kapat</button>
+                <button type="button" class="btn btn-primary font-weight-bold px-4" id="btnSaveVehicleChecks" style="border-radius: 8px;">
+                    <i class="fa fa-save mr-1"></i> Kontrolleri Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. ARIZA BİLDİRİMİ MODAL (FAZ 3) -->
+<div class="modal fade" id="faultReportModal" tabindex="-1" role="dialog" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div class="modal-header bg-danger text-white" style="border-radius: 12px 12px 0 0;">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-wrench mr-2"></i> Araç Arıza Bildirimi
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="faultReportForm" method="post" action="/Surucu/ReportFault">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="VehicleId" value="@Model.VehicleId" />
+                <input type="hidden" name="AssignmentId" value="@Model.AssignmentId" />
+                <div class="modal-body p-4">
+                    <div class="p-3 bg-light rounded border mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="h5 font-weight-bold text-danger mb-0 d-block">@Model.VehiclePlate</span>
+                                <small class="text-muted">@Model.VehicleBrand @Model.VehicleModel</small>
+                            </div>
+                            <span class="badge badge-light border text-muted">@Model.CurrentVehicleKm.ToString("N0") KM</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">Mevcut Kilometre (KM)</label>
+                        <input type="number" class="form-control" name="CurrentKm" value="@Model.CurrentVehicleKm" min="0" required />
+                        <small class="form-text text-muted">Arıza anındaki araç kilometresi.</small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">Arıza Açıklaması <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="Description" rows="4" required maxlength="1000" placeholder="Araçta karşılaştığınız arıza, ses, mekanik problem veya hasarı detaylı olarak yazınız..."></textarea>
+                    </div>
+
+                    <div class="alert alert-info p-2 mb-0 small">
+                        <i class="fa fa-info-circle mr-1"></i> Bu bildirim anında Ulaştırma Amirine ve Şef ekranına iletilecektir.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light p-3">
+                    <button type="button" class="btn btn-outline-secondary" data-dismiss="modal" style="border-radius: 8px;">İptal</button>
+                    <button type="submit" class="btn btn-danger font-weight-bold px-4" style="border-radius: 8px;">
+                        <i class="fa fa-send mr-1"></i> Arızayı Bildir
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @Html.AntiForgeryToken()
 
 @section Scripts {
 <script>
     $(document).ready(function () {
+        $('#vehicleChecksModal, #faultReportModal, #startAssignmentModal, #endAssignmentModal').appendTo('body');
         const assignmentId = @Model.AssignmentId;
         const token = $('input[name="__RequestVerificationToken"]').val();
 
@@ -456,7 +693,12 @@
                 },
                 body: JSON.stringify({
                     endKm: endKmVal,
-                    driverReturnNotes: returnNotesVal
+                    driverReturnNotes: returnNotesVal,
+                    checkOil: $('#endCheckOil').is(':checked'),
+                    checkWater: $('#endCheckWater').is(':checked'),
+                    checkFuel: $('#endCheckFuel').is(':checked'),
+                    checkHydraulic: $('#endCheckHydraulic').is(':checked'),
+                    checkTires: $('#endCheckTires').is(':checked')
                 })
             })
             .then(res => res.json())
@@ -478,6 +720,124 @@
                 $errorDiv.removeClass('d-none').text('Sunucuyla iletişim kurulurken bir hata oluştu.');
                 showNativeToast('Bağlantı hatası.', false);
                 $btn.prop('disabled', false).html('<i class="fa fa-check mr-1"></i> Bitişi Bildir');
+            });
+        });
+
+        // 3. KONTROLLERİ KAYDET AJAX
+        $('#btnSaveVehicleChecks').on('click', function () {
+            const $btn = $(this);
+            const $errorDiv = $('#checksErrorAlert');
+            $errorDiv.addClass('d-none').text('');
+
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Kaydediliyor...');
+
+            fetch('/Surucu/SaveVehicleChecks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    assignmentId: assignmentId,
+                    checkOil: $('#modalCheckOil').is(':checked'),
+                    checkWater: $('#modalCheckWater').is(':checked'),
+                    checkFuel: $('#modalCheckFuel').is(':checked'),
+                    checkHydraulic: $('#modalCheckHydraulic').is(':checked'),
+                    checkTires: $('#modalCheckTires').is(':checked')
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showNativeToast(data.message || 'Araç kontrolleri başarıyla kaydedildi.', true);
+                    $('#vehicleChecksModal').modal('hide');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 800);
+                } else {
+                    $errorDiv.removeClass('d-none').text(data.message || 'Kontroller kaydedilemedi.');
+                    showNativeToast(data.message || 'Hata oluştu.', false);
+                    $btn.prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Kontrolleri Kaydet');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                $errorDiv.removeClass('d-none').text('Sunucuyla iletişim kurulurken bir hata oluştu.');
+                showNativeToast('Bağlantı hatası.', false);
+                $btn.prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Kontrolleri Kaydet');
+            });
+        });
+
+        // 4. KART ÜZERİNDEN DOĞRUDAN DOKUNMATİK TİKLEME (INLINE TOGGLE - FAZ 3 / 2-A)
+        $('.clickable-check-item').on('click', function () {
+            const $item = $(this);
+            if ($item.data('submitting') === true) return;
+
+            const isCurrentlyChecked = $item.attr('data-checked') === 'true';
+            const newChecked = !isCurrentlyChecked;
+            $item.attr('data-checked', newChecked ? 'true' : 'false');
+
+            // UI'ı anında iyimser (optimistic) olarak güncelle
+            const $icon = $item.find('.check-icon');
+            const $label = $item.find('.check-label');
+            if (newChecked) {
+                $icon.removeClass('fa-circle-o text-muted').addClass('fa-check-circle text-success');
+                $label.removeClass('text-muted').addClass('text-dark');
+                $item.css('background-color', '#e8f8f5');
+            } else {
+                $icon.removeClass('fa-check-circle text-success').addClass('fa-circle-o text-muted');
+                $label.removeClass('text-dark').addClass('text-muted');
+                $item.css('background-color', '#fff');
+            }
+
+            // Modal içindeki checkbox'ları da eşle
+            const field = $item.attr('data-field');
+            if (field === 'CheckOil') $('#modalCheckOil').prop('checked', newChecked);
+            if (field === 'CheckWater') $('#modalCheckWater').prop('checked', newChecked);
+            if (field === 'CheckFuel') $('#modalCheckFuel').prop('checked', newChecked);
+            if (field === 'CheckHydraulic') $('#modalCheckHydraulic').prop('checked', newChecked);
+            if (field === 'CheckTires') $('#modalCheckTires').prop('checked', newChecked);
+
+            // Tüm tikleri topla
+            const payload = {
+                assignmentId: assignmentId,
+                checkOil: $('[data-field="CheckOil"]').attr('data-checked') === 'true',
+                checkWater: $('[data-field="CheckWater"]').attr('data-checked') === 'true',
+                checkFuel: $('[data-field="CheckFuel"]').attr('data-checked') === 'true',
+                checkHydraulic: $('[data-field="CheckHydraulic"]').attr('data-checked') === 'true',
+                checkTires: $('[data-field="CheckTires"]').attr('data-checked') === 'true'
+            };
+
+            $item.data('submitting', true);
+
+            fetch('/Surucu/SaveVehicleChecks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                $item.data('submitting', false);
+                if (data.success) {
+                    const allDone = payload.checkOil && payload.checkWater && payload.checkFuel && payload.checkHydraulic && payload.checkTires;
+                    const $badge = $('#vehicleChecksStatusBadge');
+                    if (allDone) {
+                        $badge.removeClass('badge-warning').addClass('badge-success').html('<i class="fa fa-check mr-1"></i> Tamamlandı');
+                    }
+                    showNativeToast('Kontrol kaydedildi', true);
+                } else {
+                    // Geri al
+                    $item.attr('data-checked', isCurrentlyChecked ? 'true' : 'false');
+                    showNativeToast(data.message || 'Hata oluştu.', false);
+                }
+            })
+            .catch(err => {
+                $item.data('submitting', false);
+                $item.attr('data-checked', isCurrentlyChecked ? 'true' : 'false');
+                showNativeToast('Bağlantı hatası.', false);
             });
         });
     });

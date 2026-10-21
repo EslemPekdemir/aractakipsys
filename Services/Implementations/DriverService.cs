@@ -18,17 +18,20 @@ public class DriverService : IDriverService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<DriverService> _logger;
+    private readonly IKmValidationService _kmValidationService;
 
     public DriverService(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         IAuditLogService auditLogService,
-        ILogger<DriverService> logger)
+        ILogger<DriverService> logger,
+        IKmValidationService kmValidationService)
     {
         _context = context;
         _userManager = userManager;
         _auditLogService = auditLogService;
         _logger = logger;
+        _kmValidationService = kmValidationService;
     }
 
     // =========================================================================
@@ -54,7 +57,8 @@ public class DriverService : IDriverService
 
         var assignments = await _context.Assignments
             .Include(a => a.Vehicle)
-            .Where(a => a.DriverId == driver.Id)
+            .Include(a => a.AssignmentDrivers)
+            .Where(a => !a.IsDeleted && (a.DriverId == driver.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driver.Id)))
             .OrderByDescending(a => a.PlannedStartTime)
             .ToListAsync();
 
@@ -70,6 +74,8 @@ public class DriverService : IDriverService
                 VehicleBrandModel = $"{item.Vehicle.Brand} {item.Vehicle.Model}",
                 VehicleType = item.Vehicle.VehicleType,
                 RequestedByDepartment = item.RequestedByDepartment,
+                Destination = item.Destination,
+                Route = item.Route,
                 Purpose = item.Purpose,
                 PlannedStartTime = item.PlannedStartTime,
                 PlannedEndTime = item.PlannedEndTime,
@@ -135,6 +141,7 @@ public class DriverService : IDriverService
     public async Task<DriverAssignmentDetailViewModel?> GetAssignmentDetailAsync(int assignmentId, string userId)
     {
         var driver = await _context.Drivers
+            .Include(d => d.User)
             .FirstOrDefaultAsync(d => d.UserId == userId && d.IsActive);
 
         if (driver == null)
@@ -144,7 +151,8 @@ public class DriverService : IDriverService
 
         var assignment = await _context.Assignments
             .Include(a => a.Vehicle)
-            .FirstOrDefaultAsync(a => a.Id == assignmentId && a.DriverId == driver.Id);
+            .Include(a => a.AssignmentDrivers)
+            .FirstOrDefaultAsync(a => a.Id == assignmentId && !a.IsDeleted && (a.DriverId == driver.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driver.Id)));
 
         if (assignment == null)
         {
@@ -164,7 +172,9 @@ public class DriverService : IDriverService
             CurrentVehicleKm = assignment.Vehicle.CurrentKm,
             VehicleStatus = assignment.Vehicle.Status,
             RequestedByDepartment = assignment.RequestedByDepartment,
+            Destination = string.IsNullOrWhiteSpace(assignment.Destination) ? assignment.Purpose : assignment.Destination,
             Purpose = assignment.Purpose,
+            Route = assignment.Route,
             PlannedStartTime = assignment.PlannedStartTime,
             PlannedEndTime = assignment.PlannedEndTime,
             ActualStartTime = assignment.ActualStartTime,
@@ -176,13 +186,20 @@ public class DriverService : IDriverService
             StartReportedBySelf = assignment.StartReportedBySelf,
             StartApprovedByUserId = assignment.StartApprovedByUserId,
             EndReportedBySelf = assignment.EndReportedBySelf,
-            EndApprovedByUserId = assignment.EndApprovedByUserId
+            EndApprovedByUserId = assignment.EndApprovedByUserId,
+            CheckOil = assignment.CheckOil,
+            CheckWater = assignment.CheckWater,
+            CheckFuel = assignment.CheckFuel,
+            CheckHydraulic = assignment.CheckHydraulic,
+            CheckTires = assignment.CheckTires,
+            ChecksCompletedAt = assignment.ChecksCompletedAt
         };
     }
 
     public async Task<AjaxResultViewModel> StartAssignmentAsync(int assignmentId, string userId, StartAssignmentRequest request)
     {
         var driver = await _context.Drivers
+            .Include(d => d.User)
             .FirstOrDefaultAsync(d => d.UserId == userId && d.IsActive);
 
         if (driver == null)
@@ -192,7 +209,8 @@ public class DriverService : IDriverService
 
         var assignment = await _context.Assignments
             .Include(a => a.Vehicle)
-            .FirstOrDefaultAsync(a => a.Id == assignmentId && a.DriverId == driver.Id);
+            .Include(a => a.AssignmentDrivers)
+            .FirstOrDefaultAsync(a => a.Id == assignmentId && !a.IsDeleted && (a.DriverId == driver.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driver.Id)));
 
         if (assignment == null)
         {
@@ -233,8 +251,9 @@ public class DriverService : IDriverService
 
         // Kural: Şoförün hâlihazırda InProgress olan başka bir görevi varsa başlangıç bildiremez!
         var hasActiveAssignmentOnDriver = await _context.Assignments
+            .Include(a => a.AssignmentDrivers)
             .AnyAsync(a => !a.IsDeleted &&
-                           a.DriverId == assignment.DriverId &&
+                           (a.DriverId == driver.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driver.Id)) &&
                            a.Id != assignment.Id &&
                            a.Status == AssignmentStatus.InProgress);
 
@@ -243,9 +262,10 @@ public class DriverService : IDriverService
             return AjaxResultViewModel.Error("Şu anda devam eden başka bir göreviniz bulunmaktadır. Önce mevcut görevi tamamlamalısınız.");
         }
 
-        if (request.StartKm < assignment.Vehicle.CurrentKm)
+        var kmCheck = _kmValidationService.ValidateStartKm(request.StartKm, assignment.Vehicle.CurrentKm, false);
+        if (!kmCheck.IsValid)
         {
-            return AjaxResultViewModel.Error($"Başlangıç kilometresi ({request.StartKm:N0} KM), aracın güncel kilometresinden ({assignment.Vehicle.CurrentKm:N0} KM) küçük olamaz.");
+            return AjaxResultViewModel.Error(kmCheck.Message!);
         }
 
         var oldAssignmentState = new
@@ -279,6 +299,7 @@ public class DriverService : IDriverService
                     assignment.ActualStartTime,
                     assignment.StartKm,
                     assignment.StartReportedBySelf,
+                    ReportedByDriverFullName = driver.User?.FullName ?? "Şoför",
                     Note = "Şoför tarafından bildirildi, onay bekliyor"
                 }
             );
@@ -298,6 +319,7 @@ public class DriverService : IDriverService
     public async Task<AjaxResultViewModel> EndAssignmentAsync(int assignmentId, string userId, EndAssignmentRequest request)
     {
         var driver = await _context.Drivers
+            .Include(d => d.User)
             .FirstOrDefaultAsync(d => d.UserId == userId && d.IsActive);
 
         if (driver == null)
@@ -307,7 +329,8 @@ public class DriverService : IDriverService
 
         var assignment = await _context.Assignments
             .Include(a => a.Vehicle)
-            .FirstOrDefaultAsync(a => a.Id == assignmentId && a.DriverId == driver.Id);
+            .Include(a => a.AssignmentDrivers)
+            .FirstOrDefaultAsync(a => a.Id == assignmentId && !a.IsDeleted && (a.DriverId == driver.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driver.Id)));
 
         if (assignment == null)
         {
@@ -339,9 +362,10 @@ public class DriverService : IDriverService
             return AjaxResultViewModel.Error("Görevin başlangıç kilometresi sistemde kayıtlı değil.");
         }
 
-        if (request.EndKm < assignment.StartKm.Value)
+        var kmCheck = _kmValidationService.ValidateEndKm(request.EndKm, assignment.StartKm.Value, false);
+        if (!kmCheck.IsValid)
         {
-            return AjaxResultViewModel.Error($"Bitiş kilometresi ({request.EndKm:N0} KM), başlangıç kilometresinden ({assignment.StartKm.Value:N0} KM) küçük olamaz.");
+            return AjaxResultViewModel.Error(kmCheck.Message!);
         }
 
         var oldAssignmentState = new
@@ -359,6 +383,15 @@ public class DriverService : IDriverService
         assignment.EndKm = request.EndKm;
         assignment.DriverReturnNotes = string.IsNullOrWhiteSpace(request.DriverReturnNotes) ? null : request.DriverReturnNotes.Trim();
         assignment.EndReportedBySelf = true;
+        assignment.CheckOil = request.CheckOil;
+        assignment.CheckWater = request.CheckWater;
+        assignment.CheckFuel = request.CheckFuel;
+        assignment.CheckHydraulic = request.CheckHydraulic;
+        assignment.CheckTires = request.CheckTires;
+        if (request.CheckOil || request.CheckWater || request.CheckFuel || request.CheckHydraulic || request.CheckTires)
+        {
+            assignment.ChecksCompletedAt = DateTime.Now;
+        }
         assignment.UpdatedAt = DateTime.UtcNow;
         assignment.UpdatedBy = userId;
 
@@ -378,6 +411,13 @@ public class DriverService : IDriverService
                     assignment.EndKm,
                     assignment.DriverReturnNotes,
                     assignment.EndReportedBySelf,
+                    assignment.CheckOil,
+                    assignment.CheckWater,
+                    assignment.CheckFuel,
+                    assignment.CheckHydraulic,
+                    assignment.CheckTires,
+                    assignment.ChecksCompletedAt,
+                    ReportedByDriverFullName = driver.User?.FullName ?? "Şoför",
                     Note = "Şoför tarafından bildirildi, onay bekliyor"
                 }
             );
@@ -392,6 +432,75 @@ public class DriverService : IDriverService
             _logger.LogError(ex, "Görev bitişi bildirilirken veritabanı hatası oluştu. AssignmentId: {Id}", assignmentId);
             return AjaxResultViewModel.Error("Görev tamamlanırken bir sistem hatası oluştu. Lütfen tekrar deneyiniz.");
         }
+    }
+
+    public async Task<AjaxResultViewModel> SaveVehicleChecksAsync(int assignmentId, string userId, DriverVehicleChecksRequest request)
+    {
+        var driver = await _context.Drivers
+            .Include(d => d.User)
+            .FirstOrDefaultAsync(d => d.UserId == userId && d.IsActive);
+
+        if (driver == null)
+        {
+            return AjaxResultViewModel.Error("Şoför profiliniz bulunamadı veya hesabınız pasif durumda.");
+        }
+
+        var assignment = await _context.Assignments
+            .Include(a => a.AssignmentDrivers)
+            .FirstOrDefaultAsync(a => a.Id == assignmentId && !a.IsDeleted && (a.DriverId == driver.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driver.Id)));
+
+        if (assignment == null)
+        {
+            return AjaxResultViewModel.Error("Görev bulunamadı veya bu göreve erişim yetkiniz yok.");
+        }
+
+        // Görev başlamamış (Planned), bitmiş (Completed) veya iptal edilmişse kontroller değiştirilemez
+        if (assignment.Status != AssignmentStatus.InProgress)
+        {
+            return AjaxResultViewModel.Error("Araç kontrol tikleri yalnızca devam eden (başlatılmış) görevlerde güncellenebilir.");
+        }
+
+        var oldChecks = new
+        {
+            assignment.CheckOil,
+            assignment.CheckWater,
+            assignment.CheckFuel,
+            assignment.CheckHydraulic,
+            assignment.CheckTires,
+            assignment.ChecksCompletedAt
+        };
+
+        assignment.CheckOil = request.CheckOil;
+        assignment.CheckWater = request.CheckWater;
+        assignment.CheckFuel = request.CheckFuel;
+        assignment.CheckHydraulic = request.CheckHydraulic;
+        assignment.CheckTires = request.CheckTires;
+        assignment.ChecksCompletedAt = DateTime.Now;
+        assignment.UpdatedAt = DateTime.UtcNow;
+        assignment.UpdatedBy = userId;
+
+        await _context.SaveChangesAsync();
+
+        await _auditLogService.LogAsync(
+            nameof(Assignment),
+            assignment.Id,
+            AuditAction.Update,
+            userId,
+            oldChecks,
+            new
+            {
+                AssignmentId = assignment.Id,
+                Action = "VehicleChecksSaved",
+                ReportedByDriverFullName = driver.User?.FullName ?? "Şoför",
+                assignment.CheckOil,
+                assignment.CheckWater,
+                assignment.CheckFuel,
+                assignment.CheckHydraulic,
+                assignment.CheckTires,
+                assignment.ChecksCompletedAt
+            });
+
+        return AjaxResultViewModel.Ok("Araç kontrol bilgileri başarıyla kaydedildi.");
     }
 
     /// <summary>

@@ -16,6 +16,7 @@ public interface IDriverService
     Task<AjaxResultViewModel> StartAssignmentAsync(int assignmentId, string userId, StartAssignmentRequest request);
     Task<AjaxResultViewModel> EndAssignmentAsync(int assignmentId, string userId, EndAssignmentRequest request);
     Task<AjaxResultViewModel> CreateSelfAssignmentAsync(string userId, EmergencySelfAssignmentRequest request);
+    Task<AjaxResultViewModel> SaveVehicleChecksAsync(int assignmentId, string userId, DriverVehicleChecksRequest request);
 
     // ==========================================
     // 2. ADMIN ŞOFÖR YÖNETİMİ (CRUD) METOTLARI

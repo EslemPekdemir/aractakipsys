@@ -80,6 +80,8 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IVehicleRequestService, VehicleRequestService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
+builder.Services.AddScoped<IFaultReportService, FaultReportService>();
+builder.Services.AddScoped<IKmValidationService, KmValidationService>();
 
 // 3.2 Arka Plan Servisleri (Background / Hosted Services)
 builder.Services.AddHostedService<aractakipsys.Services.BackgroundServices.VehicleDocumentExpirationWorker>();

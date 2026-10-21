@@ -1,0 +1,141 @@
+<!-- File: Views/FaultReport/Index.cshtml -->
+@model List<aractakipsys.Models.ViewModels.FaultReport.FaultReportItemViewModel>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Araç Arıza Bildirimleri";
+    var selectedStatus = ViewBag.SelectedStatus as aractakipsys.Models.Enums.FaultReportStatus?;
+    var selectedVehicleId = ViewBag.SelectedVehicleId as int?;
+    var vehicles = ViewBag.Vehicles as IEnumerable<dynamic>;
+}
+
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-sm-8">
+        <h2><i class="fa fa-wrench text-danger mr-2"></i> Araç Arıza Bildirimleri</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Ana Sayfa</a></li>
+            <li class="breadcrumb-item active"><strong>Arıza Bildirimleri</strong></li>
+        </ol>
+    </div>
+    <div class="col-sm-4 text-right pt-4">
+        <a href="/FaultReport/DownloadBlankPdf" class="btn btn-outline btn-default shadow-sm font-weight-bold" target="_blank" title="Boş matbu arıza bildirim formu yazdır">
+            <i class="fa fa-print mr-1"></i> Boş Form Çıkar (PDF)
+        </a>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+    <!-- FİLTRELEME ALANI -->
+    <div class="ibox mb-3 shadow-sm">
+        <div class="ibox-content p-3 bg-light rounded border">
+            <form method="get" action="/FaultReport" class="form-row align-items-end">
+                <div class="col-md-4 mb-2">
+                    <label class="font-weight-bold small text-muted">DURUM FİLTRESİ</label>
+                    <select name="status" class="form-control form-control-sm">
+                        <option value="">-- Tüm Durumlar --</option>
+                        <option value="Pending" selected="@(selectedStatus == aractakipsys.Models.Enums.FaultReportStatus.Pending ? "selected" : null)">Beklemede (Onay Bekliyor)</option>
+                        <option value="Approved" selected="@(selectedStatus == aractakipsys.Models.Enums.FaultReportStatus.Approved ? "selected" : null)">İncelendi / Onaylandı</option>
+                        <option value="Resolved" selected="@(selectedStatus == aractakipsys.Models.Enums.FaultReportStatus.Resolved ? "selected" : null)">Onarıldı / Çözüldü</option>
+                        <option value="Rejected" selected="@(selectedStatus == aractakipsys.Models.Enums.FaultReportStatus.Rejected ? "selected" : null)">Reddedildi / İptal</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label class="font-weight-bold small text-muted">ARAÇ FİLTRESİ</label>
+                    <select name="vehicleId" class="form-control form-control-sm">
+                        <option value="">-- Tüm Araçlar --</option>
+                        @if (vehicles != null)
+                        {
+                            foreach (var v in vehicles)
+                            {
+                                <option value="@v.Id" selected="@(selectedVehicleId == v.Id ? "selected" : null)">@v.PlateAndBrand</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <button type="submit" class="btn btn-primary btn-sm px-3 mr-1">
+                        <i class="fa fa-filter mr-1"></i> Filtrele
+                    </button>
+                    <a href="/FaultReport" class="btn btn-white btn-sm px-3">
+                        <i class="fa fa-refresh mr-1"></i> Temizle
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- BİLDİRİM LİSTESİ -->
+    <div class="ibox shadow-sm">
+        <div class="ibox-title bg-white d-flex justify-content-between align-items-center">
+            <h5>Kayıtlı Arıza Bildirimleri (@Model.Count Adet)</h5>
+        </div>
+        <div class="ibox-content p-0">
+            @if (Model == null || Model.Count == 0)
+            {
+                <div class="p-5 text-center text-muted">
+                    <i class="fa fa-check-circle text-success fa-3x mb-3 d-block"></i>
+                    <h5>Kayıtlı arıza bildirimi bulunmamaktadır.</h5>
+                    <p class="small">Şoförler mobil panelden arıza bildirdiğinde bu ekrana ve bildirim çanına anlık olarak yansıyacaktır.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>#No</th>
+                                <th>Araç</th>
+                                <th>Bildiren Şoför</th>
+                                <th>Tarih</th>
+                                <th>KM</th>
+                                <th>Arıza Açıklaması</th>
+                                <th>Durum</th>
+                                <th class="text-right">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="font-weight-bold">#@item.Id.ToString("D4")</td>
+                                    <td>
+                                        <strong class="text-primary">@item.VehiclePlate</strong>
+                                        <div class="small text-muted">@item.VehicleBrandModel</div>
+                                    </td>
+                                    <td>
+                                        <i class="fa fa-user-circle text-muted mr-1"></i> @item.DriverFullName
+                                    </td>
+                                    <td>
+                                        <small class="font-weight-bold text-dark">@item.ReportDate.ToString("dd.MM.yyyy")</small>
+                                        <div class="small text-muted">@item.ReportDate.ToString("HH:mm")</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-light border">@item.CurrentKm.ToString("N0") KM</span>
+                                    </td>
+                                    <td style="max-width: 320px;">
+                                        <div class="text-truncate" title="@item.Description">
+                                            @item.Description
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge @item.StatusBadgeClass px-2 py-1">
+                                            @item.StatusDisplayName
+                                        </span>
+                                    </td>
+                                    <td class="text-right">
+                                        <a href="/FaultReport/Detail/@item.Id" class="btn btn-xs btn-primary mr-1" title="İncele & Onayla">
+                                            <i class="fa fa-search mr-1"></i> İncele
+                                        </a>
+                                        <a href="/FaultReport/DownloadPdf/@item.Id" class="btn btn-xs btn-outline btn-default" target="_blank" title="Arıza Bildirim Formu PDF">
+                                            <i class="fa fa-file-pdf-o text-danger mr-1"></i> PDF
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -64,11 +64,11 @@ public class AssignmentController : Controller
     }
 
     /// <summary>
-    /// Resmi Görevlendirme Belgesi PDF İndir
+    /// Resmi Görevlendirme Belgesi PDF İndir (Şoför bazlı veya genel)
     /// GET: /Assignment/DownloadOrderDocument/{id}
     /// </summary>
     [HttpGet("DownloadOrderDocument/{id:int}")]
-    public async Task<IActionResult> DownloadOrderDocument(int id)
+    public async Task<IActionResult> DownloadOrderDocument(int id, [FromQuery] bool emptyValues = false, [FromQuery] int? driverId = null)
     {
         var model = await _assignmentService.GetAssignmentDetailsAsync(id);
         if (model == null)
@@ -77,15 +77,66 @@ public class AssignmentController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        var currentUser = await _userManager.GetUserAsync(User);
-        var creatorName = currentUser?.FullName ?? User.Identity?.Name ?? "Sistem Yetkilisi";
+        var creatorName = model.CreatedByUserName;
+        if (string.IsNullOrWhiteSpace(creatorName))
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var candidate = currentUser?.FullName;
+            if (!string.IsNullOrWhiteSpace(candidate) && !Guid.TryParse(candidate.Trim(), out _))
+            {
+                creatorName = candidate.Trim();
+            }
+        }
 
-        var document = new AssignmentOrderDocument(model, creatorName);
+        string? specificDriverName = null;
+        if (driverId.HasValue && model.AssignedDrivers != null)
+        {
+            var targetDriver = model.AssignedDrivers.FirstOrDefault(d => d.DriverId == driverId.Value);
+            if (targetDriver != null)
+            {
+                specificDriverName = targetDriver.DriverFullName;
+            }
+        }
+
+        var document = new AssignmentOrderDocument(model, creatorName, emptyValues: emptyValues, specificDriverFullName: specificDriverName);
         var pdfBytes = document.GeneratePdf();
 
         var safePlate = (model.VehiclePlate ?? "Arac").Replace(" ", "_");
-        var fileName = $"Gorevlendirme_Belgesi_{model.Id}_{safePlate}.pdf";
+        var prefix = emptyValues ? "Gorevlendirme_Belgesi_Bos" : "Gorevlendirme_Belgesi";
+        var driverSuffix = !string.IsNullOrWhiteSpace(specificDriverName) ? $"_{specificDriverName.Replace(" ", "_")}" : "";
+        var fileName = $"{prefix}_{model.Id}_{safePlate}{driverSuffix}.pdf";
         return File(pdfBytes, "application/pdf", fileName);
+    }
+
+    /// <summary>
+    /// Acil Güzergah Dışı Sevk Kaydı Ekleme (POST)
+    /// POST: /Assignment/SaveOffRouteDispatch
+    /// </summary>
+    [HttpPost("SaveOffRouteDispatch")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveOffRouteDispatch(OffRouteDispatchViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            var firstError = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault() ?? "Geçersiz veri gönderildi.";
+            TempData["ErrorMessage"] = firstError;
+            return RedirectToAction(nameof(Details), new { id = model.AssignmentId });
+        }
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+
+        var (success, message) = await _assignmentService.SaveOffRouteDispatchAsync(model, userId);
+        if (success)
+        {
+            TempData["SuccessMessage"] = message;
+        }
+        else
+        {
+            TempData["ErrorMessage"] = message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = model.AssignmentId });
     }
 
     /// <summary>
@@ -358,10 +409,10 @@ public class AssignmentController : Controller
     /// </summary>
     [HttpPost("StartDirect/{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> StartDirect(int id, [FromForm] int? startKm, [FromQuery] string? returnUrl = null)
+    public async Task<IActionResult> StartDirect(int id, [FromForm] int? startKm, [FromForm] bool confirmKmDifference = false, [FromQuery] string? returnUrl = null)
     {
         var userId = GetCurrentUserId();
-        var (success, message) = await _assignmentService.StartAssignmentDirectAsync(id, userId, startKm);
+        var (success, message) = await _assignmentService.StartAssignmentDirectAsync(id, userId, startKm, confirmKmDifference);
 
         if (!success)
         {
@@ -386,10 +437,10 @@ public class AssignmentController : Controller
     /// </summary>
     [HttpPost("EndDirect/{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EndDirect(int id, [FromForm] int endKm, [FromForm] string? driverReturnNotes)
+    public async Task<IActionResult> EndDirect(int id, [FromForm] int endKm, [FromForm] string? driverReturnNotes, [FromForm] bool confirmKmDifference = false, [FromQuery] string? returnUrl = null)
     {
         var userId = GetCurrentUserId();
-        var (success, message) = await _assignmentService.EndAssignmentDirectAsync(id, userId, endKm, driverReturnNotes);
+        var (success, message) = await _assignmentService.EndAssignmentDirectAsync(id, userId, endKm, driverReturnNotes, confirmKmDifference);
 
         if (!success)
         {
@@ -398,6 +449,11 @@ public class AssignmentController : Controller
         else
         {
             TempData["SuccessMessage"] = message;
+        }
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
         }
 
         return RedirectToAction(nameof(Index));

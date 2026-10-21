@@ -395,6 +395,13 @@
                     <li class="@(string.Equals(currentController, "Maintenance", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <a href="/Maintenance"><i class="fa fa-wrench"></i> <span class="nav-label">Bakım Kayıtları</span></a>
                     </li>
+                    <li class="@(string.Equals(currentController, "FaultReport", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                        <a href="/FaultReport">
+                            <i class="fa fa-exclamation-triangle text-danger"></i> 
+                            <span class="nav-label">Arıza Bildirimleri</span>
+                            <span class="label label-danger float-right d-none" id="sidebarFaultBadge" style="margin-top: 2px;">0</span>
+                        </a>
+                    </li>
                     <li class="@(string.Equals(currentController, "Report", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <a href="/Report"><i class="fa fa-bar-chart"></i> <span class="nav-label">Kullanım Raporu</span></a>
                     </li>
@@ -470,6 +477,30 @@
                                 <li class="border-top text-center p-2 bg-light">
                                     <a href="/VehicleRequest" class="font-weight-bold text-primary small d-block py-1" title="Tüm Araç Taleplerini Listele">
                                         <i class="fa fa-list mr-1"></i> Tümünü Gör (Talepler)
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <!-- BİLDİRİM (ARAÇ ARIZA BİLDİRİMLERİ) -->
+                        <li class="dropdown" id="navFaultDropdown">
+                            <a class="dropdown-toggle count-info" data-toggle="dropdown" data-display="static" href="#" title="Arıza Bildirimleri" style="position: relative; padding: 20px 10px;">
+                                <i class="fa fa-wrench text-danger" style="font-size: 1.2rem;"></i>  
+                                <span class="label label-danger d-none" id="navFaultBadge" style="position: absolute; top: 12px; right: 2px; font-size: 10px; padding: 2px 5px; border-radius: 10px;">0</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-messages dropdown-menu-right" style="max-height: 420px; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.15); border-radius: 8px; margin-top: 5px;">
+                                <li class="p-2 border-bottom font-weight-bold text-dark d-flex justify-content-between align-items-center bg-light">
+                                    <span><i class="fa fa-wrench text-danger mr-1"></i> Bekleyen Arıza Bildirimleri</span>
+                                    <span class="badge badge-danger" id="dropdownFaultCount">0 Yeni</span>
+                                </li>
+                                <li id="dropdownFaultItemsContainer">
+                                    <div class="text-center p-3 text-muted small">
+                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
+                                        <div>Bekleyen arıza bildirimi bulunmuyor</div>
+                                    </div>
+                                </li>
+                                <li class="border-top text-center p-2 bg-light">
+                                    <a href="/FaultReport" class="font-weight-bold text-primary small d-block py-1" title="Tüm Arıza Bildirimlerini Listele">
+                                        <i class="fa fa-list mr-1"></i> Tümünü Gör (Arızalar)
                                     </a>
                                 </li>
                             </ul>
@@ -679,12 +710,95 @@
                 return $('<div>').text(text).html();
             }
 
+            let lastPendingFaultCount = null;
+
+            function checkPendingFaultReports() {
+                $.ajax({
+                    url: '/FaultReport/PendingNotificationSummary',
+                    type: 'GET',
+                    cache: false,
+                    success: function (res) {
+                        if (res) {
+                            const count = res.pendingCount || 0;
+                            const items = res.latestFaults || [];
+
+                            const $sidebarBadge = $('#sidebarFaultBadge');
+                            if (count > 0) {
+                                $sidebarBadge.text(count).removeClass('d-none');
+                            } else {
+                                $sidebarBadge.addClass('d-none');
+                            }
+
+                            const $navBadge = $('#navFaultBadge');
+                            const $dropCount = $('#dropdownFaultCount');
+                            if (count > 0) {
+                                $navBadge.text(count).removeClass('d-none');
+                                $dropCount.text(count + ' Yeni');
+                            } else {
+                                $navBadge.addClass('d-none');
+                                $dropCount.text('0 Yeni');
+                            }
+
+                            const $container = $('#dropdownFaultItemsContainer');
+                            if (count === 0 || items.length === 0) {
+                                $container.html(`
+                                    <div class="text-center p-3 text-muted small">
+                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
+                                        <div>Bekleyen arıza bildirimi bulunmuyor</div>
+                                    </div>
+                                `);
+                            } else {
+                                let html = '<ul class="list-unstyled mb-0">';
+                                items.forEach(function (item) {
+                                    html += `
+                                        <li class="border-bottom p-2 notification-request-item">
+                                            <a href="/FaultReport/Detail/${item.id}" class="text-dark d-block text-decoration-none" style="padding: 4px 6px; border-radius: 4px;" title="Arıza Bildirimini İncele">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <strong class="text-danger font-12"><i class="fa fa-wrench mr-1"></i>${escapeHtml(item.plate)}</strong>
+                                                    <small class="text-muted font-11">${escapeHtml(item.formattedDate)}</small>
+                                                </div>
+                                                <div class="small text-muted mb-1 font-italic">${escapeHtml(item.driver)}</div>
+                                                <div class="text-truncate small text-secondary mb-1" style="max-width: 100%;" title="${escapeHtml(item.description)}">
+                                                    ${escapeHtml(item.description)}
+                                                </div>
+                                            </a>
+                                        </li>
+                                    `;
+                                });
+                                html += '</ul>';
+                                $container.html(html);
+                            }
+
+                            if (lastPendingFaultCount !== null && count > lastPendingFaultCount) {
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.options = {
+                                        closeButton: true,
+                                        progressBar: true,
+                                        positionClass: "toast-top-right",
+                                        timeOut: 8000,
+                                        onclick: function () {
+                                            window.location.href = '/FaultReport';
+                                        }
+                                    };
+                                    toastr.error('Yeni araç arıza bildirimi yapıldı!', 'Araç Arıza Uyarısı');
+                                }
+                            }
+                            lastPendingFaultCount = count;
+                        }
+                    },
+                    error: function () { }
+                });
+            }
+
             $(document).ready(function () {
                 // Sayfa ilk yüklendiğinde çalıştır
                 checkPendingVehicleRequests();
                 checkExpiringVehicleDocuments();
-                // Periyodik kontrol et (yalnızca dinamik araç talepleri için)
+                checkPendingFaultReports();
+
+                // Periyodik kontrol et (30 saniyede bir)
                 setInterval(checkPendingVehicleRequests, 30000);
+                setInterval(checkPendingFaultReports, 30000);
 
                 // Çıkış yapıldığında oturum bazlı toast hafızasını temizle
                 $(document).on('click', 'a[href*="/Account/Logout"]', function () {

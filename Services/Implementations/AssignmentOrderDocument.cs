@@ -9,165 +9,421 @@ namespace aractakipsys.Services.Implementations;
 public class AssignmentOrderDocument : IDocument
 {
     private readonly AssignmentDetailsViewModel _model;
-    private readonly string _generatedByUserName;
+    private readonly string? _generatedByUserName;
+    private readonly bool _emptyValues;
+    private readonly List<string>? _additionalDrivers;
+    private readonly string? _routeInfo;
+    private readonly string? _specificDriverFullName;
+    private static readonly byte[]? LogoBytes = LoadLogoBytes();
 
-    public AssignmentOrderDocument(AssignmentDetailsViewModel model, string generatedByUserName)
+    public AssignmentOrderDocument(
+        AssignmentDetailsViewModel model, 
+        string? generatedByUserName, 
+        bool emptyValues = false,
+        List<string>? additionalDrivers = null,
+        string? routeInfo = null,
+        string? specificDriverFullName = null)
     {
         _model = model;
-        _generatedByUserName = generatedByUserName;
+        _emptyValues = emptyValues;
+        _additionalDrivers = additionalDrivers;
+        _routeInfo = routeInfo;
+        _specificDriverFullName = FilterPersonName(specificDriverFullName);
+
+        var candidate = !string.IsNullOrWhiteSpace(generatedByUserName) 
+            ? generatedByUserName 
+            : _model.CreatedByUserName;
+
+        _generatedByUserName = FilterPersonName(candidate);
+    }
+
+    private static string? FilterPersonName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var trimmed = name.Trim();
+        // Hiçbir koşulda kimlik (GUID vb.) basılmasın; kullanıcı adı soyadı bulunamazsa boş kalsın
+        if (Guid.TryParse(trimmed, out _)) return null;
+        if (System.Text.RegularExpressions.Regex.IsMatch(trimmed, @"^[0-9a-fA-F\-]{30,}$")) return null;
+        return trimmed;
+    }
+
+    private static string CleanPurpose(string? rawPurpose)
+    {
+        if (string.IsNullOrWhiteSpace(rawPurpose)) return "";
+        // Resmi belgede şef notu hiçbir yerde yer almaz; görevin konusundan tamamen temizlenir
+        // 1. Parantez içindeki şef notunu temizle: (Şef Notu: ...)
+        var cleaned = System.Text.RegularExpressions.Regex.Replace(
+            rawPurpose,
+            @"\s*\(\s*Şef\s+Notu\s*:[^\)]*\)",
+            "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase
+        );
+        // 2. Parantezsiz şef notu varsa satır sonuna kadar temizle: Şef Notu: ...
+        cleaned = System.Text.RegularExpressions.Regex.Replace(
+            cleaned,
+            @"\s*Şef\s+Notu\s*:[^\r\n]*",
+            "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase
+        );
+        return cleaned.Trim();
+    }
+
+    private static byte[]? LoadLogoBytes()
+    {
+        try
+        {
+            var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "img", "duzce_logo.png");
+            if (File.Exists(logoPath))
+            {
+                return File.ReadAllBytes(logoPath);
+            }
+        }
+        catch
+        {
+            // Logo bulunamazsa yer tutucu kullanılır
+        }
+        return null;
     }
 
     public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
 
     public void Compose(IDocumentContainer container)
     {
-        container.Page(page =>
-        {
-            page.Size(PageSizes.A4);
-            page.Margin(35);
-            page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Arial"));
+        // Tek sayfa (A4 dikey)
+        container.Page(ComposeSinglePage);
+    }
 
-            // 1. BAŞLIK (HEADER)
-            page.Header().Column(headerCol =>
+    private void ComposeSinglePage(PageDescriptor page)
+    {
+        page.Size(PageSizes.A4);
+        page.MarginHorizontal(24);
+        page.MarginVertical(20);
+        page.DefaultTextStyle(x => x.FontSize(8.5f).FontFamily("Arial").FontColor(Colors.Black));
+
+        // TÜM BELGE TEK DIŞ ÇERÇEVE İÇİNDE (TÜM HÜCRELER ÇİZGİLİ)
+        page.Content().Column(pageCol =>
+        {
+            pageCol.Item().Border(1.2f).BorderColor(Colors.Black).Column(formCol =>
             {
-                headerCol.Item().Row(row =>
+                // 1. BÖLÜM: ÜSTTE BÜYÜK LOGO VE BAŞLIK
+                formCol.Item().BorderBottom(1).BorderColor(Colors.Black).Row(row =>
                 {
-                    row.RelativeItem().Column(col =>
+                    // Sol üstte büyük logo
+                    if (LogoBytes != null)
                     {
-                        col.Item().AlignCenter().Text("T.C.").Bold().FontSize(12).FontColor(Colors.Grey.Darken3);
-                        col.Item().AlignCenter().Text("DÜZCE ÜNİVERSİTESİ").Bold().FontSize(15).FontColor(Colors.Blue.Darken3);
-                        col.Item().AlignCenter().Text("BİLGİ İŞLEM DAİRE BAŞKANLIĞI").SemiBold().FontSize(11).FontColor(Colors.Grey.Darken3);
-                        col.Item().AlignCenter().PaddingTop(4).Text("ARAÇ GÖREVLENDİRME BELGESİ").Bold().FontSize(13).Underline().FontColor(Colors.Blue.Darken2);
+                        row.ConstantItem(85).Height(62).Padding(4).Image(LogoBytes).FitArea();
+                    }
+                    else
+                    {
+                        row.ConstantItem(85).Height(62).Padding(4).Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                            .AlignCenter().AlignMiddle().Text("DÜZCE ÜNV.").FontSize(8).Bold();
+                    }
+
+                    // Ortada "T.C." / "DÜZCE ÜNİVERSİTESİ REKTÖRLÜĞÜ" / "TAŞIT GÖREV EMRİ"
+                    row.RelativeItem().PaddingVertical(5).AlignCenter().AlignMiddle().Column(tCol =>
+                    {
+                        tCol.Item().AlignCenter().Text("T.C.").Bold().FontSize(10.5f);
+                        tCol.Item().AlignCenter().Text("DÜZCE ÜNİVERSİTESİ REKTÖRLÜĞÜ").Bold().FontSize(12.5f);
+                        tCol.Item().AlignCenter().Text("TAŞIT GÖREV EMRİ").Bold().FontSize(12f);
                     });
+
+                    // Sağ Simetri Boşluğu
+                    row.ConstantItem(85);
                 });
 
-                headerCol.Item().PaddingTop(12).Row(row =>
+                // SAYI VE TARİH SATIRI
+                formCol.Item().BorderBottom(1).BorderColor(Colors.Black).PaddingHorizontal(8).PaddingVertical(4).Row(row =>
                 {
+                    var sayiStr = _emptyValues ? "............" : _model.Id.ToString("D5");
+                    var tarihStr = _emptyValues 
+                        ? "....../....../20....." 
+                        : (_model.PlannedStartTime != default ? _model.PlannedStartTime.ToString("dd.MM.yyyy") : DateTime.Now.ToString("dd.MM.yyyy"));
+
                     row.RelativeItem().Text(t =>
                     {
-                        t.Span("Belge / Görev No: ").Bold();
-                        t.Span($"GVR-{_model.Id:D5}");
+                        t.Span("SAYI: ").Bold().FontSize(8.5f);
+                        t.Span($"B.30.2.DZC.0.73.00/{sayiStr}").FontSize(8.5f);
                     });
 
                     row.RelativeItem().AlignRight().Text(t =>
                     {
-                        t.Span("Düzenlenme Tarihi: ").Bold();
-                        t.Span(DateTime.Now.ToString("dd.MM.yyyy"));
+                        t.Span("TARİH: ").Bold().FontSize(8.5f);
+                        t.Span(tarihStr).FontSize(8.5f);
                     });
                 });
 
-                headerCol.Item().PaddingTop(6).LineHorizontal(1).LineColor(Colors.Grey.Medium);
-            });
-
-            // 2. GÖVDE (CONTENT)
-            page.Content().PaddingVertical(15).Column(col =>
-            {
-                // Bilgi Tablosu Çerçevesi
-                col.Item().Border(1).BorderColor(Colors.Grey.Medium).Table(table =>
+                // 2. BÖLÜM: İKİ EŞİT SÜTUNLU BLOK (ARACI GÖREVLENDİRENİN | ARACI SEVK EDENİN)
+                formCol.Item().BorderBottom(1).BorderColor(Colors.Black).Table(table =>
                 {
-                    table.ColumnsDefinition(columns =>
+                    table.ColumnsDefinition(cols =>
                     {
-                        columns.ConstantColumn(130);
-                        columns.RelativeColumn();
-                        columns.ConstantColumn(130);
-                        columns.RelativeColumn();
+                        cols.RelativeColumn(7); // Sol: Adı Soyadı ve Unvanı
+                        cols.RelativeColumn(3); // Sol: İmzası
+                        cols.RelativeColumn(7); // Sağ: Adı Soyadı ve Unvanı
+                        cols.RelativeColumn(3); // Sağ: İmzası
                     });
 
-                    // 1. Satır: Araç Bilgileri
-                    table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Araç Plakası:").Bold();
-                    table.Cell().Padding(6).Text(_model.VehiclePlate).Bold().FontColor(Colors.Blue.Darken3);
-                    table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Marka / Model:").Bold();
-                    table.Cell().Padding(6).Text($"{_model.VehicleBrandModel} ({_model.VehicleType})");
+                    // Başlık Satırı
+                    table.Cell().ColumnSpan(2).Background(Colors.Grey.Lighten3).BorderRight(1).BorderBottom(1).BorderColor(Colors.Black)
+                        .Padding(3).AlignCenter().Text("ARACI GÖREVLENDİRENİN").Bold().FontSize(8.5f);
+                    table.Cell().ColumnSpan(2).Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Black)
+                        .Padding(3).AlignCenter().Text("ARACI SEVK EDENİN").Bold().FontSize(8.5f);
 
-                    // 2. Satır: Şoför Bilgileri
-                    table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Görevli Şoför:").Bold();
-                    table.Cell().Padding(6).Text(_model.DriverFullName).Bold();
-                    table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Ehliyet No / Sınıf:").Bold();
-                    table.Cell().Padding(6).Text(string.IsNullOrWhiteSpace(_model.LicenseNumber) ? "-" : $"{_model.LicenseNumber} ({_model.LicenseClass ?? "-"})");
+                    // Alt Başlık Satırı
+                    table.Cell().BorderRight(1).BorderBottom(1).BorderColor(Colors.Black).Padding(3).AlignCenter().Text("Adı Soyadı ve Unvanı").Bold().FontSize(7.5f);
+                    table.Cell().BorderRight(1).BorderBottom(1).BorderColor(Colors.Black).Padding(3).AlignCenter().Text("İmzası").Bold().FontSize(7.5f);
+                    table.Cell().BorderRight(1).BorderBottom(1).BorderColor(Colors.Black).Padding(3).AlignCenter().Text("Adı Soyadı ve Unvanı").Bold().FontSize(7.5f);
+                    table.Cell().BorderBottom(1).BorderColor(Colors.Black).Padding(3).AlignCenter().Text("İmzası").Bold().FontSize(7.5f);
 
-                    // 3. Satır: Talep Eden Birim & İletişim
-                    table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Talep Eden Birim:").Bold();
-                    table.Cell().Padding(6).Text(string.IsNullOrWhiteSpace(_model.RequestedByDepartment) ? "Belirtilmemiş" : _model.RequestedByDepartment);
-                    table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Şoför İletişim:").Bold();
-                    table.Cell().Padding(6).Text(string.IsNullOrWhiteSpace(_model.DriverPhone) ? "-" : _model.DriverPhone);
+                    // Veri / İmza Boşluğu Satırı
+                    var creatorDisplay = (!_emptyValues && !string.IsNullOrWhiteSpace(_generatedByUserName)) ? _generatedByUserName : "";
+                    table.Cell().BorderRight(1).BorderColor(Colors.Black).MinHeight(38).Padding(4).AlignCenter().AlignMiddle()
+                        .Text(creatorDisplay).FontSize(8.5f);
+                    table.Cell().BorderRight(1).BorderColor(Colors.Black).MinHeight(38).Padding(4); // İmza alanı
+                    table.Cell().BorderRight(1).BorderColor(Colors.Black).MinHeight(38).Padding(4); // Sevk eden (boş)
+                    table.Cell().MinHeight(38).Padding(4); // Sevk eden imza (boş)
+                });
 
-                    // 4. Satır: Görev Zaman Aralığı
-                    table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Planlanan Başlangıç:").Bold();
-                    table.Cell().Padding(6).Text(_model.PlannedStartTime.ToString("dd.MM.yyyy HH:mm")).Bold();
-                    table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Planlanan Bitiş:").Bold();
-                    table.Cell().Padding(6).Text(_model.PlannedEndTime.ToString("dd.MM.yyyy HH:mm")).Bold();
+                // 3. BÖLÜM: ALT BÖLÜM (İKİ SÜTUNLU: SOL GÖREVE AİT, SAĞ GÜZERGAH DIŞI + ARACA AİT)
+                var destination = !_emptyValues 
+                    ? (!string.IsNullOrWhiteSpace(_model.Destination) 
+                        ? _model.Destination 
+                        : (!string.IsNullOrWhiteSpace(_routeInfo) 
+                            ? _routeInfo 
+                            : (!string.IsNullOrWhiteSpace(_model.RequestedByDepartment) ? _model.RequestedByDepartment : "Belirtilen Görev Yeri")))
+                    : "";
 
-                    // 5. Satır: Görev Amacı & Güzergah
-                    table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Görev Amacı / Güzergah:").Bold();
-                    table.Cell().ColumnSpan(3).Padding(6).Text(_model.Purpose);
+                var routeText = !_emptyValues
+                    ? (!string.IsNullOrWhiteSpace(_model.Route) 
+                        ? _model.Route 
+                        : (!string.IsNullOrWhiteSpace(_routeInfo) ? _routeInfo : "Belirtilen Güzergah"))
+                    : "";
 
-                    // Çok Günlük Görevler İçin Ek Satır (Varsa)
-                    if (_model.HasAccommodationOrPerDiem)
+                string driverDisplay;
+                if (_emptyValues)
+                {
+                    driverDisplay = "";
+                }
+                else if (_model.IsDriverless)
+                {
+                    driverDisplay = "Şoförsüz Görevlendirme";
+                }
+                else if (_model.IsExternalDriver)
+                {
+                    driverDisplay = string.IsNullOrWhiteSpace(_model.ExternalDriverDepartment)
+                        ? (_model.ExternalDriverFullName ?? "Dış Şoför")
+                        : $"{_model.ExternalDriverFullName} ({_model.ExternalDriverDepartment})";
+                }
+                else if (!string.IsNullOrWhiteSpace(_specificDriverFullName))
+                {
+                    driverDisplay = _specificDriverFullName;
+                }
+                else
+                {
+                    driverDisplay = _model.DriverFullName;
+                    if (_additionalDrivers != null && _additionalDrivers.Count > 0)
                     {
-                        table.Cell().Background(Colors.Grey.Lighten4).Padding(6).Text("Konaklama / Görev Ücreti:").Bold();
-                        table.Cell().ColumnSpan(3).Padding(6).Text(
-                            $"Konaklama: {(_model.AccommodationNights.HasValue ? $"{_model.AccommodationNights.Value} Gece" : "-")} | " +
-                            $"Ücretli Gün: {(_model.PerDiemDays.HasValue ? $"{_model.PerDiemDays.Value} Gün" : "-")}" +
-                            (!string.IsNullOrWhiteSpace(_model.ExpenseNotes) ? $" (Not: {_model.ExpenseNotes})" : "")
-                        );
+                        driverDisplay += " (Ek Şoförler: " + string.Join(", ", _additionalDrivers) + ")";
                     }
+                }
+
+                // ÇIKIŞ VE GİRİŞ BİLGİLERİ (KM VE YALNIZCA SAAT)
+                var showActuals = !_emptyValues && _model.Status != aractakipsys.Models.Enums.AssignmentStatus.Planned;
+                var outKm = (showActuals && _model.StartKm.HasValue) ? $"{_model.StartKm.Value:N0} KM" : "....................";
+                var inKm = (showActuals && _model.EndKm.HasValue) ? $"{_model.EndKm.Value:N0} KM" : "....................";
+
+                var outTime = (showActuals && _model.ActualStartTime.HasValue) 
+                    ? _model.ActualStartTime.Value.ToString("HH:mm") 
+                    : (!_emptyValues && _model.PlannedStartTime != default ? _model.PlannedStartTime.ToString("HH:mm") : "....................");
+
+                var inTime = (showActuals && _model.ActualEndTime.HasValue) 
+                    ? _model.ActualEndTime.Value.ToString("HH:mm") 
+                    : (!_emptyValues && _model.PlannedEndTime != default ? _model.PlannedEndTime.ToString("HH:mm") : "....................");
+
+                formCol.Item().BorderBottom(1).BorderColor(Colors.Black).Table(mainTable =>
+                {
+                    mainTable.ColumnsDefinition(cols =>
+                    {
+                        cols.RelativeColumn(); // Sol Sütun
+                        cols.RelativeColumn(); // Sağ Sütun
+                    });
+
+                    // SOL SÜTUN
+                    mainTable.Cell().BorderRight(1).BorderColor(Colors.Black).Column(leftCol =>
+                    {
+                        // Başlık: GÖREVE AİT BİLGİLER
+                        leftCol.Item().Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Black)
+                            .Padding(4).AlignCenter().Text("GÖREVE AİT BİLGİLER").Bold().FontSize(8.5f);
+
+                        // Gidilen Yer Satırı
+                        leftCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).Text(t =>
+                        {
+                            t.Span("Gidilen Yer: ").Bold().FontSize(8.5f);
+                            t.Span(destination).FontSize(8.5f);
+                        });
+
+                        // Güzergah Satırı (Faz 2-A)
+                        leftCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).Text(t =>
+                        {
+                            t.Span("Güzergah: ").Bold().FontSize(8.5f);
+                            t.Span(routeText).FontSize(8.5f);
+                        });
+
+                        // Görevin Konusu Kutusu (sayfa oranını korumak için 165 min height)
+                        leftCol.Item().BorderBottom(1).BorderColor(Colors.Black).MinHeight(165).Padding(4).Column(kCol =>
+                        {
+                            kCol.Item().Text("Görevin Konusu:").Bold().FontSize(8.5f);
+                            var cleanedPurpose = !_emptyValues ? CleanPurpose(_model.Purpose) : "";
+                            if (!string.IsNullOrWhiteSpace(cleanedPurpose))
+                            {
+                                kCol.Item().PaddingTop(4).Text(cleanedPurpose).FontSize(8.5f);
+                            }
+                        });
+
+                        // En Altta: Görevin Türü | Resmi
+                        leftCol.Item().Padding(4).Text(t =>
+                        {
+                            t.Span("Görevin Türü : ").Bold().FontSize(8.5f);
+                            t.Span("Resmi").FontSize(8.5f);
+                        });
+                    });
+
+                    // SAĞ SÜTUN (YUKARIDAN AŞAĞI)
+                    mainTable.Cell().Column(rightCol =>
+                    {
+                        // 1. Başlık: ACİL DURUMLARDA ARACI GÜZERGAH DIŞINA SEVK EDENİN
+                        rightCol.Item().Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Black)
+                            .Padding(4).AlignCenter().Text("ACİL DURUMLARDA ARACI GÜZERGAH DIŞINA SEVK EDENİN").Bold().FontSize(7.5f);
+
+                        // 2. Adı Soyadı, Unvanı ve İmzası (TEK SATIR, HER ZAMAN BOŞ)
+                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).MinHeight(32).Text("Adı Soyadı, Unvanı ve İmzası:").Bold().FontSize(8f);
+
+                        // 3. Sevk Nedeni (HER ZAMAN BOŞ)
+                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).MinHeight(32).Text("Sevk Nedeni:").Bold().FontSize(8f);
+
+                        // 4. Başlık: ARACA AİT BİLGİLER
+                        rightCol.Item().Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Black)
+                            .Padding(4).AlignCenter().Text("ARACA AİT BİLGİLER").Bold().FontSize(8.5f);
+
+                        // 5. ŞOFÖRÜN ADI SOYADI
+                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).Text(t =>
+                        {
+                            t.Span("ŞOFÖRÜN ADI SOYADI: ").Bold().FontSize(8f);
+                            t.Span(driverDisplay).FontSize(8.5f);
+                        });
+
+                        // 6. İMZASI (BOŞ İMZA ALANI)
+                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).MinHeight(32).Text("İMZASI:").Bold().FontSize(8f);
+
+                        // 7. ARACIN PLAKASI
+                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).Text(t =>
+                        {
+                            t.Span("ARACIN PLAKASI: ").Bold().FontSize(8f);
+                            if (!_emptyValues) t.Span(_model.VehiclePlate).Bold().FontSize(8.5f);
+                        });
+
+                        // 8. MARKA/MODELİ
+                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).Text(t =>
+                        {
+                            t.Span("MARKA/MODELİ: ").Bold().FontSize(8f);
+                            if (!_emptyValues) t.Span(_model.VehicleBrandModel).FontSize(8.5f);
+                        });
+
+                        // 9. ÇIKIŞ | GİRİŞ İKİ SÜTUNU (KM VE SAAT NOKTALI ÇİZGİLİ ALANLAR)
+                        rightCol.Item().Table(moveTable =>
+                        {
+                            moveTable.ColumnsDefinition(mCols =>
+                            {
+                                mCols.RelativeColumn();
+                                mCols.RelativeColumn();
+                            });
+
+                            // Başlık: ÇIKIŞ | GİRİŞ
+                            moveTable.Cell().Background(Colors.Grey.Lighten3).BorderRight(1).BorderBottom(1).BorderColor(Colors.Black)
+                                .Padding(3).AlignCenter().Text("ÇIKIŞ").Bold().FontSize(8.5f);
+                            moveTable.Cell().Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Black)
+                                .Padding(3).AlignCenter().Text("GİRİŞ").Bold().FontSize(8.5f);
+
+                            // KM Satırı
+                            moveTable.Cell().BorderRight(1).BorderBottom(1).BorderColor(Colors.Black).Padding(4).Text(t =>
+                            {
+                                t.Span("KM: ").Bold().FontSize(8f);
+                                t.Span(outKm).FontSize(8f);
+                            });
+                            moveTable.Cell().BorderBottom(1).BorderColor(Colors.Black).Padding(4).Text(t =>
+                            {
+                                t.Span("KM: ").Bold().FontSize(8f);
+                                t.Span(inKm).FontSize(8f);
+                            });
+
+                            // SAAT Satırı (Yalnızca SAAT)
+                            moveTable.Cell().BorderRight(1).BorderColor(Colors.Black).Padding(4).Text(t =>
+                            {
+                                t.Span("SAAT: ").Bold().FontSize(8f);
+                                t.Span(outTime).FontSize(8f);
+                            });
+                            moveTable.Cell().Padding(4).Text(t =>
+                            {
+                                t.Span("SAAT: ").Bold().FontSize(8f);
+                                t.Span(inTime).FontSize(8f);
+                            });
+                        });
+                    });
                 });
 
-                // Resmi İbraz ve Görevlendirme Metni
-                col.Item().PaddingTop(20).Border(1).BorderColor(Colors.Grey.Lighten2)
-                    .Background(Colors.Grey.Lighten5).Padding(10).Column(textCol =>
-                    {
-                        textCol.Item().Text(
-                            "Yukarıda bilgileri belirtilen personel, belirtilen tarih aralığında ve güzergahta belirtilen aracı kullanmak üzere görevlendirilmiştir."
-                        ).Italic().SemiBold().FontSize(10).FontColor(Colors.Grey.Darken4);
-                    });
-
-                // İki Yan Yana Resmi İmza Alanı (Fiziksel Çıktı İçin Çizgili / Boş Kutular)
-                col.Item().PaddingTop(35).Row(signRow =>
+                // 4. BÖLÜM: ALTA ÜÇ MADDELİK NOT METNİ (KUTU BAŞLIĞI OLMADAN DOĞRUDAN MADDELER)
+                formCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(5).Column(notesCol =>
                 {
-                    // Sol Kutu: Görevlendiren Yetkili
-                    signRow.RelativeItem().PaddingRight(20).Border(1).BorderColor(Colors.Grey.Medium).Padding(12).Column(leftSign =>
+                    notesCol.Item().Text("1- Taşıt görev emri iki nüsha olarak düzenlenecek olup bir nüshası kurumda kalacak diğer nüsha araçta bulundurulacaktır.").FontSize(7.5f);
+                    notesCol.Item().PaddingTop(1.5f).Text("2- Taşıt görev emri yetkililerin istemesi halinde gösterilecektir.").FontSize(7.5f);
+                    notesCol.Item().PaddingTop(1.5f).Text("3- Araç sürücüleri ve araçta bulunan personel resmi sıfatın gerektirdiği saygınlığa uygun davranışlarda bulunacaklardır.").FontSize(7.5f);
+                });
+
+                // 5. BÖLÜM: 5 BÜYÜK KARE KUTU VE PARAF KUTUSU
+                formCol.Item().Table(checkTable =>
+                {
+                    checkTable.ColumnsDefinition(cols =>
                     {
-                        leftSign.Item().AlignCenter().Text("GÖREVLENDİREN YETKİLİ").Bold().FontSize(10);
-                        leftSign.Item().AlignCenter().Text("Ulaşım / Birim Şefi").FontSize(9).FontColor(Colors.Grey.Darken2);
-                        leftSign.Item().PaddingTop(8).AlignCenter().Text($"Adı Soyadı: {_generatedByUserName}").FontSize(9);
-                        leftSign.Item().PaddingTop(4).AlignCenter().Text($"Tarih: {DateTime.Now:dd.MM.yyyy}").FontSize(9);
-                        leftSign.Item().PaddingTop(25).AlignCenter().Text("İmza: ........................................").FontSize(9);
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
+                        cols.ConstantColumn(85);
                     });
 
-                    // Sağ Kutu: Görevli Şoför
-                    signRow.RelativeItem().PaddingLeft(20).Border(1).BorderColor(Colors.Grey.Medium).Padding(12).Column(rightSign =>
+                    var oilChecked = !_emptyValues && _model.CheckOil;
+                    var waterChecked = !_emptyValues && _model.CheckWater;
+                    var fuelChecked = !_emptyValues && _model.CheckFuel;
+                    var hydChecked = !_emptyValues && _model.CheckHydraulic;
+                    var tireChecked = !_emptyValues && _model.CheckTires;
+
+                    ComposeCheckCell(checkTable.Cell().BorderRight(1).BorderColor(Colors.Black), "Yağ Kontrol", oilChecked);
+                    ComposeCheckCell(checkTable.Cell().BorderRight(1).BorderColor(Colors.Black), "Su Kontrol", waterChecked);
+                    ComposeCheckCell(checkTable.Cell().BorderRight(1).BorderColor(Colors.Black), "Yakıt Kontrol", fuelChecked);
+                    ComposeCheckCell(checkTable.Cell().BorderRight(1).BorderColor(Colors.Black), "Hidrolik Kontrol", hydChecked);
+                    ComposeCheckCell(checkTable.Cell().BorderRight(1).BorderColor(Colors.Black), "Lastik Kontrol", tireChecked);
+
+                    // PARAF Kutusu
+                    checkTable.Cell().Padding(4).AlignCenter().AlignMiddle().Column(pCol =>
                     {
-                        rightSign.Item().AlignCenter().Text("GÖREVLİ PERSONEL (ŞOFÖR)").Bold().FontSize(10);
-                        rightSign.Item().AlignCenter().Text("Araç Sürücüsü").FontSize(9).FontColor(Colors.Grey.Darken2);
-                        rightSign.Item().PaddingTop(8).AlignCenter().Text($"Adı Soyadı: {_model.DriverFullName}").FontSize(9);
-                        rightSign.Item().PaddingTop(4).AlignCenter().Text($"Tarih: {_model.PlannedStartTime:dd.MM.yyyy}").FontSize(9);
-                        rightSign.Item().PaddingTop(25).AlignCenter().Text("İmza: ........................................").FontSize(9);
+                        pCol.Item().AlignCenter().Text("PARAF").Bold().FontSize(8.5f);
+                        pCol.Item().Height(24); // Boş paraf alanı
                     });
                 });
             });
+        });
+    }
 
-            // 3. SAYFA ALTI (FOOTER)
-            page.Footer().BorderTop(0.5f).BorderColor(Colors.Grey.Lighten1).PaddingTop(4).Row(row =>
-            {
-                row.RelativeItem().Text(t =>
-                {
-                    t.DefaultTextStyle(x => x.FontSize(8).FontColor(Colors.Grey.Darken2));
-                    t.Span("DÜ Araç Takip Sistemi   |   Belge No: ").SemiBold();
-                    t.Span($"#{_model.Id}");
-                    t.Span("   |   Oluşturulma: ").SemiBold();
-                    t.Span($"{DateTime.Now:dd.MM.yyyy HH:mm}");
-                });
-
-                row.RelativeItem().AlignRight().Text(t =>
-                {
-                    t.DefaultTextStyle(x => x.FontSize(8).FontColor(Colors.Grey.Darken2));
-                    t.Span("Sayfa ");
-                    t.CurrentPageNumber();
-                    t.Span(" / ");
-                    t.TotalPages();
-                });
-            });
+    private static void ComposeCheckCell(IContainer container, string title, bool isChecked)
+    {
+        container.Padding(4).AlignCenter().AlignMiddle().Column(col =>
+        {
+            // Büyük kare kutu (X işaretli veya boş)
+            col.Item().AlignCenter().Width(20).Height(20).Border(1.2f).BorderColor(Colors.Black)
+                .AlignCenter().AlignMiddle().Text(isChecked ? "X" : "").Bold().FontSize(12);
+            
+            col.Item().PaddingTop(3).AlignCenter().Text(title).Bold().FontSize(7.5f);
         });
     }
 }

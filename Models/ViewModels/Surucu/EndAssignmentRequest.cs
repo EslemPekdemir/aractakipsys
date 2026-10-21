@@ -13,4 +13,11 @@ public class EndAssignmentRequest
     [StringLength(500, ErrorMessage = "Teslim notu en fazla 500 karakter olabilir.")]
     [Display(Name = "Teslim Notu")]
     public string? DriverReturnNotes { get; set; }
+
+    // Araç Kontrol Tikleri (Faz 3)
+    public bool CheckOil { get; set; }
+    public bool CheckWater { get; set; }
+    public bool CheckFuel { get; set; }
+    public bool CheckHydraulic { get; set; }
+    public bool CheckTires { get; set; }
 }

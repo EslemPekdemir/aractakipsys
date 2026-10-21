@@ -15,17 +15,20 @@ public class AssignmentService : IAssignmentService
     private readonly IAuditLogService _auditLogService;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<AssignmentService> _logger;
+    private readonly IKmValidationService _kmValidationService;
 
     public AssignmentService(
         ApplicationDbContext context,
         IAuditLogService auditLogService,
         IWebHostEnvironment environment,
-        ILogger<AssignmentService> logger)
+        ILogger<AssignmentService> logger,
+        IKmValidationService kmValidationService)
     {
         _context = context;
         _auditLogService = auditLogService;
         _environment = environment;
         _logger = logger;
+        _kmValidationService = kmValidationService;
     }
 
     public async Task<AssignmentFilterViewModel> GetAssignmentsPagedAsync(AssignmentFilterViewModel filter)
@@ -34,6 +37,9 @@ public class AssignmentService : IAssignmentService
             .Include(a => a.Vehicle)
             .Include(a => a.Driver)
                 .ThenInclude(d => d.User)
+            .Include(a => a.AssignmentDrivers)
+                .ThenInclude(ad => ad.Driver)
+                    .ThenInclude(d => d.User)
             .AsNoTracking()
             .AsQueryable();
 
@@ -71,7 +77,8 @@ public class AssignmentService : IAssignmentService
 
         if (filter.DriverId.HasValue)
         {
-            query = query.Where(a => a.DriverId == filter.DriverId.Value);
+            query = query.Where(a => a.DriverId == filter.DriverId.Value ||
+                                     a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == filter.DriverId.Value));
         }
 
         if (filter.StartDate.HasValue)
@@ -89,8 +96,12 @@ public class AssignmentService : IAssignmentService
             var search = filter.SearchTerm.Trim().ToLower();
             query = query.Where(a =>
                 a.Vehicle.PlateNumber.ToLower().Contains(search) ||
-                a.Driver.User.FullName.ToLower().Contains(search) ||
+                (a.Driver != null && a.Driver.User.FullName.ToLower().Contains(search)) ||
+                (a.ExternalDriverFullName != null && a.ExternalDriverFullName.ToLower().Contains(search)) ||
+                a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.Driver.User.FullName.ToLower().Contains(search)) ||
                 a.RequestedByDepartment.ToLower().Contains(search) ||
+                (a.Destination != null && a.Destination.ToLower().Contains(search)) ||
+                (a.Route != null && a.Route.ToLower().Contains(search)) ||
                 a.Purpose.ToLower().Contains(search));
         }
 
@@ -109,10 +120,18 @@ public class AssignmentService : IAssignmentService
                 VehicleId = a.VehicleId,
                 VehiclePlate = a.Vehicle.PlateNumber,
                 VehicleBrandModel = $"{a.Vehicle.Brand} {a.Vehicle.Model}",
+                VehicleCurrentKm = a.Vehicle.CurrentKm,
                 DriverId = a.DriverId,
-                DriverFullName = a.Driver.User.FullName,
+                DriverFullName = a.Driver != null ? a.Driver.User.FullName : (a.IsDriverless ? "Şoförsüz" : (a.IsExternalDriver ? a.ExternalDriverFullName ?? "Dış Şoför" : "-")),
                 RequestedByDepartment = a.RequestedByDepartment,
+                Destination = a.Destination,
                 Purpose = a.Purpose,
+                Route = a.Route,
+                IsDriverless = a.IsDriverless,
+                IsExternalDriver = a.IsExternalDriver,
+                ExternalDriverFullName = a.ExternalDriverFullName,
+                ExternalDriverDepartment = a.ExternalDriverDepartment,
+                AssignedDriverNames = a.AssignmentDrivers.Where(ad => !ad.IsDeleted).OrderByDescending(ad => ad.IsPrimary).Select(ad => ad.Driver.User.FullName).ToList(),
                 PlannedStartTime = a.PlannedStartTime,
                 PlannedEndTime = a.PlannedEndTime,
                 ActualStartTime = a.ActualStartTime,
@@ -157,15 +176,79 @@ public class AssignmentService : IAssignmentService
             .Include(a => a.Vehicle)
             .Include(a => a.Driver)
                 .ThenInclude(d => d.User)
+            .Include(a => a.AssignmentDrivers)
+                .ThenInclude(ad => ad.Driver)
+                    .ThenInclude(d => d.User)
             .Include(a => a.StartApprovedByUser)
             .Include(a => a.EndApprovedByUser)
             .Include(a => a.SignedDocumentUploadedByUser)
+            .Include(a => a.OffRouteReportedByUser)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (a == null)
         {
             return null;
         }
+
+        string? creatorFullName = null;
+        if (!string.IsNullOrEmpty(a.CreatedBy))
+        {
+            var creatorUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == a.CreatedBy);
+            var candidate = creatorUser?.FullName ?? creatorUser?.UserName;
+            if (!string.IsNullOrWhiteSpace(candidate) && !Guid.TryParse(candidate.Trim(), out _))
+            {
+                creatorFullName = candidate.Trim();
+            }
+        }
+
+        var auditLogs = await _context.AuditLogs
+            .Include(al => al.ChangedByUser)
+            .Where(al => al.EntityName == nameof(Assignment) && al.EntityId == id)
+            .OrderByDescending(al => al.ChangedAt)
+            .ToListAsync();
+
+        string? startReportedBy = null;
+        string? endReportedBy = null;
+        string? checksCompletedBy = null;
+
+        var startLog = auditLogs.FirstOrDefault(al => al.NewValues != null && al.NewValues.Contains("StartReportedBySelf\":true"));
+        if (startLog != null)
+        {
+            startReportedBy = startLog.ChangedByUser?.FullName ?? startLog.ChangedByUser?.UserName;
+        }
+
+        var endLog = auditLogs.FirstOrDefault(al => al.NewValues != null && al.NewValues.Contains("EndReportedBySelf\":true"));
+        if (endLog != null)
+        {
+            endReportedBy = endLog.ChangedByUser?.FullName ?? endLog.ChangedByUser?.UserName;
+        }
+
+        var checksLog = auditLogs.FirstOrDefault(al => al.NewValues != null && (al.NewValues.Contains("CheckOil") || al.NewValues.Contains("ChecksCompletedAt")) && !al.NewValues.Contains("EndReportedBySelf\":true"));
+        if (checksLog != null)
+        {
+            checksCompletedBy = checksLog.ChangedByUser?.FullName ?? checksLog.ChangedByUser?.UserName;
+        }
+
+        var assignedDrivers = a.AssignmentDrivers
+            .Where(ad => !ad.IsDeleted)
+            .OrderByDescending(ad => ad.IsPrimary)
+            .ThenBy(ad => ad.Driver.User.FullName)
+            .Select(ad => new AssignedDriverDetailItemViewModel
+            {
+                AssignmentDriverId = ad.Id,
+                DriverId = ad.DriverId,
+                DriverFullName = ad.Driver.User.FullName,
+                DriverPhone = ad.Driver.User.PhoneNumber ?? "-",
+                DriverEmail = ad.Driver.User.Email ?? "-",
+                Department = ad.Driver.Department,
+                LicenseNumber = ad.Driver.LicenseNumber,
+                LicenseClass = ad.Driver.LicenseClass,
+                LicenseExpiryDate = ad.Driver.LicenseExpiryDate,
+                IsPrimary = ad.IsPrimary
+            })
+            .ToList();
+
+        var primaryDriver = assignedDrivers.FirstOrDefault(d => d.IsPrimary) ?? assignedDrivers.FirstOrDefault();
 
         return new AssignmentDetailsViewModel
         {
@@ -178,15 +261,22 @@ public class AssignmentService : IAssignmentService
             FuelType = a.Vehicle.FuelType,
             VehicleCurrentKm = a.Vehicle.CurrentKm,
             DriverId = a.DriverId,
-            DriverFullName = a.Driver.User.FullName,
-            DriverPhone = a.Driver.User.PhoneNumber ?? "-",
-            DriverEmail = a.Driver.User.Email ?? "-",
-            DriverDepartment = a.Driver.Department,
-            LicenseNumber = a.Driver.LicenseNumber,
-            LicenseClass = a.Driver.LicenseClass,
-            LicenseExpiryDate = a.Driver.LicenseExpiryDate,
+            DriverFullName = primaryDriver?.DriverFullName ?? a.Driver?.User?.FullName ?? (a.IsDriverless ? "Şoförsüz" : (a.IsExternalDriver ? a.ExternalDriverFullName ?? "Dış Şoför" : "-")),
+            DriverPhone = primaryDriver?.DriverPhone ?? a.Driver?.User?.PhoneNumber ?? "-",
+            DriverEmail = primaryDriver?.DriverEmail ?? a.Driver?.User?.Email ?? "-",
+            DriverDepartment = primaryDriver?.Department ?? a.Driver?.Department ?? (a.IsExternalDriver ? a.ExternalDriverDepartment ?? "-" : "-"),
+            LicenseNumber = primaryDriver?.LicenseNumber ?? a.Driver?.LicenseNumber ?? "-",
+            LicenseClass = primaryDriver?.LicenseClass ?? a.Driver?.LicenseClass ?? "-",
+            LicenseExpiryDate = primaryDriver?.LicenseExpiryDate ?? a.Driver?.LicenseExpiryDate ?? DateTime.MinValue,
+            AssignedDrivers = assignedDrivers,
             RequestedByDepartment = a.RequestedByDepartment,
+            Destination = a.Destination,
             Purpose = a.Purpose,
+            Route = a.Route,
+            IsDriverless = a.IsDriverless,
+            IsExternalDriver = a.IsExternalDriver,
+            ExternalDriverFullName = a.ExternalDriverFullName,
+            ExternalDriverDepartment = a.ExternalDriverDepartment,
             PlannedStartTime = a.PlannedStartTime,
             PlannedEndTime = a.PlannedEndTime,
             ActualStartTime = a.ActualStartTime,
@@ -198,6 +288,7 @@ public class AssignmentService : IAssignmentService
             DriverReturnNotes = a.DriverReturnNotes,
             CreatedAt = a.CreatedAt,
             CreatedBy = a.CreatedBy,
+            CreatedByUserName = creatorFullName,
             UpdatedAt = a.UpdatedAt,
             StartReportedBySelf = a.StartReportedBySelf,
             StartApprovedByUserId = a.StartApprovedByUserId,
@@ -205,6 +296,9 @@ public class AssignmentService : IAssignmentService
             EndReportedBySelf = a.EndReportedBySelf,
             EndApprovedByUserId = a.EndApprovedByUserId,
             EndApprovedByUserName = a.EndApprovedByUser?.FullName,
+            StartReportedByDriverName = startReportedBy,
+            EndReportedByDriverName = endReportedBy,
+            ChecksCompletedByDriverName = checksCompletedBy,
             AccommodationNights = a.AccommodationNights,
             AccommodationCost = a.AccommodationCost,
             PerDiemType = a.PerDiemType,
@@ -220,25 +314,97 @@ public class AssignmentService : IAssignmentService
             SignedDocumentOriginalFileName = a.SignedDocumentOriginalFileName,
             SignedDocumentUploadedAt = a.SignedDocumentUploadedAt,
             SignedDocumentUploadedByUserId = a.SignedDocumentUploadedByUserId,
-            SignedDocumentUploadedByUserName = a.SignedDocumentUploadedByUser?.FullName
+            SignedDocumentUploadedByUserName = a.SignedDocumentUploadedByUser?.FullName,
+            OffRouteDispatcherName = a.OffRouteDispatcherName,
+            OffRouteDispatcherTitle = a.OffRouteDispatcherTitle,
+            OffRouteReason = a.OffRouteReason,
+            OffRouteReportedAt = a.OffRouteReportedAt,
+            OffRouteReportedByUserName = a.OffRouteReportedByUser?.FullName,
+            CheckOil = a.CheckOil,
+            CheckWater = a.CheckWater,
+            CheckFuel = a.CheckFuel,
+            CheckHydraulic = a.CheckHydraulic,
+            CheckTires = a.CheckTires,
+            ChecksCompletedAt = a.ChecksCompletedAt
         };
+    }
+
+    public async Task<(bool Success, string Message)> SaveOffRouteDispatchAsync(OffRouteDispatchViewModel model, string userId)
+    {
+        if (model == null) return (false, "Geçersiz veri gönderildi.");
+
+        var assignment = await _context.Assignments.FirstOrDefaultAsync(a => a.Id == model.AssignmentId);
+        if (assignment == null)
+        {
+            return (false, "Görev kaydı bulunamadı.");
+        }
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+        assignment.OffRouteDispatcherName = model.DispatcherName.Trim();
+        assignment.OffRouteDispatcherTitle = model.DispatcherTitle?.Trim();
+        assignment.OffRouteReason = model.Reason.Trim();
+        assignment.OffRouteReportedAt = DateTime.Now;
+        assignment.OffRouteReportedByUserId = userId;
+        assignment.UpdatedAt = DateTime.UtcNow;
+        assignment.UpdatedBy = user?.FullName ?? user?.UserName ?? "Yetkili";
+
+        await _context.SaveChangesAsync();
+
+        await _auditLogService.LogAsync(
+            nameof(Assignment),
+            assignment.Id,
+            AuditAction.Update,
+            userId,
+            user?.FullName ?? user?.UserName ?? "Yetkili",
+            new
+            {
+                AssignmentId = assignment.Id,
+                Action = "OffRouteDispatchRecorded",
+                DispatcherName = assignment.OffRouteDispatcherName,
+                DispatcherTitle = assignment.OffRouteDispatcherTitle,
+                Reason = assignment.OffRouteReason
+            });
+
+        return (true, "Acil güzergah dışı sevk bilgisi başarıyla kaydedildi.");
     }
 
     public async Task<AssignmentEditViewModel?> GetAssignmentEditModelAsync(int id)
     {
-        var assignment = await _context.Assignments.FirstOrDefaultAsync(a => a.Id == id);
+        var assignment = await _context.Assignments
+            .Include(a => a.AssignmentDrivers)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
         if (assignment == null)
         {
             return null;
+        }
+
+        var driverIds = assignment.AssignmentDrivers
+            .Where(ad => !ad.IsDeleted)
+            .OrderByDescending(ad => ad.IsPrimary)
+            .Select(ad => ad.DriverId)
+            .ToList();
+
+        if (driverIds.Count == 0 && assignment.DriverId.HasValue)
+        {
+            driverIds.Add(assignment.DriverId.Value);
         }
 
         var model = new AssignmentEditViewModel
         {
             Id = assignment.Id,
             VehicleId = assignment.VehicleId,
-            DriverId = assignment.DriverId,
+            DriverId = driverIds.FirstOrDefault(),
+            DriverIds = driverIds,
             RequestedByDepartment = assignment.RequestedByDepartment,
+            Destination = assignment.Destination,
             Purpose = assignment.Purpose,
+            Route = assignment.Route,
+            IsDriverless = assignment.IsDriverless,
+            IsExternalDriver = assignment.IsExternalDriver,
+            ExternalDriverFullName = assignment.ExternalDriverFullName,
+            ExternalDriverDepartment = assignment.ExternalDriverDepartment,
             PlannedStartTime = assignment.PlannedStartTime,
             PlannedEndTime = assignment.PlannedEndTime,
             Status = assignment.Status,
@@ -309,16 +475,17 @@ public class AssignmentService : IAssignmentService
         // Devam eden aktif görevleri çek (Hangi şoför hangi araçla seyirde?)
         var activeDriverDuties = await _context.Assignments
             .Include(a => a.Vehicle)
+            .Include(a => a.AssignmentDrivers)
             .Where(a => !a.IsDeleted && a.Status == AssignmentStatus.InProgress)
-            .GroupBy(a => a.DriverId)
-            .ToDictionaryAsync(g => g.Key, g => g.First().Vehicle?.PlateNumber ?? "");
+            .ToListAsync();
 
         // Şoförleri çek ve müsaitliklerini + ehliyet durumlarını kontrol et
         var drivers = await _context.Drivers.Include(d => d.User).Where(d => d.IsActive).OrderBy(d => d.User.FullName).ToListAsync();
         foreach (var d in drivers)
         {
             var (isAvail, reason, _) = await CheckDriverAvailabilityAsync(d.Id, start, end);
-            var isOnDuty = activeDriverDuties.ContainsKey(d.Id);
+            var activeDutyForDriver = activeDriverDuties.FirstOrDefault(a => a.DriverId == d.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == d.Id));
+            var isOnDuty = activeDutyForDriver != null;
             model.AvailableDrivers.Add(new SelectableDriverViewModel
             {
                 Id = d.Id,
@@ -329,7 +496,7 @@ public class AssignmentService : IAssignmentService
                 IsAvailable = isAvail,
                 UnavailableReason = reason,
                 IsCurrentlyOnDuty = isOnDuty,
-                ActiveDutyPlate = isOnDuty ? activeDriverDuties[d.Id] : null
+                ActiveDutyPlate = activeDutyForDriver?.Vehicle?.PlateNumber
             });
         }
 
@@ -397,15 +564,16 @@ public class AssignmentService : IAssignmentService
 
         var activeDriverDutiesEdit = await _context.Assignments
             .Include(a => a.Vehicle)
+            .Include(a => a.AssignmentDrivers)
             .Where(a => !a.IsDeleted && a.Status == AssignmentStatus.InProgress && (model.Id == 0 || a.Id != model.Id))
-            .GroupBy(a => a.DriverId)
-            .ToDictionaryAsync(g => g.Key, g => g.First().Vehicle?.PlateNumber ?? "");
+            .ToListAsync();
 
         var drivers = await _context.Drivers.Include(d => d.User).Where(d => d.IsActive).OrderBy(d => d.User.FullName).ToListAsync();
         foreach (var d in drivers)
         {
             var (isAvail, reason, _) = await CheckDriverAvailabilityAsync(d.Id, start, end, model.Id);
-            var isOnDuty = activeDriverDutiesEdit.ContainsKey(d.Id);
+            var activeDutyForDriver = activeDriverDutiesEdit.FirstOrDefault(a => a.DriverId == d.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == d.Id));
+            var isOnDuty = activeDutyForDriver != null;
             model.AvailableDrivers.Add(new SelectableDriverViewModel
             {
                 Id = d.Id,
@@ -416,7 +584,7 @@ public class AssignmentService : IAssignmentService
                 IsAvailable = isAvail,
                 UnavailableReason = reason,
                 IsCurrentlyOnDuty = isOnDuty,
-                ActiveDutyPlate = isOnDuty ? activeDriverDutiesEdit[d.Id] : null
+                ActiveDutyPlate = activeDutyForDriver?.Vehicle?.PlateNumber
             });
         }
 
@@ -514,8 +682,9 @@ public class AssignmentService : IAssignmentService
         // 3. Devam eden aktif görev kontrolü (Şoför şu anda fiilen seyirde mi?)
         var activeDuty = await _context.Assignments
             .Include(a => a.Vehicle)
-            .Where(a => a.DriverId == driverId &&
-                        !a.IsDeleted &&
+            .Include(a => a.AssignmentDrivers)
+            .Where(a => !a.IsDeleted &&
+                        (a.DriverId == driverId || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driverId)) &&
                         (excludeAssignmentId == null || a.Id != excludeAssignmentId.Value) &&
                         a.Status == AssignmentStatus.InProgress)
             .FirstOrDefaultAsync();
@@ -533,8 +702,9 @@ public class AssignmentService : IAssignmentService
 
         // 4. Çifte rezervasyon kontrolü (Planned ve InProgress görevlerle tarih çakışması)
         var conflict = await _context.Assignments
-            .Where(a => a.DriverId == driverId &&
-                        !a.IsDeleted &&
+            .Include(a => a.AssignmentDrivers)
+            .Where(a => !a.IsDeleted &&
+                        (a.DriverId == driverId || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driverId)) &&
                         (excludeAssignmentId == null || a.Id != excludeAssignmentId.Value) &&
                         (a.Status == AssignmentStatus.Planned || a.Status == AssignmentStatus.InProgress) &&
                         start < a.PlannedEndTime &&
@@ -548,6 +718,70 @@ public class AssignmentService : IAssignmentService
         }
 
         return (true, null, null);
+    }
+
+    public async Task SyncAssignmentDriversAsync(Assignment assignment, List<int>? driverIds, bool isDriverless, bool isExternalDriver, string userId)
+    {
+        var existing = await _context.AssignmentDrivers
+            .Where(ad => ad.AssignmentId == assignment.Id)
+            .ToListAsync();
+
+        if (isDriverless || isExternalDriver)
+        {
+            assignment.DriverId = null;
+            foreach (var ed in existing)
+            {
+                ed.IsDeleted = true;
+                ed.UpdatedAt = DateTime.UtcNow;
+                ed.UpdatedBy = userId;
+            }
+            return;
+        }
+
+        var distinctIds = driverIds?.Where(id => id > 0).Distinct().ToList() ?? new List<int>();
+        if (distinctIds.Count > 0)
+        {
+            assignment.DriverId = distinctIds[0];
+        }
+
+        // Çıkarılanları soft-delete yap
+        foreach (var ed in existing)
+        {
+            if (!distinctIds.Contains(ed.DriverId))
+            {
+                ed.IsDeleted = true;
+                ed.UpdatedAt = DateTime.UtcNow;
+                ed.UpdatedBy = userId;
+            }
+        }
+
+        // Eklenen veya var olanları güncelle
+        for (int i = 0; i < distinctIds.Count; i++)
+        {
+            var dId = distinctIds[i];
+            var isPrimary = (i == 0);
+            var match = existing.FirstOrDefault(ad => ad.DriverId == dId);
+            if (match != null)
+            {
+                match.IsDeleted = false;
+                match.IsPrimary = isPrimary;
+                match.UpdatedAt = DateTime.UtcNow;
+                match.UpdatedBy = userId;
+            }
+            else
+            {
+                var newAd = new AssignmentDriver
+                {
+                    AssignmentId = assignment.Id,
+                    DriverId = dId,
+                    IsPrimary = isPrimary,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId,
+                    IsDeleted = false
+                };
+                _context.AssignmentDrivers.Add(newAd);
+            }
+        }
     }
 
     public async Task<(bool Success, string Message, int AssignmentId)> CreateAssignmentAsync(AssignmentCreateViewModel model, string adminUserId)
@@ -567,21 +801,74 @@ public class AssignmentService : IAssignmentService
             return (false, $"Seçilen araç müsait değildir: {vehicleReason}", 0);
         }
 
-        // 3. Şoför müsaitlik, ehliyet süresi ve çifte rezervasyon kontrolü
-        var (driverAvailable, driverReason, _) = await CheckDriverAvailabilityAsync(
-            model.DriverId, model.PlannedStartTime, model.PlannedEndTime);
-
-        if (!driverAvailable)
+        // 3. Şoför Modu ve Kontrolleri
+        List<int> validDriverIds = new();
+        if (model.IsDriverless)
         {
-            return (false, $"Seçilen şoför müsait değildir: {driverReason}", 0);
+            model.IsExternalDriver = false;
+            model.DriverId = null;
+            model.DriverIds = null;
+            model.ExternalDriverFullName = null;
+            model.ExternalDriverDepartment = null;
+        }
+        else if (model.IsExternalDriver)
+        {
+            model.IsDriverless = false;
+            model.DriverId = null;
+            model.DriverIds = null;
+            if (string.IsNullOrWhiteSpace(model.ExternalDriverFullName))
+            {
+                return (false, "Dışarıdan şoför görevlendirmelerinde şoförün Adı Soyadı girilmelidir.", 0);
+            }
+        }
+        else
+        {
+            if (model.DriverIds != null && model.DriverIds.Any(id => id > 0))
+            {
+                validDriverIds = model.DriverIds.Where(id => id > 0).ToList();
+            }
+            else if (model.DriverId.HasValue && model.DriverId.Value > 0)
+            {
+                validDriverIds.Add(model.DriverId.Value);
+            }
+
+            if (validDriverIds.Count == 0)
+            {
+                return (false, "Lütfen görevlendirilecek en az bir kurum şoförü seçiniz.", 0);
+            }
+
+            if (validDriverIds.Count != validDriverIds.Distinct().Count())
+            {
+                return (false, "Aynı şoför bir göreve birden fazla kez eklenemez.", 0);
+            }
+
+            // Her şoför için müsaitlik ve ehliyet kontrolü
+            foreach (var dId in validDriverIds)
+            {
+                var (driverAvailable, driverReason, _) = await CheckDriverAvailabilityAsync(
+                    dId, model.PlannedStartTime, model.PlannedEndTime);
+
+                if (!driverAvailable)
+                {
+                    var driverObj = await _context.Drivers.Include(d => d.User).FirstOrDefaultAsync(d => d.Id == dId);
+                    var dName = driverObj?.User?.FullName ?? $"Şoför (ID: {dId})";
+                    return (false, $"{dName} müsait değildir: {driverReason}", 0);
+                }
+            }
         }
 
         var assignment = new Assignment
         {
             VehicleId = model.VehicleId,
-            DriverId = model.DriverId,
+            DriverId = validDriverIds.Count > 0 ? validDriverIds[0] : null,
             RequestedByDepartment = model.RequestedByDepartment.Trim(),
+            Destination = model.Destination?.Trim(),
             Purpose = model.Purpose.Trim(),
+            Route = model.Route?.Trim(),
+            IsDriverless = model.IsDriverless,
+            IsExternalDriver = model.IsExternalDriver,
+            ExternalDriverFullName = model.IsExternalDriver ? model.ExternalDriverFullName?.Trim() : null,
+            ExternalDriverDepartment = model.IsExternalDriver ? model.ExternalDriverDepartment?.Trim() : null,
             PlannedStartTime = model.PlannedStartTime,
             PlannedEndTime = model.PlannedEndTime,
             AccommodationNights = model.AccommodationNights,
@@ -611,6 +898,9 @@ public class AssignmentService : IAssignmentService
             _context.Assignments.Add(assignment);
             await _context.SaveChangesAsync();
 
+            await SyncAssignmentDriversAsync(assignment, validDriverIds, model.IsDriverless, model.IsExternalDriver, adminUserId);
+            await _context.SaveChangesAsync();
+
             // Audit Log
             await _auditLogService.LogAsync(
                 nameof(Assignment),
@@ -622,8 +912,13 @@ public class AssignmentService : IAssignmentService
                 {
                     assignment.VehicleId,
                     assignment.DriverId,
-                    assignment.RequestedByDepartment,
+                    assignment.Destination,
                     assignment.Purpose,
+                    assignment.Route,
+                    assignment.IsDriverless,
+                    assignment.IsExternalDriver,
+                    assignment.ExternalDriverFullName,
+                    AssignedDriverIds = validDriverIds,
                     assignment.PlannedStartTime,
                     assignment.PlannedEndTime,
                     Status = assignment.Status.ToString(),
@@ -647,7 +942,10 @@ public class AssignmentService : IAssignmentService
 
     public async Task<(bool Success, string Message)> UpdateAssignmentAsync(AssignmentEditViewModel model, string adminUserId)
     {
-        var assignment = await _context.Assignments.FirstOrDefaultAsync(a => a.Id == model.Id);
+        var assignment = await _context.Assignments
+            .Include(a => a.AssignmentDrivers)
+            .FirstOrDefaultAsync(a => a.Id == model.Id);
+
         if (assignment == null)
         {
             return (false, "Güncellenmek istenen görev kaydı bulunamadı.");
@@ -657,12 +955,6 @@ public class AssignmentService : IAssignmentService
         if (assignment.Status != AssignmentStatus.Planned && assignment.Status != AssignmentStatus.InProgress)
         {
             return (false, $"Yalnızca 'Planlandı' veya 'Seyirde' durumundaki görevler düzenlenebilir. Mevcut durum: {assignment.Status.ToTurkishString()}");
-        }
-
-        // Seyir halindeki görevlerde araç veya şoför değiştirilemez
-        if (assignment.Status == AssignmentStatus.InProgress && (model.VehicleId != assignment.VehicleId || model.DriverId != assignment.DriverId))
-        {
-            return (false, "Seyir halindeki görevlerde araç veya şoför değiştirilemez. Yalnızca planlanan bitiş tarihi ve görev detayları güncellenebilir.");
         }
 
         if (model.PlannedEndTime <= model.PlannedStartTime)
@@ -679,13 +971,69 @@ public class AssignmentService : IAssignmentService
             return (false, $"Seçilen araç müsait değildir: {vehicleReason}");
         }
 
-        // Şoför müsaitlik kontrolü (Kendi görev kaydı hariç)
-        var (driverAvailable, driverReason, _) = await CheckDriverAvailabilityAsync(
-            model.DriverId, model.PlannedStartTime, model.PlannedEndTime, model.Id);
-
-        if (!driverAvailable)
+        // Şoför Modu ve Doğrulamaları
+        List<int> validDriverIds = new();
+        if (model.IsDriverless)
         {
-            return (false, $"Seçilen şoför müsait değildir: {driverReason}");
+            model.IsExternalDriver = false;
+            model.DriverId = null;
+            model.DriverIds = null;
+            model.ExternalDriverFullName = null;
+            model.ExternalDriverDepartment = null;
+        }
+        else if (model.IsExternalDriver)
+        {
+            model.IsDriverless = false;
+            model.DriverId = null;
+            model.DriverIds = null;
+            if (string.IsNullOrWhiteSpace(model.ExternalDriverFullName))
+            {
+                return (false, "Dışarıdan şoför görevlendirmelerinde şoförün Adı Soyadı girilmelidir.");
+            }
+        }
+        else
+        {
+            if (model.DriverIds != null && model.DriverIds.Any(id => id > 0))
+            {
+                validDriverIds = model.DriverIds.Where(id => id > 0).ToList();
+            }
+            else if (model.DriverId.HasValue && model.DriverId.Value > 0)
+            {
+                validDriverIds.Add(model.DriverId.Value);
+            }
+
+            if (validDriverIds.Count == 0)
+            {
+                return (false, "Lütfen görevlendirilecek en az bir kurum şoförü seçiniz.");
+            }
+
+            if (validDriverIds.Count != validDriverIds.Distinct().Count())
+            {
+                return (false, "Aynı şoför bir göreve birden fazla kez eklenemez.");
+            }
+
+            // Seyir halindeki görevlerde araç değiştirilemez
+            if (assignment.Status == AssignmentStatus.InProgress)
+            {
+                if (model.VehicleId != assignment.VehicleId)
+                {
+                    return (false, "Seyir halindeki görevlerde araç değiştirilemez.");
+                }
+            }
+
+            // Her şoför için müsaitlik kontrolü (Kendi görevi hariç)
+            foreach (var dId in validDriverIds)
+            {
+                var (driverAvailable, driverReason, _) = await CheckDriverAvailabilityAsync(
+                    dId, model.PlannedStartTime, model.PlannedEndTime, model.Id);
+
+                if (!driverAvailable)
+                {
+                    var driverObj = await _context.Drivers.Include(d => d.User).FirstOrDefaultAsync(d => d.Id == dId);
+                    var dName = driverObj?.User?.FullName ?? $"Şoför (ID: {dId})";
+                    return (false, $"{dName} müsait değildir: {driverReason}");
+                }
+            }
         }
 
         var oldState = new
@@ -693,15 +1041,25 @@ public class AssignmentService : IAssignmentService
             assignment.VehicleId,
             assignment.DriverId,
             assignment.RequestedByDepartment,
+            assignment.Destination,
             assignment.Purpose,
+            assignment.Route,
+            assignment.IsDriverless,
+            assignment.IsExternalDriver,
             assignment.PlannedStartTime,
             assignment.PlannedEndTime
         };
 
         assignment.VehicleId = model.VehicleId;
-        assignment.DriverId = model.DriverId;
+        assignment.DriverId = validDriverIds.Count > 0 ? validDriverIds[0] : null;
         assignment.RequestedByDepartment = model.RequestedByDepartment.Trim();
+        assignment.Destination = model.Destination?.Trim();
         assignment.Purpose = model.Purpose.Trim();
+        assignment.Route = model.Route?.Trim();
+        assignment.IsDriverless = model.IsDriverless;
+        assignment.IsExternalDriver = model.IsExternalDriver;
+        assignment.ExternalDriverFullName = model.IsExternalDriver ? model.ExternalDriverFullName?.Trim() : null;
+        assignment.ExternalDriverDepartment = model.IsExternalDriver ? model.ExternalDriverDepartment?.Trim() : null;
         assignment.PlannedStartTime = model.PlannedStartTime;
         assignment.PlannedEndTime = model.PlannedEndTime;
         assignment.AccommodationNights = model.AccommodationNights;
@@ -717,6 +1075,7 @@ public class AssignmentService : IAssignmentService
 
         try
         {
+            await SyncAssignmentDriversAsync(assignment, validDriverIds, model.IsDriverless, model.IsExternalDriver, adminUserId);
             await _context.SaveChangesAsync();
 
             // Audit Log
@@ -731,7 +1090,13 @@ public class AssignmentService : IAssignmentService
                     assignment.VehicleId,
                     assignment.DriverId,
                     assignment.RequestedByDepartment,
+                    assignment.Destination,
                     assignment.Purpose,
+                    assignment.Route,
+                    assignment.IsDriverless,
+                    assignment.IsExternalDriver,
+                    assignment.ExternalDriverFullName,
+                    AssignedDriverIds = validDriverIds,
                     assignment.PlannedStartTime,
                     assignment.PlannedEndTime
                 }
@@ -1218,7 +1583,7 @@ public class AssignmentService : IAssignmentService
         }
     }
 
-    public async Task<(bool Success, string Message)> StartAssignmentDirectAsync(int assignmentId, string userId, int? startKm = null)
+    public async Task<(bool Success, string Message)> StartAssignmentDirectAsync(int assignmentId, string userId, int? startKm = null, bool confirmKmDifference = false)
     {
         var assignment = await _context.Assignments
             .Include(a => a.Vehicle)
@@ -1265,10 +1630,10 @@ public class AssignmentService : IAssignmentService
         }
 
         var effectiveKm = startKm ?? assignment.Vehicle.CurrentKm;
-        var kmCheck = ValidateStartKm(effectiveKm, assignment.Vehicle.CurrentKm);
+        var kmCheck = _kmValidationService.ValidateStartKm(effectiveKm, assignment.Vehicle.CurrentKm, confirmKmDifference);
         if (!kmCheck.IsValid)
         {
-            return (false, kmCheck.ErrorMessage!);
+            return (false, kmCheck.Message!);
         }
 
         var oldAssignmentState = new { assignment.Status, assignment.ActualStartTime, assignment.StartKm };
@@ -1332,7 +1697,7 @@ public class AssignmentService : IAssignmentService
         }
     }
 
-    public async Task<(bool Success, string Message)> EndAssignmentDirectAsync(int assignmentId, string userId, int endKm, string? driverReturnNotes = null)
+    public async Task<(bool Success, string Message)> EndAssignmentDirectAsync(int assignmentId, string userId, int endKm, string? driverReturnNotes = null, bool confirmKmDifference = false)
     {
         var assignment = await _context.Assignments
             .Include(a => a.Vehicle)
@@ -1349,10 +1714,10 @@ public class AssignmentService : IAssignmentService
         }
 
         var minAllowedKm = assignment.StartKm ?? assignment.Vehicle.CurrentKm;
-        var kmCheck = ValidateEndKm(endKm, minAllowedKm);
+        var kmCheck = _kmValidationService.ValidateEndKm(endKm, minAllowedKm, confirmKmDifference);
         if (!kmCheck.IsValid)
         {
-            return (false, kmCheck.ErrorMessage!);
+            return (false, kmCheck.Message!);
         }
 
         var oldAssignmentState = new { assignment.Status, assignment.ActualEndTime, assignment.EndKm, assignment.DriverReturnNotes };

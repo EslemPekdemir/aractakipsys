@@ -20,6 +20,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Maintenance> Maintenances { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
     public DbSet<VehicleRequest> VehicleRequests { get; set; } = null!;
+    public DbSet<VehicleFaultReport> VehicleFaultReports { get; set; } = null!;
+    public DbSet<AssignmentDriver> AssignmentDrivers { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
