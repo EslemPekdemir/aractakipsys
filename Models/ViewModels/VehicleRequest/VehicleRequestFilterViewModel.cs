@@ -41,9 +41,16 @@ public class VehicleRequestListItemViewModel
     public VehicleRequestStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    public string? RequestedVehicleType { get; set; }
+    public int? PassengerCount { get; set; }
+    public DateTime? RequestedStartTime { get; set; }
+    public DateTime? RequestedEndTime { get; set; }
+
     public int? FulfilledAssignmentId { get; set; }
     public string? FulfilledByUserId { get; set; }
     public string? FulfilledByUserName { get; set; }
     public DateTime? FulfilledAt { get; set; }
     public string? RejectionReason { get; set; }
+    public string? ContactFullName { get; set; }
+    public string? ContactPhone { get; set; }
 }

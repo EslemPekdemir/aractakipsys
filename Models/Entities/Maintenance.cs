@@ -23,6 +23,8 @@ public class Maintenance : BaseAuditableEntity
     [StringLength(150)]
     public string? PerformedBy { get; set; }
 
+    public decimal? Cost { get; set; }
+
     // Navigation Property
     public Vehicle Vehicle { get; set; } = null!;
 }

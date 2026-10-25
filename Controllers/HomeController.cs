@@ -32,8 +32,8 @@ public class HomeController : Controller
     [HttpGet("Dashboard")]
     public async Task<IActionResult> Index()
     {
-        // Eğer giriş yapan kullanıcı Şoför ise ve Admin ya da Kullanıcı değilse doğrudan şoför portalına yönlendir
-        if (User.IsInRole("Driver") && !User.IsInRole("Admin") && !User.IsInRole("Kullanici"))
+        // Eğer giriş yapan kullanıcı Şoför ise ve Admin ya da yetkili rollerden biri değilse doğrudan şoför portalına yönlendir
+        if (User.IsInRole("Driver") && !User.IsInRole("Admin") && !User.IsInRole("Kullanici") && !User.IsInRole("DaireBaskani") && !User.IsInRole("GenelSekreter"))
         {
             return RedirectToAction("Index", "Surucu");
         }
@@ -49,7 +49,7 @@ public class HomeController : Controller
     /// Rol: Admin, Kullanici (Şoförler erişemez)
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = "Admin,Kullanici")]
+    [Authorize(Roles = aractakipsys.Common.AppRoles.AllStaffAndManagers)]
     public async Task<IActionResult> SearchPlate(string plate)
     {
         if (string.IsNullOrWhiteSpace(plate))
@@ -64,6 +64,22 @@ public class HomeController : Controller
         }
 
         return Json(new { success = true, data = result });
+    }
+
+    /// <summary>
+    /// Dashboard Aylık Takvim Verisi (AJAX)
+    /// GET: /Home/CalendarData?year=2026&month=10
+    /// Rol: Admin, DaireBaskani, GenelSekreter, Kullanici (Şoförler erişemez)
+    /// </summary>
+    [HttpGet]
+    [Authorize(Roles = aractakipsys.Common.AppRoles.AllStaffAndManagers)]
+    public async Task<IActionResult> CalendarData(int? year, int? month)
+    {
+        var targetYear = year ?? DateTime.Today.Year;
+        var targetMonth = month ?? DateTime.Today.Month;
+
+        var data = await _dashboardService.GetCalendarMonthDataAsync(targetYear, targetMonth);
+        return Json(new { success = true, data = data });
     }
 
     [AllowAnonymous]

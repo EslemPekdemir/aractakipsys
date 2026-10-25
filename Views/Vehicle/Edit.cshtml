@@ -130,62 +130,67 @@
                                 </small>
                             </div>
 
-                            <!-- MUAYENE & SİGORTA BİLGİLERİ (ZORUNLU) -->
-                            <h5 class="font-weight-bold text-danger mt-4 mb-3 border-bottom pb-2">
-                                <i class="fa fa-shield mr-1"></i> Muayene & Sigorta Geçerlilik Tarihleri
-                            </h5>
+                            <!-- MUAYENE & SİGORTA BİLGİLERİ (SALT OKUNUR - YÖNETİM ARAÇ BELGELERİNDE) -->
+                            <div class="d-flex justify-content-between align-items-center mt-4 mb-3 border-bottom pb-2">
+                                <h5 class="font-weight-bold text-danger mb-0">
+                                    <i class="fa fa-shield mr-1"></i> Muayene & Sigorta Geçerlilik Tarihleri
+                                </h5>
+                                <a href="/Vehicle/Documents?vehicleId=@Model.Id" class="btn btn-xs btn-outline-danger font-weight-bold">
+                                    <i class="fa fa-folder-open-o mr-1"></i> Belgeleri Yönet
+                                </a>
+                            </div>
+
+                            <div class="alert alert-light border small text-muted mb-3 py-2 px-3">
+                                <i class="fa fa-info-circle mr-1 text-info"></i> Bu alanlar salt okunurdur. Muayene, sigorta ve kasko yenileme işlemleri için <a href="/Vehicle/Documents?vehicleId=@Model.Id" class="font-weight-bold text-danger">Belgeleri Yönet</a> panelini kullanınız.
+                            </div>
 
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
-                                    <label asp-for="InspectionStartDate" class="font-weight-bold">
-                                        Muayene Başlangıç <span class="text-danger">*</span>
+                                    <label asp-for="InspectionStartDate" class="font-weight-bold text-muted">
+                                        Muayene Başlangıç
                                     </label>
                                     <div class="input-group">
                                         <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fa fa-calendar-plus-o text-danger"></i></span>
+                                            <span class="input-group-text"><i class="fa fa-calendar-plus-o text-muted"></i></span>
                                         </div>
-                                        <input asp-for="InspectionStartDate" type="date" class="form-control" />
+                                        <input asp-for="InspectionStartDate" type="date" class="form-control bg-light" readonly />
                                     </div>
-                                    <span asp-validation-for="InspectionStartDate" class="text-danger small font-weight-bold"></span>
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <label asp-for="InspectionExpiryDate" class="font-weight-bold">
-                                        Muayene Bitiş <span class="text-danger">*</span>
+                                    <label asp-for="InspectionExpiryDate" class="font-weight-bold text-muted">
+                                        Muayene Bitiş
                                     </label>
                                     <div class="input-group">
                                         <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fa fa-calendar-check-o text-danger"></i></span>
+                                            <span class="input-group-text"><i class="fa fa-calendar-check-o text-muted"></i></span>
                                         </div>
-                                        <input asp-for="InspectionExpiryDate" type="date" class="form-control" />
+                                        <input asp-for="InspectionExpiryDate" type="date" class="form-control bg-light" readonly />
                                     </div>
-                                    <span asp-validation-for="InspectionExpiryDate" class="text-danger small font-weight-bold"></span>
                                 </div>
                             </div>
 
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
-                                    <label asp-for="InsuranceStartDate" class="font-weight-bold">
-                                        Sigorta Başlangıç <span class="text-danger">*</span>
+                                    <label asp-for="InsuranceStartDate" class="font-weight-bold text-muted">
+                                        Sigorta Başlangıç
                                     </label>
                                     <div class="input-group">
                                         <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fa fa-calendar-plus-o text-danger"></i></span>
+                                            <span class="input-group-text"><i class="fa fa-calendar-plus-o text-muted"></i></span>
                                         </div>
-                                        <input asp-for="InsuranceStartDate" type="date" class="form-control" />
+                                        <input asp-for="InsuranceStartDate" type="date" class="form-control bg-light" readonly />
                                     </div>
-                                    <span asp-validation-for="InsuranceStartDate" class="text-danger small font-weight-bold"></span>
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <label asp-for="InsuranceExpiryDate" class="font-weight-bold">
-                                        Sigorta Bitiş <span class="text-danger">*</span>
+                                    <label asp-for="InsuranceExpiryDate" class="font-weight-bold text-muted">
+                                        Sigorta Bitiş
                                     </label>
                                     <div class="input-group">
                                         <div class="input-group-prepend">
-                                            <span class="input-group-text"><i class="fa fa-calendar-check-o text-danger"></i></span>
+                                            <span class="input-group-text"><i class="fa fa-calendar-check-o text-muted"></i></span>
                                         </div>
-                                        <input asp-for="InsuranceExpiryDate" type="date" class="form-control" />
+                                        <input asp-for="InsuranceExpiryDate" type="date" class="form-control bg-light" readonly />
                                     </div>
-                                    <span asp-validation-for="InsuranceExpiryDate" class="text-danger small font-weight-bold"></span>
                                 </div>
                             </div>
                         </div>
@@ -241,35 +246,33 @@
                                 </div>
                             </div>
 
-                            <!-- LASTİK BİLGİLERİ (OPSİYONEL) -->
-                            <h5 class="font-weight-bold text-warning mt-4 mb-3 border-bottom pb-2">
-                                <i class="fa fa-circle-o-notch mr-1"></i> Lastik Durumu & Mevsimi
-                            </h5>
+                            <!-- LASTİK BİLGİLERİ (SALT OKUNUR - YÖNETİM ARAÇ BELGELERİNDE) -->
+                            <div class="d-flex justify-content-between align-items-center mt-4 mb-3 border-bottom pb-2">
+                                <h5 class="font-weight-bold text-warning mb-0">
+                                    <i class="fa fa-circle-o-notch mr-1"></i> Lastik Durumu & Mevsimi
+                                </h5>
+                                <a href="/Vehicle/Documents?vehicleId=@Model.Id&activeTab=Tire" class="btn btn-xs btn-outline-warning font-weight-bold">
+                                    <i class="fa fa-folder-open-o mr-1"></i> Lastikleri Yönet
+                                </a>
+                            </div>
+
+                            <div class="alert alert-light border small text-muted mb-3 py-2 px-3">
+                                <i class="fa fa-info-circle mr-1 text-info"></i> Bu alanlar salt okunurdur. Lastik değişimi ve detaylı kayıtlar için <a href="/Vehicle/Documents?vehicleId=@Model.Id&activeTab=Tire" class="font-weight-bold text-warning">Lastikleri Yönet</a> panelini kullanınız.
+                            </div>
 
                             <div class="form-group mb-3">
-                                <label asp-for="TireBrand" class="font-weight-bold">Lastik Marka / Modeli</label>
-                                <input asp-for="TireBrand" class="form-control" placeholder="Örn: Michelin Primacy 4 (205/55 R16)" />
-                                <span asp-validation-for="TireBrand" class="text-danger small font-weight-bold"></span>
+                                <label asp-for="TireBrand" class="font-weight-bold text-muted">Lastik Marka / Modeli</label>
+                                <input asp-for="TireBrand" class="form-control bg-light" readonly />
                             </div>
 
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
-                                    <label asp-for="TireYear" class="font-weight-bold">Lastik Üretim Yılı (DOT)</label>
-                                    <input asp-for="TireYear" type="number" class="form-control" placeholder="Örn: 2024" min="2000" max="2100" />
-                                    <span asp-validation-for="TireYear" class="text-danger small font-weight-bold"></span>
+                                    <label asp-for="TireYear" class="font-weight-bold text-muted">Lastik Üretim Yılı (DOT)</label>
+                                    <input asp-for="TireYear" type="number" class="form-control bg-light" readonly />
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <label asp-for="TireSeason" class="font-weight-bold">Lastik Mevsimi</label>
-                                    <input asp-for="TireSeason" list="tireSeasonSuggestions" class="form-control" placeholder="Seçiniz veya yazınız (Örn: 4 Mevsim...)" autocomplete="off" />
-                                    <datalist id="tireSeasonSuggestions">
-                                        <option value="Yazlık" />
-                                        <option value="Kışlık" />
-                                        <option value="4 Mevsim" />
-                                        <option value="Dört Mevsim (M+S)" />
-                                        <option value="Çivili Kışlık" />
-                                        <option value="Arazi / All-Terrain (A/T)" />
-                                    </datalist>
-                                    <span asp-validation-for="TireSeason" class="text-danger small font-weight-bold"></span>
+                                    <label asp-for="TireSeason" class="font-weight-bold text-muted">Lastik Mevsimi</label>
+                                    <input asp-for="TireSeason" class="form-control bg-light" readonly />
                                 </div>
                             </div>
 

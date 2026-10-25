@@ -96,65 +96,130 @@ public class ReportService : IReportService
 
         var assignments = await query.ToListAsync();
 
-        var reportItems = assignments.Select(a =>
+        var reportItems = new List<UsageReportItemViewModel>();
+
+        foreach (var a in assignments)
         {
-            string driverName;
-            string driverDept;
+            var tripDurationMinutes = (int)Math.Round(((a.ActualEndTime ?? a.PlannedEndTime) - (a.ActualStartTime ?? a.PlannedStartTime)).TotalMinutes);
+            if (tripDurationMinutes < 0) tripDurationMinutes = 0;
 
             if (a.IsDriverless)
             {
-                driverName = "Şoförsüz Görevlendirme";
-                driverDept = "-";
+                reportItems.Add(new UsageReportItemViewModel
+                {
+                    AssignmentId = a.Id,
+                    PlateNumber = a.Vehicle?.PlateNumber ?? "-",
+                    VehicleBrandModel = $"{a.Vehicle?.Brand} {a.Vehicle?.Model}".Trim(),
+                    DriverFullName = "Şoförsüz Görevlendirme",
+                    DriverDepartment = "-",
+                    DriverId = null,
+                    IsPrimaryDriver = true,
+                    Purpose = a.Purpose,
+                    RequestedByDepartment = a.RequestedByDepartment,
+                    PlannedStartTime = a.PlannedStartTime,
+                    PlannedEndTime = a.PlannedEndTime,
+                    ActualStartTime = a.ActualStartTime,
+                    ActualEndTime = a.ActualEndTime,
+                    StartKm = a.StartKm,
+                    EndKm = a.EndKm
+                });
             }
             else if (a.IsExternalDriver)
             {
-                driverName = a.ExternalDriverFullName ?? "Dış Şoför";
-                driverDept = a.ExternalDriverDepartment ?? "Dış Görevli";
+                reportItems.Add(new UsageReportItemViewModel
+                {
+                    AssignmentId = a.Id,
+                    PlateNumber = a.Vehicle?.PlateNumber ?? "-",
+                    VehicleBrandModel = $"{a.Vehicle?.Brand} {a.Vehicle?.Model}".Trim(),
+                    DriverFullName = a.ExternalDriverFullName ?? "Dış Şoför",
+                    DriverDepartment = a.ExternalDriverDepartment ?? "Dış Görevli",
+                    DriverId = null,
+                    IsPrimaryDriver = true,
+                    Purpose = a.Purpose,
+                    RequestedByDepartment = a.RequestedByDepartment,
+                    PlannedStartTime = a.PlannedStartTime,
+                    PlannedEndTime = a.PlannedEndTime,
+                    ActualStartTime = a.ActualStartTime,
+                    ActualEndTime = a.ActualEndTime,
+                    StartKm = a.StartKm,
+                    EndKm = a.EndKm
+                });
             }
             else
             {
-                var assigned = a.AssignmentDrivers?
-                    .Where(ad => !ad.IsDeleted)
+                var assignedDrivers = a.AssignmentDrivers?
+                    .Where(ad => !ad.IsDeleted && ad.Driver != null)
                     .OrderByDescending(ad => ad.IsPrimary)
-                    .Select(ad => ad.Driver?.User?.FullName)
-                    .Where(name => !string.IsNullOrWhiteSpace(name))
                     .ToList();
 
-                if (assigned != null && assigned.Count > 0)
+                if (assignedDrivers != null && assignedDrivers.Count > 0)
                 {
-                    driverName = string.Join(", ", assigned);
-                    driverDept = a.AssignmentDrivers.FirstOrDefault(ad => !ad.IsDeleted && ad.IsPrimary)?.Driver?.Department ?? a.Driver?.Department ?? "-";
+                    // Çoklu şoförlü görevde her şoför için grup kaydı oluşturulur
+                    foreach (var ad in assignedDrivers)
+                    {
+                        reportItems.Add(new UsageReportItemViewModel
+                        {
+                            AssignmentId = a.Id,
+                            PlateNumber = a.Vehicle?.PlateNumber ?? "-",
+                            VehicleBrandModel = $"{a.Vehicle?.Brand} {a.Vehicle?.Model}".Trim(),
+                            DriverFullName = ad.Driver?.User?.FullName ?? "Belirtilmemiş",
+                            DriverDepartment = ad.Driver?.Department ?? "-",
+                            DriverId = ad.DriverId,
+                            IsPrimaryDriver = ad.IsPrimary,
+                            Purpose = a.Purpose,
+                            RequestedByDepartment = a.RequestedByDepartment,
+                            PlannedStartTime = a.PlannedStartTime,
+                            PlannedEndTime = a.PlannedEndTime,
+                            ActualStartTime = a.ActualStartTime,
+                            ActualEndTime = a.ActualEndTime,
+                            StartKm = a.StartKm,
+                            EndKm = a.EndKm
+                        });
+                    }
                 }
                 else
                 {
-                    driverName = a.Driver?.User?.FullName ?? "-";
-                    driverDept = a.Driver?.Department ?? "-";
+                    reportItems.Add(new UsageReportItemViewModel
+                    {
+                        AssignmentId = a.Id,
+                        PlateNumber = a.Vehicle?.PlateNumber ?? "-",
+                        VehicleBrandModel = $"{a.Vehicle?.Brand} {a.Vehicle?.Model}".Trim(),
+                        DriverFullName = a.Driver?.User?.FullName ?? "Belirtilmemiş",
+                        DriverDepartment = a.Driver?.Department ?? "-",
+                        DriverId = a.DriverId,
+                        IsPrimaryDriver = true,
+                        Purpose = a.Purpose,
+                        RequestedByDepartment = a.RequestedByDepartment,
+                        PlannedStartTime = a.PlannedStartTime,
+                        PlannedEndTime = a.PlannedEndTime,
+                        ActualStartTime = a.ActualStartTime,
+                        ActualEndTime = a.ActualEndTime,
+                        StartKm = a.StartKm,
+                        EndKm = a.EndKm
+                    });
                 }
             }
+        }
 
-            return new UsageReportItemViewModel
+        // Şoför bazında grupla
+        var driverGroups = reportItems
+            .GroupBy(x => new { x.DriverFullName, x.DriverDepartment })
+            .OrderBy(g => g.Key.DriverFullName)
+            .Select(g => new UsageReportDriverGroupViewModel
             {
-                AssignmentId = a.Id,
-                PlateNumber = a.Vehicle?.PlateNumber ?? "-",
-                VehicleBrandModel = $"{a.Vehicle?.Brand} {a.Vehicle?.Model}".Trim(),
-                DriverFullName = driverName,
-                DriverDepartment = driverDept,
-                Purpose = a.Purpose,
-                RequestedByDepartment = a.RequestedByDepartment,
-                PlannedStartTime = a.PlannedStartTime,
-                PlannedEndTime = a.PlannedEndTime,
-                ActualStartTime = a.ActualStartTime,
-                ActualEndTime = a.ActualEndTime,
-                StartKm = a.StartKm,
-                EndKm = a.EndKm
-            };
-        }).ToList();
+                DriverFullName = g.Key.DriverFullName,
+                DriverDepartment = g.Key.DriverDepartment,
+                DriverId = g.FirstOrDefault(x => x.DriverId.HasValue)?.DriverId,
+                Items = g.OrderByDescending(x => x.TripDate).ToList()
+            })
+            .ToList();
 
         // Rapor özeti ve başlıkları
         var report = new UsageReportViewModel
         {
             Filter = filter,
             Items = reportItems,
+            DriverGroups = driverGroups,
             SelectedVehicleName = filter.VehicleId.HasValue
                 ? filter.VehicleList.FirstOrDefault(v => v.Value == filter.VehicleId.Value.ToString())?.Text
                 : "Tüm Araçlar",
@@ -291,7 +356,8 @@ public class ReportService : IReportService
             Description = m.Description,
             StartDate = m.StartDate.ToLocalTime(),
             EndDate = m.EndDate?.ToLocalTime(),
-            PerformedBy = m.PerformedBy
+            PerformedBy = m.PerformedBy,
+            Cost = m.Cost
         }).ToList();
 
         var report = new MaintenanceReportViewModel
@@ -462,6 +528,18 @@ public class ReportService : IReportService
             .ThenBy(v => v.InspectionExpiryDate < v.InsuranceExpiryDate ? v.InspectionExpiryDate : v.InsuranceExpiryDate)
             .ToListAsync();
 
+        var vehicleIds = vehicles.Select(v => v.Id).ToList();
+        var allDocs = await _context.VehicleDocuments
+            .AsNoTracking()
+            .Where(d => vehicleIds.Contains(d.VehicleId) && !d.IsDeleted)
+            .OrderByDescending(d => d.EndDate)
+            .ThenByDescending(d => d.Id)
+            .ToListAsync();
+
+        var docsByVehicle = allDocs
+            .GroupBy(d => d.VehicleId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         var items = vehicles.Select(v =>
         {
             var statusName = v.Status switch
@@ -484,6 +562,19 @@ public class ReportService : IReportService
                 _ => "badge-secondary"
             };
 
+            docsByVehicle.TryGetValue(v.Id, out var vDocs);
+            var latestInsuranceDoc = vDocs?.FirstOrDefault(d => d.DocumentType == VehicleDocumentType.Insurance);
+            var latestInspectionDoc = vDocs?.FirstOrDefault(d => d.DocumentType == VehicleDocumentType.Inspection);
+            var latestKaskoDoc = vDocs?.FirstOrDefault(d => d.DocumentType == VehicleDocumentType.Kasko);
+
+            var insCost = latestInsuranceDoc?.Cost;
+            var inspCost = latestInspectionDoc?.Cost;
+            var kaskoCost = latestKaskoDoc?.Cost;
+
+            DateTime? kaskoStart = latestKaskoDoc?.StartDate;
+            DateTime? kaskoEnd = latestKaskoDoc?.EndDate;
+            int? kaskoDaysRemaining = kaskoEnd.HasValue ? (int)(kaskoEnd.Value.Date - today).TotalDays : null;
+
             return new InsuranceInspectionReportItemViewModel
             {
                 VehicleId = v.Id,
@@ -495,12 +586,18 @@ public class ReportService : IReportService
                 Status = v.Status,
                 StatusDisplayName = statusName,
                 StatusBadgeClass = badgeClass,
-                InsuranceStartDate = v.InsuranceStartDate,
-                InsuranceExpiryDate = v.InsuranceExpiryDate,
-                InsuranceDaysRemaining = (int)(v.InsuranceExpiryDate.Date - today).TotalDays,
-                InspectionStartDate = v.InspectionStartDate,
-                InspectionExpiryDate = v.InspectionExpiryDate,
-                InspectionDaysRemaining = (int)(v.InspectionExpiryDate.Date - today).TotalDays
+                InsuranceStartDate = latestInsuranceDoc != null ? latestInsuranceDoc.StartDate : v.InsuranceStartDate,
+                InsuranceExpiryDate = latestInsuranceDoc != null ? latestInsuranceDoc.EndDate : v.InsuranceExpiryDate,
+                InsuranceDaysRemaining = (int)((latestInsuranceDoc != null ? latestInsuranceDoc.EndDate.Date : v.InsuranceExpiryDate.Date) - today).TotalDays,
+                InsuranceCost = insCost,
+                InspectionStartDate = latestInspectionDoc != null ? latestInspectionDoc.StartDate : v.InspectionStartDate,
+                InspectionExpiryDate = latestInspectionDoc != null ? latestInspectionDoc.EndDate : v.InspectionExpiryDate,
+                InspectionDaysRemaining = (int)((latestInspectionDoc != null ? latestInspectionDoc.EndDate.Date : v.InspectionExpiryDate.Date) - today).TotalDays,
+                InspectionCost = inspCost,
+                KaskoStartDate = kaskoStart,
+                KaskoExpiryDate = kaskoEnd,
+                KaskoDaysRemaining = kaskoDaysRemaining,
+                KaskoCost = kaskoCost
             };
         })
         .OrderBy(v => Math.Min(v.InspectionDaysRemaining, v.InsuranceDaysRemaining))
@@ -540,6 +637,81 @@ public class ReportService : IReportService
             ValidCount = validCount,
             PageNumber = pageNumber,
             PageSize = pageSize
+        };
+    }
+
+    public async Task<VehicleRequestReportViewModel> GetVehicleRequestReportAsync(VehicleRequestReportFilterViewModel filter)
+    {
+        var query = _context.VehicleRequests.AsNoTracking().Where(r => !r.IsDeleted);
+
+        // Tarih aralığı filtresi (talep OLUŞTURULMA tarihine göre)
+        if (filter.StartDate.HasValue)
+        {
+            var startUtc = filter.StartDate.Value.Date;
+            query = query.Where(r => r.CreatedAt >= startUtc);
+        }
+
+        if (filter.EndDate.HasValue)
+        {
+            var endUtc = filter.EndDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(r => r.CreatedAt <= endUtc);
+        }
+
+        var rawList = await query.Select(r => new
+        {
+            r.Department,
+            r.Status
+        }).ToListAsync();
+
+        // Birim bazında gruplama:
+        // - Boşluk ve büyük/küçük harf duyarsız gruplama
+        // - Boş olanlar "Belirtilmemiş" satırında toplanır
+        // - Eşleşmeyen serbest metinler olduğu gibi kalır (uydurma düzeltme yok)
+        var grouped = rawList
+            .GroupBy(r =>
+            {
+                var dept = r.Department?.Trim();
+                if (string.IsNullOrWhiteSpace(dept))
+                {
+                    return "Belirtilmemiş";
+                }
+                return dept;
+            }, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new VehicleRequestReportItemViewModel
+            {
+                DepartmentName = g.Key,
+                TotalRequests = g.Count(),
+                FulfilledCount = g.Count(x => x.Status == VehicleRequestStatus.Fulfilled),
+                RejectedCount = g.Count(x => x.Status == VehicleRequestStatus.Rejected),
+                PendingCount = g.Count(x => x.Status == VehicleRequestStatus.Pending)
+            })
+            .OrderByDescending(x => x.TotalRequests)
+            .ThenBy(x => x.DepartmentName)
+            .ToList();
+
+        string dateRangeText = "Tüm Zamanlar";
+        if (filter.StartDate.HasValue && filter.EndDate.HasValue)
+        {
+            dateRangeText = $"{filter.StartDate.Value:dd.MM.yyyy} - {filter.EndDate.Value:dd.MM.yyyy}";
+        }
+        else if (filter.StartDate.HasValue)
+        {
+            dateRangeText = $"{filter.StartDate.Value:dd.MM.yyyy} Tarihinden İtibaren";
+        }
+        else if (filter.EndDate.HasValue)
+        {
+            dateRangeText = $"{filter.EndDate.Value:dd.MM.yyyy} Tarihine Kadar";
+        }
+
+        return new VehicleRequestReportViewModel
+        {
+            Filter = filter,
+            Items = grouped,
+            GrandTotalRequests = grouped.Sum(x => x.TotalRequests),
+            GrandTotalFulfilled = grouped.Sum(x => x.FulfilledCount),
+            GrandTotalRejected = grouped.Sum(x => x.RejectedCount),
+            GrandTotalPending = grouped.Sum(x => x.PendingCount),
+            DateRangeText = dateRangeText
         };
     }
 }

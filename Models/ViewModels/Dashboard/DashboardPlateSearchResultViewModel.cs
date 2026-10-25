@@ -30,6 +30,9 @@ public class DashboardPlateSearchResultViewModel
     public string? FineNotes { get; set; }
     public bool HasFineNotes => !string.IsNullOrWhiteSpace(FineNotes);
 
+    // Güncel Lastik Bilgisi (Faz 5-B)
+    public aractakipsys.Models.ViewModels.Vehicle.VehicleTireItemViewModel? CurrentTire { get; set; }
+
     // O aracı kullanmış şoförler (Completed kayıtlar, en son kullanan üstte)
     public List<DashboardVehicleDriverHistoryViewModel> DriverHistory { get; set; } = new();
 }

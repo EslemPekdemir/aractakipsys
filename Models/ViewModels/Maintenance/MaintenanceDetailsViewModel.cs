@@ -22,6 +22,7 @@ public class MaintenanceDetailsViewModel
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string? PerformedBy { get; set; }
+    public decimal? Cost { get; set; }
 
     public bool IsOngoing => !EndDate.HasValue;
 

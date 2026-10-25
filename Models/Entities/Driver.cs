@@ -26,4 +26,6 @@ public class Driver : BaseAuditableEntity
     // Navigation Properties
     public ApplicationUser User { get; set; } = null!;
     public ICollection<AssignmentDriver> AssignmentDrivers { get; set; } = new List<AssignmentDriver>();
+    public ICollection<DriverLicense> DriverLicenses { get; set; } = new List<DriverLicense>();
 }
+

@@ -26,5 +26,17 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
             .HasForeignKey(x => x.ChangedByUserId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.OnBehalfOfUser)
+            .WithMany()
+            .HasForeignKey(x => x.OnBehalfOfUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.Delegation)
+            .WithMany()
+            .HasForeignKey(x => x.DelegationId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

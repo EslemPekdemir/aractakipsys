@@ -17,8 +17,8 @@ public static class DbInitializer
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var logger = serviceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
 
-        // 1. ROLLERİN OLUŞTURULMASI (Admin, Driver & Kullanici)
-        string[] roles = { "Admin", "Driver", "Kullanici" };
+        // 1. ROLLERİN OLUŞTURULMASI (Admin, Driver, Kullanici, DaireBaskani, GenelSekreter)
+        string[] roles = { "Admin", "Driver", "Kullanici", "DaireBaskani", "GenelSekreter" };
         foreach (var role in roles)
         {
             if (!await roleManager.RoleExistsAsync(role))

@@ -173,6 +173,11 @@
             Araç talepleri yalnızca <strong>@@duzce.edu.tr</strong> uzantılı kurumsal e-posta adresleri üzerinden kabul edilmektedir.
         </div>
 
+        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-3" style="background-color: #fffbeb; border-left: 4px solid #f59e0b !important; color: #92400e; font-size: 0.88rem; font-weight: 600; border-radius: 8px; padding: 12px 14px;">
+            <i class="fa fa-exclamation-triangle mr-2 text-warning" style="font-size: 1.1rem;"></i>
+            <span>Yalnızca il içi görevlendirme yapılır.</span>
+        </div>
+
         <!-- HATA BİLDİRİMİ -->
         @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
         {
@@ -236,7 +241,7 @@
                 <span asp-validation-for="RequesterPhone" class="text-danger small font-weight-bold d-block mt-1"></span>
             </div>
 
-            <!-- 4. FAKÜLTE / DAİRE BAŞKANLIĞI / BİRİM -->
+            <!-- 4. FAKÜLTE / DAİRE BAŞKANLIĞI / BİRİM (AÇILIR LİSTE) -->
             <div class="form-group mb-3">
                 <label asp-for="Department" class="field-label">
                     Fakülte / Daire Başkanlığı / Birim <span class="text-danger">*</span>
@@ -245,43 +250,84 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text"><i class="fa fa-university"></i></span>
                     </div>
-                    <input asp-for="Department" class="form-control" list="departmentList" placeholder="Birim seçiniz veya yazınız (örn: Mühendislik Fakültesi)" required autocomplete="off" />
+                    <select asp-for="Department" class="form-control" required>
+                        <option value="">-- Birim Seçiniz --</option>
+                        @foreach (var dept in Model.AvailableDepartments)
+                        {
+                            <option value="@dept" selected="@(dept == Model.Department)">@dept</option>
+                        }
+                    </select>
                 </div>
-                <datalist id="departmentList">
-                    <option value="Rektörlük / Genel Sekreterlik"></option>
-                    <option value="Tıp Fakültesi"></option>
-                    <option value="Mühendislik Fakültesi"></option>
-                    <option value="Fen Edebiyat Fakültesi"></option>
-                    <option value="İlahiyat Fakültesi"></option>
-                    <option value="Eğitim Fakültesi"></option>
-                    <option value="Orman Fakültesi"></option>
-                    <option value="İşletme Fakültesi"></option>
-                    <option value="Sanat, Tasarım ve Mimarlık Fakültesi"></option>
-                    <option value="Ziraat Fakültesi"></option>
-                    <option value="Sağlık Bilimleri Fakültesi"></option>
-                    <option value="Spor Bilimleri Fakültesi"></option>
-                    <option value="Teknoloji Fakültesi"></option>
-                    <option value="Eczacılık Fakültesi"></option>
-                    <option value="Lisansüstü Eğitim Enstitüsü"></option>
-                    <option value="Düzce Meslek Yüksekokulu"></option>
-                    <option value="Sağlık Hizmetleri MYO"></option>
-                    <option value="Sosyal Bilimler MYO"></option>
-                    <option value="Ormancılık MYO"></option>
-                    <option value="Akçakoca Bey SBF"></option>
-                    <option value="Akçakoca Turizm İşletmeciliği ve Otelcilik YO"></option>
-                    <option value="Bilgi İşlem Daire Başkanlığı"></option>
-                    <option value="İdari ve Mali İşler Daire Başkanlığı"></option>
-                    <option value="Personel Daire Başkanlığı"></option>
-                    <option value="Sağlık Kültür ve Spor Daire Başkanlığı"></option>
-                    <option value="Öğrenci İşleri Daire Başkanlığı"></option>
-                    <option value="Yapı İşleri ve Teknik Daire Başkanlığı"></option>
-                    <option value="Kütüphane ve Dokümantasyon Daire Başkanlığı"></option>
-                    <option value="Strateji Geliştirme Daire Başkanlığı"></option>
-                    <option value="Döner Sermaye İşletme Müdürlüğü"></option>
-                    <option value="Hukuk Müşavirliği"></option>
-                </datalist>
-                <small class="text-muted" style="font-size: 0.78rem;">* Listeden seçebilir veya bağlı olduğunuz birimi doğrudan yazabilirsiniz.</small>
+                <small class="text-muted" style="font-size: 0.78rem;">* Bağlı olduğunuz birimi listeden seçiniz.</small>
                 <span asp-validation-for="Department" class="text-danger small font-weight-bold d-block"></span>
+            </div>
+
+            <!-- 5. İSTENEN ARAÇ TÜRÜ (AÇILIR LİSTE) -->
+            <div class="form-group mb-3">
+                <label asp-for="RequestedVehicleType" class="field-label">
+                    İstenen Araç Türü <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fa fa-car"></i></span>
+                    </div>
+                    <select asp-for="RequestedVehicleType" class="form-control" required>
+                        <option value="">-- Araç Türü Seçiniz --</option>
+                        @foreach (var vt in Model.AvailableVehicleTypes)
+                        {
+                            <option value="@vt" selected="@(vt == Model.RequestedVehicleType)">@vt</option>
+                        }
+                    </select>
+                </div>
+                <small class="text-muted" style="font-size: 0.78rem;">* İhtiyacınıza uygun araç sınıfını seçiniz.</small>
+                <span asp-validation-for="RequestedVehicleType" class="text-danger small font-weight-bold d-block"></span>
+            </div>
+
+            <!-- 6. KAÇ KİŞİ (YOLCU SAYISI) -->
+            <div class="form-group mb-3">
+                <label asp-for="PassengerCount" class="field-label">
+                    Kaç Kişi (Yolcu Sayısı) <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fa fa-users"></i></span>
+                    </div>
+                    <input asp-for="PassengerCount" type="number" min="1" max="100" class="form-control font-weight-bold" placeholder="Örn: 4" required />
+                </div>
+                <small class="text-muted" style="font-size: 0.78rem;">* Aracı kullanacak veya araçla seyahat edecek toplam kişi sayısı.</small>
+                <span asp-validation-for="PassengerCount" class="text-danger small font-weight-bold d-block"></span>
+            </div>
+
+            <!-- 7. GÖREV TARİH VE SAAT ARALIĞI -->
+            <div class="row">
+                <div class="col-12 col-sm-6 form-group mb-3">
+                    <label asp-for="RequestedStartTime" class="field-label">
+                        Başlangıç Tarih ve Saati <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+                        </div>
+                        <input asp-for="RequestedStartTime" type="datetime-local" 
+                               value="@(Model.RequestedStartTime?.ToString("yyyy-MM-ddTHH:mm") ?? DateTime.Today.AddDays(1).AddHours(9).ToString("yyyy-MM-ddTHH:mm"))" 
+                               class="form-control font-weight-bold" required />
+                    </div>
+                    <span asp-validation-for="RequestedStartTime" class="text-danger small font-weight-bold d-block"></span>
+                </div>
+                <div class="col-12 col-sm-6 form-group mb-3">
+                    <label asp-for="RequestedEndTime" class="field-label">
+                        Bitiş Tarih ve Saati <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fa fa-calendar-check-o"></i></span>
+                        </div>
+                        <input asp-for="RequestedEndTime" type="datetime-local" 
+                               value="@(Model.RequestedEndTime?.ToString("yyyy-MM-ddTHH:mm") ?? DateTime.Today.AddDays(1).AddHours(17).ToString("yyyy-MM-ddTHH:mm"))" 
+                               class="form-control font-weight-bold" required />
+                    </div>
+                    <span asp-validation-for="RequestedEndTime" class="text-danger small font-weight-bold d-block"></span>
+                </div>
             </div>
 
             <!-- 5. TALEP AMACI -->

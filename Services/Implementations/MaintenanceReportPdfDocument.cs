@@ -83,13 +83,14 @@ public class MaintenanceReportPdfDocument : IDocument
                 {
                     columns.ConstantColumn(25);   // Sıra (#)
                     columns.RelativeColumn(1.8f); // Plaka / Araç
-                    columns.RelativeColumn(2.0f); // Bakım Türü
-                    columns.RelativeColumn(2.0f); // Servis / Firma
-                    columns.RelativeColumn(2.1f); // Giriş Tarihi (Tarih & Saat)
-                    columns.RelativeColumn(2.1f); // Çıkış Tarihi (Tarih & Saat)
-                    columns.RelativeColumn(1.2f); // Süre (Gün)
-                    columns.RelativeColumn(1.4f); // Durum
-                    columns.RelativeColumn(3.2f); // Açıklama / Yapılan İşlem
+                    columns.RelativeColumn(1.8f); // Bakım Türü
+                    columns.RelativeColumn(1.8f); // Servis / Firma
+                    columns.RelativeColumn(1.9f); // Giriş Tarihi (Tarih & Saat)
+                    columns.RelativeColumn(1.9f); // Çıkış Tarihi (Tarih & Saat)
+                    columns.RelativeColumn(1.0f); // Süre (Gün)
+                    columns.RelativeColumn(1.5f); // Maliyet
+                    columns.RelativeColumn(1.2f); // Durum
+                    columns.RelativeColumn(2.6f); // Açıklama / Yapılan İşlem
                 });
 
                 // Tablo Başlık Satırı
@@ -102,6 +103,7 @@ public class MaintenanceReportPdfDocument : IDocument
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Giriş Tarih/Saat").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Çıkış Tarih/Saat").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignCenter().Text("Süre").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Maliyet").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignCenter().Text("Durum").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Açıklama / İşlemler").Bold();
                 });
@@ -130,11 +132,24 @@ public class MaintenanceReportPdfDocument : IDocument
 
                     table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignCenter().Text($"{item.DurationDays} Gün").Bold();
 
+                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                        .Text(item.CostDisplay).Bold().FontColor(item.Cost.HasValue ? Colors.Green.Darken3 : Colors.Grey.Darken1);
+
                     table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignCenter().Text(item.IsOngoing ? "Devam Ediyor" : "Tamamlandı")
                         .Bold().FontColor(item.IsOngoing ? Colors.Orange.Darken3 : Colors.Green.Darken3);
 
                     table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description).FontSize(8);
                 }
+
+                // Tablo Dip Toplam Satırı (Genel Toplam Maliyet)
+                table.Cell().ColumnSpan(7).Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                    .Text("GENEL TOPLAM BAKIM MALİYETİ:").Bold().FontSize(9);
+
+                table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                    .Text(_model.TotalCostFormatted).Bold().FontColor(Colors.Green.Darken4).FontSize(9);
+
+                table.Cell().ColumnSpan(2).Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5)
+                    .Text("");
             });
 
             // 3. SAYFA ALTI (FOOTER)

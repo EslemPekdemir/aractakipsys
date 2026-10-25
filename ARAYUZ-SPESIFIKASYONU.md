@@ -14,6 +14,9 @@
 - **Yazı Tipi ve Renk Paleti:** Düzce Üniversitesi kurumsal kimliğine uygun kurumsal lacivert (`#1e3c72`, `#2a5298`) ve nötr gri tonlar.
 - **Boş Durum (Empty State):** Her filtre ve listede kayıt yoksa "Henüz kayıt bulunamadı" ikonu + açıklayıcı mesaj gösterilir; boş/çirkin tablo bırakılmaz.
 - **Yükleniyor (Loading) Durumu:** AJAX çağrılarında çift tıklamayı önlemek amacıyla buton `disabled` edilir ve spinner ikonu gösterilir.
+- **Rol Bazlı Görünürlük ve Salt Okunur Modu (Faz 1-A):**
+  - **GenelSekreter (Salt Okunur):** Tüm dashboard, takvim, raporlar, listeler, detay sayfaları ve AuditLog açıktır. Ancak veritabanında değişiklik yapabilecek form submit butonları, ekle/düzenle/sil bağlantıları ve aksiyon modalları CSS seviyesinde gizlenir; GET'li filtre/arama formları, sayfalama, "Önizle", "İndir" butonları gizlenmez ve tam çalışır. Kullanıcı Yönetimi (`/Sef`) menüde görünmez.
+  - **DaireBaskani:** Admin ile aynı butonlara ve ekranlara sahiptir (Talep Seçenekleri dahil). Kullanıcı Yönetimi (`/Sef`) tablosunda Admin, DaireBaskani ve GenelSekreter hesaplarının düzenle/şifre/dondur/sil butonları sunucu korumasına ek olarak arayüzde gizlenir ve "Yetki Dışı" gösterilir; yeni şef eklerken rol seçimi gizlidir (yalnızca Şef oluşturabilir).
 
 ---
 
@@ -231,5 +234,212 @@ Kullanıcı deneyimini kurumsallaştırmak ve genel stok resim (`profile_small.j
   - "Gidilen Yer" ile "Görevin Konusu" arasına tek satırlık "Güzergah" satırı eklenir (tek sayfa A4 matbu düzeni bozulmaz).
   - Şoför kutusunda yalnızca Ad Soyad basılır (dış şoförde Ad Soyad + Birim; şoförsüz görevde "Şoförsüz"). TC, sicil veya ehliyet basılmaz.
 
+---
 
+## 16. FAZ 2 - B KISMI ARAYÜZ STANDARTLARI (SÜRE FORMATI, KM UYARISI, ŞEF DÜZELTMESİ VE GÜZERGAH DEĞİŞTİRME)
+
+- **16.1 Süre Gösterimi Standardı ("X sa Y dk"):**
+  - Tüm ekranlarda (Admin/Şef listesi, Görev Detay, Şoför Mobil ekranları) ve PDF raporlarında görev süreleri `"2 sa 40 dk"` formatında (saat ve 0-59 dakika) gösterilir.
+  - Ekranda ve PDF'lerde kesinlikle ondalık saat (örn. "2.67 saat") gösterilmez.
+  - Ortak yardımcı sınıf `DurationHelper` (`.ToFormattedDuration()`, `.FormatDuration(...)`) üzerinden tek merkezden işletilir. Ücret hesaplama matematiği (saat x ücret) korunur.
+- **16.2 200 KM Mesafesi Uyarısı ve Kırmızı Ünlem İkonu:**
+  - Şoför görevi bitirirken (`Bitir` modalı) veya Şef görevi onaylarken (`approveEndCalculationModal`), yapılan mesafe (`EndKm - StartKm`) 200 KM'yi aştığında kırmızı ünlem ikonlu (`fa-exclamation-circle text-danger`) dikkat uyarısı gösterilir.
+  - Eşik değeri `appsettings.json > VehicleSettings:TripDistanceThreshold` üzerinden yapılandırılır ve `KmValidationService` ile doğrulanır.
+- **16.3 Şef KM Düzeltmesi (Onay Modalı):**
+  - Şef onay modalında Başlangıç KM (`ConfirmedStartKm`) ve Bitiş KM (`ConfirmedEndKm`) sayısal giriş alanları yer alır.
+  - Şoförün bildirdiği orijinal değerler referans olarak gösterilir; Şef değerleri düzelttiğinde eski/yeni değerler `AuditLog`'a işlenir ve `Vehicle.CurrentKm` güncel kalır.
+- **16.4 Seferde Güzergah Değiştirme (Şoför Mobil Paneli):**
+  - Seferdeki (`InProgress`) görev kartında "Güzergah Değiştir" butonu yer alır.
+  - Tıklandığında `#changeRouteModal` açılır; yeni güzergah ve değişiklik gerekçesi girilerek kaydedilir.
+  - Modal tanımı HTML hiyerarşisinde kart veya diğer modalların içine gömülmeyip `</body>` etiketi öncesinde konumlandırılmıştır.
+  - Göreve atanmış tüm kurum şoförleri sefer esnasında birden fazla kez güzergah güncelleyebilir.
+  - Admin ve Şef görev detay sayfasında *"Güzergah Değişiklikleri Tarihçesi"* kartında bu değişiklikler kronolojik olarak listelenir. Bu geçmiş bilgisi resmi PDF çıktılarına basılmaz.
+- **16.5 Şef/Admin Güzergah Değişikliği Bildirim Çanı (`#navRouteDropdown`):**
+  - Üst gezinim çubuğunda (navbar) `FaultReport` bildirim yapısıyla birebir aynı desende mavi yol simgeli (`fa-road text-info`) ve dinamik sayaç rozetli (`#navRouteBadge`) bildirim alanı eklenmiştir.
+  - Her 30 saniyede bir `/Assignment/PendingRouteChangeNotificationSummary` sorgulanır; yeni güzergah bildirimi geldiğinde sağ üstte toast uyarısı (`toastr.warning`) gösterilir ve açılır menüde plaka, şoför, yeni güzergah, gerekçe ve zaman bilgisi listelenir. Tıklandığında ilgili görevin detay ekranına yönlendirir.
+
+---
+
+## 17. FAZ 4 ARAYÜZ STANDARTLARI (ÇOKLU EHLİYET, EHLİYET UYARILARI VE ŞOFÖR BİRİM DÜZENLEME)
+
+- **17.1 Çoklu Ehliyet Düzenleyici (Şoför Ekle ve Düzenle):**
+  - Şoför formlarında Ehliyet Belge No şoför kartında tek alan olarak muhafaza edilir.
+  - Ehliyet Sınıfları ve Geçerlilik Tarihleri dinamik bir satır listesi olarak sunulur; her satırda Sınıf (B, C, D, E vb.) ve Geçerlilik Tarihi bulunur.
+  - "+ Ehliyet Ekle" butonu ile yeni satır eklenir; satır silme butonu en az 1 satır kalması kuralıyla korunur.
+- **17.2 Şoför Birimi (Department) Yetki Kısıtlaması:**
+  - Şoförün Bağlı Olduğu Birim alanı yalnızca `Admin` rolündeki kullanıcılar tarafından düzenlenebilir.
+  - Şef (`Kullanici`) rolündeki kullanıcılara alan `readonly` olarak sunulur ve kilit ikonuyla açıklama gösterilir. Sunucu tarafında da Admin olmayan isteklerin birim güncellemesi reddedilir/korunur.
+- **17.3 Dashboard ve Şoför Paneli Ehliyet Uyarıları:**
+  - Geçerlilik tarihi 30 gün içinde dolacak veya dolmuş olan ehliyetler; Dashboard'da ayrı bir uyarı kartında (Şoför, Birim, Sınıf, Geçerlilik Tarihi, Kalan Gün rozeti) listelenir.
+  - Üst navbar'da `#navLicenseExpiryDropdown` bildirim çanı ve sayaç rozeti, sol sidebarda `#sidebarDriverBadge` rozeti bulunur.
+  - 30 saniyelik periyodik kontrol sırasında yeni bir uyarı eklendiğinde toastr bildirimi tetiklenir; aynı bildirim sayısı için tekrar eden toast üretilmez.
+  - Şoför mobil portalında (`/Surucu`) karşılama başlığının hemen altında şoförün kendi süresi dolmuş veya yaklaşan ehliyetleri için özel uyarı kartı gösterilir.
+
+---
+
+## 18. FAZ 5-A ARAYÜZ STANDARTLARI (ARAÇ BELGELERİ PANELİ — MUAYENE, TRAFİK SİGORTASI, KASKO)
+
+- **18.1 Araç Belgeleri Sayfası (`/Vehicle/Documents`):**
+  - Sol ana menüde "Araçlar" altına **"Araç Belgeleri"** bağlantısı eklenmiştir.
+  - Sayfa başında Select2 arama destekli araç seçim dropdown'ı bulunur.
+  - Seçili araca ait özet künye kartında araç plakası, marka/model, KM ve güncel geçerli muayene/sigorta/kasko bitiş tarihleri rozetlerle özetlenir.
+- **18.2 3 Sekmeli Belge Yönetimi (Muayene | Trafik Sigortası | Kasko):**
+  - Her sekmede o araca ait tüm geçmiş kayıtlar (yıllara göre azalan sırada) listelenir.
+  - Güncel geçerli olan kayıt yeşil satır ve "GÜNCEL GEÇERLİ" rozetiyle açıkça vurgulanır.
+  - Süresi dolan veya yaklaşan kayıtlar kırmızı/sarı rozetler ve kalan/geçen gün sayılarıyla gösterilir.
+  - Her sekmede "Yeni Belge Kaydı Ekle" butonu ve satır bazlı "Düzenle" / "Sil" işlemleri yer alır.
+  - Kayıt alanları: Başlangıç Tarihi, Bitiş Tarihi, Ödenen Tutar (Fiyat / Prim), Firma / İstasyon Adı, Poliçe No ve Açıklama.
+- **18.3 Modallar ve Bildirim Bütünlüğü:**
+  - `#addDocumentModal` ve `#editDocumentModal` tanımları HTML akışında `</body>` öncesinde kart ve tabloların dışında tanımlanmıştır.
+  - Yeni bildirim zili eklenmemiş; mevcut üst navbar belge bildirim çanı (`#navDocExpiryDropdown`) ve Dashboard belge uyarıları yeni yapı ile tam uyumlu çalışmaktadır.
+
+---
+
+## 19. FAZ 5-B ARAYÜZ STANDARTLARI (LASTİK YÖNETİMİ VE TAKİBİ)
+
+- **19.1 Araç Belgeleri Sayfası 4. Sekme ("Lastik"):**
+  - `/Vehicle/Documents` sayfasında Muayene, Sigorta ve Kasko sekmelerinin yanına 4. sekme olarak **"Lastik"** eklenmiştir.
+  - Sekme başlığında aktif lastik değişim uyarısı sayısını gösteren sayaç rozeti yer alır.
+  - Üst özet künyesinde aracın güncel lastik markası, mevsimi ve DOT kodu gösterilir.
+- **19.2 Lastik Kayıt Alanları ve Doğrulama:**
+  - Alanlar: Marka, Ebat, Üretim Tarihi (DOT haftası/yılı "52/23" — istemci pattern regex `^(0[1-9]|[1-4][0-9]|5[0-3])\/[0-9]{2}$` ve sunucu tarafında zorunlu doğrulama), Mevsim (Yaz / Kış / Dört Mevsim), Takılma/Değişim Tarihi, Takıldığı Andaki Araç KM.
+  - Opsiyonel Eşikler: "Değiştirilmesi Gereken KM" ve "Değiştirilmesi Gereken Tarih".
+  - Kullanım KM'si (`Vehicle.CurrentKm - InstalledKm`) statik dondurulmaz; aracın anlık KM'sine göre dinamik hesaplanır. Eski taşınan kayıtlarda `InstalledKm` boş olduğundan "Bilinmiyor" ibaresiyle gösterilir.
+- **19.3 Güncel Lastik Gösterimi ve Plaka Arama Kartı Entegrasyonu:**
+  - Güncel (en son takılan) lastik kaydı yeşil satır ve "GÜNCEL" rozetiyle vurgulanır.
+  - Araç Detay sayfasında (`/Vehicle/Details/{id}`) güncel lastik kartı (Marka, Ebat, Mevsim, DOT, Kullanım KM ve Durum) yer alır.
+  - Dashboard Plaka Arama kartında (`/Home/SearchPlate`) sorgulanan aracın güncel lastik marka/ebat, mevsim ve kullanım durumu görüntülenir.
+- **19.4 Lastik Modalları ve Soft Delete:**
+  - `#addTireModal` ve `#editTireModal` modalları HTML akışında `</body>` öncesinde kartların dışında tanımlanmıştır.
+  - Kayıtlar soft delete ile silinir; bir aracın sistemdeki tek/son aktif lastik kaydı silinemez ("Araçta en az bir kayıtlı lastik bulunmalıdır; son lastik kaydı silinemez" uyarısı).
+- **19.5 Lastik Değişim Uyarıları ve Bildirimler:**
+  - Değişim tarihine 30 gün kaldığında veya KM eşiği yaklaştığında (kalan <= 1000 KM) ya da aşıldığında Dashboard belge uyarılarında ve mevcut üst belge bildirim çanında uyarı listelenir (YENİ ZİL EKLENMEMİŞTİR).
+  - Lastik uyarısı araç durumunu `DocumentExpired` (Belgesi Geçersiz) **yapmaz**.
+- **19.6 QuestPDF Lastik Kullanım Raporu:**
+  - Sayfa üzerindeki "Lastik Kullanım Raporu PDF" butonu ile `/Vehicle/ExportTiresPdf` endpoint'i üzerinden A4 yatay formatta resmi rapor dökümü alınır.
+
+---
+
+## 20. FAZ 7 - A KULLANIM VE MALİYET RAPORLARI
+
+- **20.1 Kullanım Raporu (`/Report`):**
+  - **Süre Sütunu:** Tablo ve PDF çıktısında satır bazında `DurationHelper` ile "2 sa 40 dk" biçiminde süre sütunu yer alır.
+  - **Şoför Gruplama ve Alt Toplamlar:** Seferler şoför bazında gruplanır; her grup için "Genel Toplam Süre" ve "Genel Toplam Mesafe" alt toplamları hesaplanır.
+  - **Deduplicated Genel Toplam:** Çoklu şoförlü görevler her şoförün altında yer alabilirken, tablonun ve PDF'in sonundaki RAPOR GENEL TOPLAMI (`DistinctAssignments`) her görevi YALNIZCA BİR KEZ sayarak çifte sayımı engeller.
+- **20.2 Bakım Raporu ve Maliyet (`/Report/Maintenance`):**
+  - Bakım modelinde `Cost` (decimal? 18,2) alanı ekleme/düzenleme formlarında opsiyonel olarak girilebilir.
+  - Tablo ve PDF dökümünde her satırda Maliyet gösterilir. Boş olanlar "-" yazar ve toplamda sayılmaz.
+  - Sayfa KPI kartında ve tablonun/PDF'in altındaki dip toplamda filtrelenen kayıtların "Genel Toplam Bakım Maliyeti" yer alır.
+- **20.3 Sigorta & Muayene Raporu Maliyetleri (`/Report/InsuranceInspection`):**
+  - `VehicleDocuments` tablosundan her aracın aktif/en son Trafik Sigortası, Fenni Muayene ve Kasko poliçeleri üzerinden ödenen tutarlar ve araç bazlı toplam belge maliyeti listelenir.
+  - Tablo footer'ında ve PDF çıktısında kategori bazlı ve genel toplam belge harcamaları raporlanır.
+- **20.4 Para Birimi Formatı:**
+  - Tüm maliyet alanları Türkçe para formatında (`N2 ₺`, örn: `1.250,00 ₺`) sunulur.
+- **20.5 QuestPDF Entegrasyonu:**
+  - Tüm raporlar mevcut QuestPDF şablon yapısıyla, kurumsal A4 yatay formata uygun olarak üretilir.
+
+---
+
+## 21. FAZ 6 ARAÇ TALEP FORMU VE YÖNETİM PANELİ
+
+- **21.1 Girişsiz Araç Talep Formu (`/AracTalebi`):**
+  - **Birim Seçimi:** Serbest metin kaldırılmıştır; talep eden yalnızca admin tarafından tanımlanmış listeden açılır liste (`<select>`) ile seçim yapar.
+  - **İstenen Araç Türü:** Admin tanımlı açılır listeden seçilir (`RequestVehicleTypes`). Teknik enum'dan bağımsızdır.
+  - **Kaç Kişi:** Sayısal zorunlu alan (`PassengerCount >= 1`).
+  - **Tarih-Saat Aralığı:** Görev başlangıç ve bitiş zamanı (`datetime-local`) zorunlu alanlardır; bitişin başlangıçtan sonra olması kontrol edilir.
+  - **Görünür İkaz:** Formun üst kısmında kalıcı uyarı paneli yer alır: *"Yalnızca il içi görevlendirme yapılır."*
+  - **Güvenlik:** Mevcut SVG captcha, IP rate-limiting (`vehicle-request-limit`) ve `@duzce.edu.tr` kurumsal e-posta doğrulaması aynen korunmuştur.
+- **21.2 Yönetim Paneli — Talep Seçenekleri (`/VehicleRequest/Options`):**
+  - Yalnızca `Admin` rolü erişebilir; menüden ve talep listesi başlığından doğrudan erişim butonu bulunur. Yetki sunucu tarafında da denetlenir.
+  - **Birim Listesi Yönetimi:** Yeni birim ekleme, düzenleme ve aktif/pasif durumu değiştirme. Fiziksel silme yapılmaz (geçmiş talepler korunur).
+  - **Araç Türü Listesi Yönetimi:** Yeni araç türü ekleme, düzenleme ve aktif/pasif durumu değiştirme.
+  - **Modal Standardı:** `#departmentModal` ve `#vehicleTypeModal` modalları HTML akışında `</body>` öncesinde kartların dışında tanımlanmıştır.
+- **21.3 Talep Karşılama Ekranı (`/VehicleRequest/Fulfill/{id}`) & E-Posta Gönderimi:**
+  - Sol kartta talep sahibinin istediği araç türü ve yolcu sayısı rozet olarak gösterilir.
+  - Formda Ulaşım Şefleri ve Şoförler arasından **İletişim Kişisi** seçimi yer alır.
+  - **E-Posta Gizlilik Kuralı:** Talep onay e-postasında **görevli şoförün yalnızca ADI** gösterilir (şoförün telefonu ve e-postası gizlenir). Talep sahibinin koordinasyon için arayacağı kişi olarak seçilen İletişim Kişisinin adı, telefonu ve e-postası e-postaya eklenir.
+  - **E-Posta Hata Toleransı:** Kurumsal SMTP yapılandırılmamışsa veya e-posta sunucusunda anlık hata oluşursa talep akışı ve görevlendirme çökmez; hata loglanır ve talep karşılama başarıyla tamamlanır.
+- **21.4 Bildirim Çanları:**
+  - Yeni bildirim çanı/zili eklenmemiştir; mevcut `sidebarRequestBadge` ve navbar bildirimleri aynen korunmuştur.
+
+---
+
+## 22. FAZ 8 PDF ÖNİZLEME BİLEŞENİ VE ARAYÜZ STANDARDI
+
+- **22.1 Ortak Önizleme Modalı (`_PdfPreviewModal.cshtml`):**
+  - Tüm PDF çıktıları (görev emri, arıza bildirim formu, kullanım raporu, bakım ve maliyet raporu, sigorta/muayene/kasko raporu, lastik raporu) indirme butonlarının hemen yanında "Önizle" butonu barındırır.
+  - Önizleme modalı (`#globalPdfPreviewModal`), `_AdminLayout.cshtml` ve `_SurucuLayout.cshtml` içinde `</body>` etiketinden hemen önce, herhangi bir kart veya başka modalın dışında tanımlanmıştır.
+  - Sayfa yenilenmeden iframe üzerinden PDF belgesi anlık yüklenir. Modal başlığında "İndir" ve "Kapat" butonları yer alır.
+- **22.2 Mobil Uyumluluk ve Fallback:**
+  - Mobil şoför portalında (`_SurucuLayout`) tam entegre çalışır.
+  - Mobil tarayıcılarda iframe PDF desteği bulunmadığı durumlar için modal başlığında "Yeni Sekmede Aç" butonu yer alır.
+  - Dış kütüphane (PDF.js vb.) kullanılmamış; tarayıcının yerel görüntüleyicisi ve `inline` Content-Disposition standardı kullanılmıştır.
+- **22.3 Boş Formlar:**
+  - Boş matbu görev emri ve boş matbu arıza bildirim formları da aynı önizleme modalı üzerinden doğrudan görüntülenebilir.
+
+---
+
+## 23. FAZ 7-B ARAÇ TALEPLERİ RAPORU VE PDF ÇIKTISI
+
+- **23.1 Rapor Ekranı (`/Report/VehicleRequests`):**
+  - **Erişim & Sekmeler:** Raporlar ana menüsünde `Araç Talepleri Raporu` sekmesi olarak yer alır. Tüm rapor ekranlarında (`/Report`, `/Report/Maintenance`, `/Report/InsuranceInspection`, `/Report/VehicleRequests`) sekmeler arası geçiş bulunur.
+  - **Yetki:** `Admin` ve Şef (`Kullanici`) erişebilir; sunucu tarafında doğrulanır.
+  - **Filtreler:** Tarih aralığı filtresi (Başlangıç ve Bitiş) talep oluşturulma tarihine (`CreatedAt`) göre uygulanır. Eski kayıtlarda istenen tarih alanı boş olduğu için filtreleme tutarlılığı sağlanmıştır.
+  - **KPI Özet Kartları:** Toplam Talep, Karşılanan Talep, Reddedilen Talep, Bekleyen / İncelenen Talep sayılarını gösteren kurumsal renkli istatistik kartları.
+  - **Tablo Sütunları:**
+    1. Birim (Birim adı boş kayıtlar "Belirtilmemiş" satırında toplanır, eşleşen birimler büyük/küçük harf duyarsız tek satırda birleştirilir).
+    2. Toplam Talep Sayısı
+    3. Karşılanan (Fulfilled)
+    4. Reddedilen (Rejected)
+    5. Bekleyen / Diğer (Pending)
+  - **Genel Toplam Satırı:** Tablonun sonunda tüm sütunların dip toplamını gösteren vurgulu satır.
+  - **Durum Eşleme Notu:** Tablonun altında koddaki `VehicleRequestStatus` durum eşlemesini açıklayan tek satırlık kurumsal bilgilendirme bandı yer alır.
+- **23.2 PDF Çıktısı ve Önizleme:**
+  - **PDF Yapısı:** QuestPDF tabanlı A4 Yatay (Landscape) kurumsal şablon. Düzce Üniversitesi başlığı, filtre/tarih bilgisi, özet kartları, veri tablosu, genel toplam satırı ve durum eşleme dipnotu içerir.
+  - **Önizleme Butonu:** Ortak `_PdfPreviewModal` bileşenini kullanır (`openPdfPreview('/Report/ExportVehicleRequestsPdf?StartDate=...&EndDate=...&preview=true', '...')`).
+  - **İndirme Butonu:** `preview` parametresi olmadan doğrudan PDF indirir.
+
+---
+
+## 24. FAZ 9 DASHBOARD TAKVİMİ VE GÜNLÜK DETAY MODALI
+
+- **24.1 Dashboard Takvim Bileşeni (`Views/Home/Index.cshtml`):**
+  - Dış kütüphane (FullCalendar vb.) eklenmemiştir; Razor, CSS Grid ve mevcut Inspinia/jQuery bileşenleri ile 7 sütunlu aylık ızgara olarak uygulanmıştır.
+  - Önceki Ay, Sonraki Ay ve Bugün butonları ile dinamik ay değişimi sağlanır.
+  - **Aylık Genel Görünüm:** Sade tutulmuştur. Her güne yalnızca araç doluluğu (o gün göreve çıkan/planlı araç sayısı) rozet olarak işaretlenir. Bakım, belge ve ehliyet bitişleri için mini renkli gösterge noktaları yer alır.
+- **24.2 Günlük Detay Modalı (`#dashboardCalendarDayModal`):**
+  - Bir güne tıklandığında sayfa yenilenmeden açılır. HTML akışında `</body>` öncesinde kart dışında konumlandırılmıştır.
+  - **İçerik Bölümleri:**
+    1. Planlı ve Seyirdeki Görevler (Araç plaka/marka, şoförler, kalkış/varış saati, güzergah/hedef, amaç, durum ve detay bağlantısı).
+    2. Bakımda Olan Araçlar (Araç, bakım türü, giriş tarihi, servis/firma ve bakım yönetim bağlantısı).
+    3. Süresi Dolan / Dolacak Belgeler (Periyodik Muayene, Trafik Sigortası, Kasko Poliçesi, Lastik Değişim tarihi).
+    4. Geçerlilik Süresi Dolan Şoför Ehliyetleri (Şoför adı, birim, ehliyet sınıfı, geçerlilik bitiş tarihi).
+- **24.3 Renk ve Tasarım Uyumu:**
+  - Mevcut kurumsal renk kodları ve durum rozetleri (`bg-primary`, `bg-warning`, `bg-danger`, `bg-info`) ile birebir uyumludur.
+  - Yeni bildirim zili/çanı eklenmemiştir.
+
+---
+
+## 25. FAZ 1-B YETKİ DEVRİ (VEKÂLET) VE AUDITLOG DENETİM İZİ ARAYÜZÜ
+
+- **25.1 Yetki Devri Ekranı (`/RoleDelegation`):**
+  - **Erişim:** Sol menüde "Yetki Devri (Vekâlet)" linki üzerinden erişilir. Admin, Daire Başkanı, Genel Sekreter ve Şefler görür. Genel Sekreter için ekran salt okunurdur ("Yetkiyi Devret" ve "Sonlandır" butonları gizlenir).
+  - **KPI Kartları:** Aktif Vekâlet Sayısı, Planlı / İleri Tarihli Sayısı, Tamamlanan Sayısı, İptal Edilen Sayısı.
+  - **Vekâlet Listesi Tablosu:**
+    1. Belge / Id (`YD-00001` formatında)
+    2. Görevi Devreden (Asıl Şef)
+    3. Görevi Devralan (Vekil personel ve asıl rolü)
+    4. Vekâlet Tarih Aralığı (Başlangıç - Bitiş)
+    5. Durum Rozeti (Aktif [yeşil], Planlı [mavi], Bitti [gri], İptal Edildi [kırmızı])
+    6. Gerekçe & İptal Notu
+    7. İşlemler: Belge Önizle (`_PdfPreviewModal` ile iframe içinde), PDF İndir ve Sonlandır (yalnızca aktif/planlı ve yetkili olunan kayıtlarda).
+  - **Modal Mimarisi:** `#modalCreateDelegation` ve `#modalRevokeDelegation` HTML yapıları sayfa gövdesinde diğer kartların/container'ların dışında, `</body>` kapanışından hemen önce yer alır. Böylece iç içe modal backdrop donması kesin olarak engellenir.
+  - **Çakışma Listesi Uyarısı:** Devralan şoförün ilgili aralıkta onaylı veya seyirde görevi varsa modal içinde kırmızı liste olarak gösterilir ve işlem onaylanmaz.
+- **25.2 Üst Bilgilendirme Bandı (`_AdminLayout.cshtml`):**
+  - **Asıl Şef İçin:** Görevini devrettiği aktif bir vekâlet varsa sayfa tepesinde mavi bilgi bandı çıkar: *"Şu anda Ulaşım Şefliği yetkileriniz geçici olarak [Vekil Adı] personeline devredilmiştir."* ve doğrudan "Devri Sonlandır" butonu sunulur.
+  - **Vekil Personel İçin:** Bir Şefin görevini vekâleten yürütüyorsa sayfa tepesinde yeşil/kehribar bant çıkar: *"[Asıl Şef Adı] adına vekâleten Ulaşım Şefliği yetkilerini kullanmaktasınız."*
+- **25.3 Denetim Günlüğü (`/AuditLog`):**
+  - Vekâleten yapılan işlemlerde işlemi yapan sütununda: `Ali Demir (Ahmet Şef adına vekâleten [YD-00001])` şeklinde mavi rozet gösterilir.
+- **25.4 Yetki Devri Belgesi (QuestPDF):**
+  - T.C. DÜZCE ÜNİVERSİTESİ resmi anteti, "YETKİ DEVRİ (VEKÂLET) BELGESİ" başlığı, Belge No, Düzenleme Tarihi, "Dayanak: ........", tarafların bilgileri, vekâlet aralığı ve gerekçesi ile iki imza kutusu (Görevi Devreden, Görevi Devralan) içerir.
 

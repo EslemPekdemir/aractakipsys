@@ -521,6 +521,76 @@ namespace aractakipsys.Migrations
                     b.ToTable("AssignmentDrivers");
                 });
 
+            modelBuilder.Entity("aractakipsys.Models.Entities.AssignmentRouteChange", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChangedByFullName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ChangedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsReviewedByAdmin")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NewDestination")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("NewRoute")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("OldDestination")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("OldRoute")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("AssignmentRouteChanges", (string)null);
+                });
+
             modelBuilder.Entity("aractakipsys.Models.Entities.AuditLog", b =>
                 {
                     b.Property<int>("Id")
@@ -539,6 +609,9 @@ namespace aractakipsys.Migrations
                     b.Property<string>("ChangedByUserId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int?>("DelegationId")
+                        .HasColumnType("int");
+
                     b.Property<int>("EntityId")
                         .HasColumnType("int");
 
@@ -553,9 +626,17 @@ namespace aractakipsys.Migrations
                     b.Property<string>("OldValues")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("OnBehalfOfUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("DelegationId");
+
+                    b.HasIndex("OnBehalfOfUserId");
 
                     b.ToTable("AuditLogs");
                 });
@@ -617,6 +698,48 @@ namespace aractakipsys.Migrations
                     b.ToTable("Drivers");
                 });
 
+            modelBuilder.Entity("aractakipsys.Models.Entities.DriverLicense", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DriverId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LicenseClass")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime>("LicenseExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverId");
+
+                    b.ToTable("DriverLicenses");
+                });
+
             modelBuilder.Entity("aractakipsys.Models.Entities.Maintenance", b =>
                 {
                     b.Property<int>("Id")
@@ -624,6 +747,10 @@ namespace aractakipsys.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -668,6 +795,164 @@ namespace aractakipsys.Migrations
                     b.HasIndex("VehicleId");
 
                     b.ToTable("Maintenances");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.RequestDepartment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RequestDepartments");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.RequestVehicleType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RequestVehicleTypes");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.RoleDelegation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ActualRevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DelegatedRole")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("DelegateeUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("DelegatorUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("OriginalDelegateeRole")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RevokeReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RevokedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DelegatorUserId");
+
+                    b.HasIndex("RevokedByUserId");
+
+                    b.HasIndex("DelegateeUserId", "StartDate", "EndDate", "ActualRevokedAt", "IsDeleted")
+                        .HasDatabaseName("IX_RoleDelegations_ActiveCheck");
+
+                    b.ToTable("RoleDelegations");
                 });
 
             modelBuilder.Entity("aractakipsys.Models.Entities.Vehicle", b =>
@@ -777,6 +1062,66 @@ namespace aractakipsys.Migrations
                     b.ToTable("Vehicles");
                 });
 
+            modelBuilder.Entity("aractakipsys.Models.Entities.VehicleDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CompanyName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PolicyOrStationNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("VehicleDocuments");
+                });
+
             modelBuilder.Entity("aractakipsys.Models.Entities.VehicleFaultReport", b =>
                 {
                     b.Property<int>("Id")
@@ -861,6 +1206,22 @@ namespace aractakipsys.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ContactEmail")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ContactFullName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("ContactUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -885,6 +1246,9 @@ namespace aractakipsys.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("PassengerCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("Purpose")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -899,6 +1263,16 @@ namespace aractakipsys.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(max)")
                         .HasDefaultValue("OfficialTrip");
+
+                    b.Property<DateTime?>("RequestedEndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RequestedStartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RequestedVehicleType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("RequesterEmail")
                         .IsRequired()
@@ -929,6 +1303,8 @@ namespace aractakipsys.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ContactUserId");
+
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("FulfilledAssignmentId");
@@ -940,6 +1316,80 @@ namespace aractakipsys.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("VehicleRequests");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.VehicleTire", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("Cost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DotDate")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime?>("InstalledDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("InstalledKm")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("ProductionYear")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RecommendedReplaceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RecommendedReplaceKm")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Season")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Size")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "IsDeleted");
+
+                    b.ToTable("VehicleTires", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1058,6 +1508,25 @@ namespace aractakipsys.Migrations
                     b.Navigation("Driver");
                 });
 
+            modelBuilder.Entity("aractakipsys.Models.Entities.AssignmentRouteChange", b =>
+                {
+                    b.HasOne("aractakipsys.Models.Entities.Assignment", "Assignment")
+                        .WithMany("RouteChanges")
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("ChangedByUser");
+                });
+
             modelBuilder.Entity("aractakipsys.Models.Entities.AuditLog", b =>
                 {
                     b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "ChangedByUser")
@@ -1065,7 +1534,21 @@ namespace aractakipsys.Migrations
                         .HasForeignKey("ChangedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("aractakipsys.Models.Entities.RoleDelegation", "Delegation")
+                        .WithMany()
+                        .HasForeignKey("DelegationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "OnBehalfOfUser")
+                        .WithMany()
+                        .HasForeignKey("OnBehalfOfUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("ChangedByUser");
+
+                    b.Navigation("Delegation");
+
+                    b.Navigation("OnBehalfOfUser");
                 });
 
             modelBuilder.Entity("aractakipsys.Models.Entities.Driver", b =>
@@ -1079,12 +1562,60 @@ namespace aractakipsys.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("aractakipsys.Models.Entities.DriverLicense", b =>
+                {
+                    b.HasOne("aractakipsys.Models.Entities.Driver", "Driver")
+                        .WithMany("DriverLicenses")
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Driver");
+                });
+
             modelBuilder.Entity("aractakipsys.Models.Entities.Maintenance", b =>
                 {
                     b.HasOne("aractakipsys.Models.Entities.Vehicle", "Vehicle")
                         .WithMany()
                         .HasForeignKey("VehicleId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.RoleDelegation", b =>
+                {
+                    b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "DelegateeUser")
+                        .WithMany()
+                        .HasForeignKey("DelegateeUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "DelegatorUser")
+                        .WithMany()
+                        .HasForeignKey("DelegatorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "RevokedByUser")
+                        .WithMany()
+                        .HasForeignKey("RevokedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DelegateeUser");
+
+                    b.Navigation("DelegatorUser");
+
+                    b.Navigation("RevokedByUser");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.VehicleDocument", b =>
+                {
+                    b.HasOne("aractakipsys.Models.Entities.Vehicle", "Vehicle")
+                        .WithMany("Documents")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Vehicle");
@@ -1124,6 +1655,11 @@ namespace aractakipsys.Migrations
 
             modelBuilder.Entity("aractakipsys.Models.Entities.VehicleRequest", b =>
                 {
+                    b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "ContactUser")
+                        .WithMany()
+                        .HasForeignKey("ContactUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("aractakipsys.Models.Entities.Assignment", "FulfilledAssignment")
                         .WithMany()
                         .HasForeignKey("FulfilledAssignmentId")
@@ -1134,19 +1670,43 @@ namespace aractakipsys.Migrations
                         .HasForeignKey("FulfilledByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("ContactUser");
+
                     b.Navigation("FulfilledAssignment");
 
                     b.Navigation("FulfilledByUser");
                 });
 
+            modelBuilder.Entity("aractakipsys.Models.Entities.VehicleTire", b =>
+                {
+                    b.HasOne("aractakipsys.Models.Entities.Vehicle", "Vehicle")
+                        .WithMany("Tires")
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("aractakipsys.Models.Entities.Assignment", b =>
                 {
                     b.Navigation("AssignmentDrivers");
+
+                    b.Navigation("RouteChanges");
                 });
 
             modelBuilder.Entity("aractakipsys.Models.Entities.Driver", b =>
                 {
                     b.Navigation("AssignmentDrivers");
+
+                    b.Navigation("DriverLicenses");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.Vehicle", b =>
+                {
+                    b.Navigation("Documents");
+
+                    b.Navigation("Tires");
                 });
 #pragma warning restore 612, 618
         }

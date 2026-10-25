@@ -14,13 +14,23 @@
             <li class="breadcrumb-item active"><strong>#@Model.Id.ToString("D4")</strong></li>
         </ol>
     </div>
-    <div class="col-sm-4 text-right pt-4">
-        <a href="/FaultReport/DownloadPdf/@Model.Id" class="btn btn-danger font-weight-bold shadow-sm mr-1" target="_blank">
-            <i class="fa fa-file-pdf-o mr-1"></i> Arıza Formu PDF İndir
-        </a>
-        <a href="/FaultReport/DownloadBlankPdf" class="btn btn-outline btn-default shadow-sm" target="_blank">
-            <i class="fa fa-print mr-1"></i> Boş Şablon
-        </a>
+    <div class="col-sm-6 text-right pt-4">
+        <div class="btn-group mr-2">
+            <button type="button" class="btn btn-outline-info font-weight-bold shadow-sm" data-pdf-preview data-pdf-url="/FaultReport/DownloadPdf/@Model.Id" title="Arıza Bildirim Formunu Önizle">
+                <i class="fa fa-eye mr-1"></i> Önizle
+            </button>
+            <a href="/FaultReport/DownloadPdf/@Model.Id" class="btn btn-danger font-weight-bold shadow-sm" target="_blank">
+                <i class="fa fa-file-pdf-o mr-1"></i> Arıza Formu İndir
+            </a>
+        </div>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary shadow-sm" data-pdf-preview data-pdf-url="/FaultReport/DownloadBlankPdf" title="Boş Arıza Formunu Önizle">
+                <i class="fa fa-eye mr-1"></i> Boş Önizle
+            </button>
+            <a href="/FaultReport/DownloadBlankPdf" class="btn btn-outline btn-default shadow-sm" target="_blank" title="Boş Arıza Formunu İndir">
+                <i class="fa fa-print mr-1"></i> Boş İndir
+            </a>
+        </div>
     </div>
 </div>
 

@@ -1,0 +1,389 @@
+@model aractakipsys.Models.ViewModels.RoleDelegation.RoleDelegationListViewModel
+@{
+    ViewData["Title"] = "Yetki Devri (Vekâlet) Yönetimi";
+    var isElevatedAdmin = Model.IsElevatedAdmin;
+    var canCreateOrRevoke = User.IsInRole("Admin") || User.IsInRole("DaireBaskani") || User.IsInRole("Kullanici");
+}
+
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-sm-8">
+        <h2><i class="fa fa-handshake-o text-primary mr-2"></i>Yetki Devri (Vekâlet) Yönetimi</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="/Home/Index">Ana Sayfa</a>
+            </li>
+            <li class="breadcrumb-item active">
+                <strong>Vekâlet Yönetimi</strong>
+            </li>
+        </ol>
+    </div>
+    <div class="col-sm-4 text-right align-self-center mt-3 mt-sm-0">
+        @if (canCreateOrRevoke)
+        {
+            <button type="button" class="btn btn-primary font-weight-bold shadow-sm" id="btnOpenCreateDelegationModal">
+                <i class="fa fa-plus-circle mr-1"></i> @(isElevatedAdmin ? "Yeni Yetki Devri Oluştur" : "Görevimi Devret")
+            </button>
+        }
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+    <div class="ibox float-e-margins">
+        <div class="ibox-title d-flex justify-content-between align-items-center">
+            <h5>
+                <i class="fa fa-list mr-1"></i> 
+                @(isElevatedAdmin ? "Tüm Yetki Devri Kayıtları" : "Yetki Devri Geçmişim")
+            </h5>
+            <span class="label label-primary">Toplam: @Model.Delegations.Count Kayıt</span>
+        </div>
+        <div class="ibox-content p-0">
+            @if (!Model.Delegations.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="fa fa-handshake-o text-muted mb-3" style="font-size: 3.5rem; opacity: 0.3;"></i>
+                    <h4 class="font-weight-bold text-secondary">Kayıtlı Yetki Devri Bulunmuyor</h4>
+                    <p class="text-muted mb-0">Sistemde henüz oluşturulmuş bir yetki devri / vekâlet kaydı mevcut değildir.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="bg-light text-dark">
+                            <tr>
+                                <th style="width: 80px;">Belge No</th>
+                                <th>Görevi Devreden (Asıl)</th>
+                                <th>Görevi Devralan (Vekil)</th>
+                                <th>Tarih Aralığı</th>
+                                <th class="text-center" style="width: 110px;">Durum</th>
+                                <th>Gerekçe</th>
+                                <th class="text-right" style="width: 220px;">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Delegations)
+                            {
+                                <tr>
+                                    <td class="align-middle font-weight-bold text-dark">
+                                        #@item.Id.ToString("D5")
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="font-weight-bold text-dark">@item.DelegatorFullName</div>
+                                        <small class="text-muted"><i class="fa fa-user-circle mr-1"></i>Ulaşım Şefi</small>
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="font-weight-bold text-primary">@item.DelegateeFullName</div>
+                                        <small class="text-muted">
+                                            Asıl Rol: <strong>@(item.OriginalDelegateeRole == "Driver" ? "Şoför" : "Ulaşım Şefi")</strong>
+                                        </small>
+                                    </td>
+                                    <td class="align-middle small">
+                                        <div><i class="fa fa-calendar-check-o text-success mr-1"></i>@item.StartDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                                        <div><i class="fa fa-calendar-times-o text-danger mr-1"></i>@item.EndDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                                        @if (item.ActualRevokedAt.HasValue)
+                                        {
+                                            <div class="text-danger font-weight-bold mt-1">
+                                                <i class="fa fa-stop-circle mr-1"></i>İptal: @item.ActualRevokedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="badge @item.StatusBadgeClass px-3 py-1 font-12" style="border-radius: 12px;">
+                                            @item.StatusText
+                                        </span>
+                                    </td>
+                                    <td class="align-middle small text-muted" style="max-width: 240px;">
+                                        <div class="text-truncate" title="@item.Reason">@item.Reason</div>
+                                        @if (!string.IsNullOrWhiteSpace(item.RevokeReason))
+                                        {
+                                            <div class="text-danger text-truncate font-italic mt-1" title="@item.RevokeReason">
+                                                İptal Notu: @item.RevokeReason
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="align-middle text-right">
+                                        <button type="button" class="btn btn-outline-info btn-sm mr-1" data-pdf-preview data-pdf-url="/RoleDelegation/Print/@item.Id" title="Yetki Devri Belgesi Önizle">
+                                            <i class="fa fa-eye"></i> Belge
+                                        </button>
+                                        <a href="/RoleDelegation/Print/@item.Id" class="btn btn-outline-secondary btn-sm mr-1" download title="PDF İndir">
+                                            <i class="fa fa-download"></i>
+                                        </a>
+
+                                        @if (item.CanBeRevoked && canCreateOrRevoke)
+                                        {
+                                            if (isElevatedAdmin || item.DelegatorUserId == Model.CurrentUserId)
+                                            {
+                                                <button type="button" class="btn btn-outline-danger btn-sm font-weight-bold btn-revoke-delegation" data-id="@item.Id" title="Yetki Devrini Sonlandır">
+                                                    <i class="fa fa-stop-circle mr-1"></i> Sonlandır
+                                                </button>
+                                            }
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@* 
+    DÜZELTME 9: Modal HTML'i </body> öncesinde ve diğer kartların/modalların dışında yer alır.
+    Böylece iç içe modal backdrop kilitlenmesi önlenir.
+*@
+<div class="modal fade" id="modalCreateDelegation" tabindex="-1" role="dialog" aria-labelledby="modalCreateDelegationTitle" aria-hidden="true" style="z-index: 1050;">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header bg-primary text-white py-3 px-4">
+                <h5 class="modal-title font-weight-bold font-16 mb-0" id="modalCreateDelegationTitle">
+                    <i class="fa fa-handshake-o mr-2"></i>Yetki Devri (Vekâlet) Oluştur
+                </h5>
+                <button type="button" class="close text-white opacity-80" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formCreateDelegation">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4 bg-light">
+                    <div id="delegationErrorAlert" class="alert alert-danger d-none shadow-sm mb-3">
+                        <div class="font-weight-bold" id="delegationErrorMessage"></div>
+                        <ul id="delegationConflictList" class="mb-0 mt-2 pl-3 d-none"></ul>
+                    </div>
+
+                    @if (isElevatedAdmin)
+                    {
+                        <div class="form-group">
+                            <label class="font-weight-bold text-dark font-13">Görevi Devreden Personel (Asıl Şef) <span class="text-danger">*</span></label>
+                            <select id="selectDelegatorUserId" name="DelegatorUserId" class="form-control" style="width: 100%;" required>
+                                <option value="">-- Asıl Ulaşım Şefini Seçiniz --</option>
+                            </select>
+                            <small class="form-text text-muted">Admin ve Daire Başkanı dilediği Şef adına yetki devri oluşturabilir.</small>
+                        </div>
+                    }
+
+                    <div class="form-group">
+                        <label class="font-weight-bold text-dark font-13">Görevi Devralacak Personel (Vekil) <span class="text-danger">*</span></label>
+                        <select id="selectDelegateeUserId" name="DelegateeUserId" class="form-control" style="width: 100%;" required>
+                            <option value="">-- Vekil Personeli (Şef veya Şoför) Seçiniz --</option>
+                        </select>
+                        <small class="form-text text-muted">Yalnızca aktif Ulaşım Şefi veya Şoför seçilebilir. Devralan şoförse, aralık boyunca saha görevlerine çıkamaz.</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-dark font-13">Başlangıç Tarih ve Saat <span class="text-danger">*</span></label>
+                            <input type="datetime-local" id="inputDelegationStart" name="StartDate" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 form-group">
+                            <label class="font-weight-bold text-dark font-13">Bitiş Tarih ve Saat <span class="text-danger">*</span></label>
+                            <input type="datetime-local" id="inputDelegationEnd" name="EndDate" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-dark font-13">Devir Gerekçesi / Açıklama <span class="text-danger">*</span></label>
+                        <textarea id="inputDelegationReason" name="Reason" rows="3" class="form-control" placeholder="Örn: Yıllık izin / rapor / idari görevlendirme nedeniyle Ulaşım Şefliği yetkileri geçici olarak devredilmiştir." maxlength="500" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 px-4 bg-white border-top d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary font-weight-bold" id="btnSubmitDelegation">
+                        <i class="fa fa-check mr-1"></i> Yetkiyi Devret
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@* Devri Sonlandır Onay Modalı *@
+<div class="modal fade" id="modalRevokeDelegation" tabindex="-1" role="dialog" aria-labelledby="modalRevokeDelegationTitle" aria-hidden="true" style="z-index: 1055;">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header bg-danger text-white py-3 px-4">
+                <h5 class="modal-title font-weight-bold font-16 mb-0" id="modalRevokeDelegationTitle">
+                    <i class="fa fa-stop-circle mr-2"></i>Yetki Devrini Sonlandır
+                </h5>
+                <button type="button" class="close text-white opacity-80" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formRevokeDelegation">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="revokeDelegationId" name="DelegationId" />
+                <div class="modal-body p-4 bg-light">
+                    <p class="text-dark mb-3">
+                        Bu yetki devrini şimdi sonlandırmak üzeresiniz. İşlem onaylandığında vekil personelin Şef rolü yetkileri <strong>ANINDA</strong> kaldırılacaktır.
+                    </p>
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-dark font-13">Sonlandırma / Erken Dönüş Gerekçesi</label>
+                        <textarea id="revokeReason" name="RevokeReason" rows="2" class="form-control" placeholder="Örn: Göreve erken dönüş sağlandı." maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2 px-4 bg-white border-top d-flex justify-content-between align-items-center">
+                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger font-weight-bold" id="btnSubmitRevoke">
+                        <i class="fa fa-stop mr-1"></i> Evet, Devri Sonlandır
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Modal Açma ve Veri Doldurma
+            $('#btnOpenCreateDelegationModal').on('click', function () {
+                var $btn = $(this);
+                $btn.prop('disabled', true);
+
+                $.ajax({
+                    url: '/RoleDelegation/GetCreateModal',
+                    type: 'GET',
+                    success: function (res) {
+                        $btn.prop('disabled', false);
+                        if (res.success) {
+                            if (res.isElevatedAdmin && res.eligibleDelegators) {
+                                var $delSelect = $('#selectDelegatorUserId');
+                                $delSelect.empty().append('<option value="">-- Asıl Ulaşım Şefini Seçiniz --</option>');
+                                $.each(res.eligibleDelegators, function (i, item) {
+                                    $delSelect.append($('<option>', { value: item.value, text: item.text }));
+                                });
+                            }
+
+                            var $targetSelect = $('#selectDelegateeUserId');
+                            $targetSelect.empty().append('<option value="">-- Vekil Personeli (Şef veya Şoför) Seçiniz --</option>');
+                            $.each(res.eligibleDelegatees, function (i, item) {
+                                $targetSelect.append($('<option>', { value: item.value, text: item.text }));
+                            });
+
+                            // Varsayılan tarihler (Başlangıç: şimdi, Bitiş: yarın akşam)
+                            var now = new Date();
+                            var tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            tomorrow.setHours(18, 0, 0, 0);
+
+                            var formatDt = function (d) {
+                                var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+                                return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+                            };
+
+                            $('#inputDelegationStart').val(formatDt(now));
+                            $('#inputDelegationEnd').val(formatDt(tomorrow));
+                            $('#inputDelegationReason').val('');
+                            $('#delegationErrorAlert').addClass('d-none');
+                            $('#delegationConflictList').empty().addClass('d-none');
+
+                            $('#modalCreateDelegation').modal('show');
+                        } else {
+                            toastr.error(res.message || 'Yetki devri formu yüklenemedi.');
+                        }
+                    },
+                    error: function () {
+                        $btn.prop('disabled', false);
+                        toastr.error('Sunucu ile iletişim kurulurken hata oluştu.');
+                    }
+                });
+            });
+
+            // Yetki Devri Oluşturma POST
+            $('#formCreateDelegation').on('submit', function (e) {
+                e.preventDefault();
+                var $btn = $('#btnSubmitDelegation');
+                $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Kaydediliyor...');
+
+                $('#delegationErrorAlert').addClass('d-none');
+                $('#delegationConflictList').empty().addClass('d-none');
+
+                var postData = {
+                    DelegatorUserId: $('#selectDelegatorUserId').val() || null,
+                    DelegateeUserId: $('#selectDelegateeUserId').val(),
+                    StartDate: $('#inputDelegationStart').val(),
+                    EndDate: $('#inputDelegationEnd').val(),
+                    Reason: $('#inputDelegationReason').val()
+                };
+
+                var token = $('input[name="__RequestVerificationToken"]', '#formCreateDelegation').val();
+
+                $.ajax({
+                    url: '/RoleDelegation/Create',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: { 'RequestVerificationToken': token },
+                    data: JSON.stringify(postData),
+                    success: function (res) {
+                        $btn.prop('disabled', false).html('<i class="fa fa-check mr-1"></i> Yetkiyi Devret');
+                        if (res.success) {
+                            toastr.success(res.message || 'Yetki devri başarıyla oluşturuldu.');
+                            $('#modalCreateDelegation').modal('hide');
+                            setTimeout(function () { location.reload(); }, 600);
+                        } else {
+                            $('#delegationErrorMessage').text(res.message || 'Yetki devri oluşturulamadı.');
+                            if (res.conflictingAssignments && res.conflictingAssignments.length > 0) {
+                                var $list = $('#delegationConflictList');
+                                $list.empty();
+                                $.each(res.conflictingAssignments, function (i, duty) {
+                                    $list.append($('<li>', { text: duty }));
+                                });
+                                $list.removeClass('d-none');
+                            }
+                            $('#delegationErrorAlert').removeClass('d-none');
+                        }
+                    },
+                    error: function (xhr) {
+                        $btn.prop('disabled', false).html('<i class="fa fa-check mr-1"></i> Yetkiyi Devret');
+                        toastr.error('İşlem sırasında sunucu hatası oluştu: ' + (xhr.responseText || ''));
+                    }
+                });
+            });
+
+            // Devri Sonlandır Butonları (Hem listedeki hem layout üst banner'ındaki)
+            $(document).on('click', '.btn-revoke-delegation', function () {
+                var id = $(this).attr('data-id');
+                $('#revokeDelegationId').val(id);
+                $('#revokeReason').val('');
+                $('#modalRevokeDelegation').modal('show');
+            });
+
+            // Devri Sonlandır POST
+            $('#formRevokeDelegation').on('submit', function (e) {
+                e.preventDefault();
+                var $btn = $('#btnSubmitRevoke');
+                $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Sonlandırılıyor...');
+
+                var postData = {
+                    DelegationId: parseInt($('#revokeDelegationId').val()),
+                    RevokeReason: $('#revokeReason').val()
+                };
+
+                var token = $('input[name="__RequestVerificationToken"]', '#formRevokeDelegation').val();
+
+                $.ajax({
+                    url: '/RoleDelegation/Revoke',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    headers: { 'RequestVerificationToken': token },
+                    data: JSON.stringify(postData),
+                    success: function (res) {
+                        $btn.prop('disabled', false).html('<i class="fa fa-stop mr-1"></i> Evet, Devri Sonlandır');
+                        if (res.success) {
+                            toastr.success(res.message || 'Yetki devri sonlandırıldı.');
+                            $('#modalRevokeDelegation').modal('hide');
+                            setTimeout(function () { location.reload(); }, 500);
+                        } else {
+                            toastr.error(res.message || 'İşlem başarısız oldu.');
+                        }
+                    },
+                    error: function () {
+                        $btn.prop('disabled', false).html('<i class="fa fa-stop mr-1"></i> Evet, Devri Sonlandır');
+                        toastr.error('Sunucu ile iletişim kurulurken hata oluştu.');
+                    }
+                });
+            });
+        });
+    </script>
+}

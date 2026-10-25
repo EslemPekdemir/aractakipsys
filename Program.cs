@@ -82,6 +82,8 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ICaptchaService, CaptchaService>();
 builder.Services.AddScoped<IFaultReportService, FaultReportService>();
 builder.Services.AddScoped<IKmValidationService, KmValidationService>();
+builder.Services.AddScoped<IRoleDelegationService, RoleDelegationService>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, aractakipsys.Common.DelegationClaimsTransformation>();
 
 // 3.2 Arka Plan Servisleri (Background / Hosted Services)
 builder.Services.AddHostedService<aractakipsys.Services.BackgroundServices.VehicleDocumentExpirationWorker>();
@@ -99,10 +101,11 @@ else
     builder.Services.AddScoped<IEmailService, ConsoleEmailService>();
 }
 
-// 4. MVC Controller ve View Servisleri (Özel Invariant Decimal Model Binder ile hem nokta hem virgül desteği)
+// 4. MVC Controller ve View Servisleri (Özel Invariant Decimal Model Binder ve Salt Okunur Filtresi)
 builder.Services.AddControllersWithViews(options =>
 {
     options.ModelBinderProviders.Insert(0, new InvariantDecimalModelBinderProvider());
+    options.Filters.Add<aractakipsys.Filters.ReadOnlyRoleFilter>();
 });
 
 // 4.1 İstek Hız Sınırlandırması (Rate Limiting - ASP.NET Core Built-in)

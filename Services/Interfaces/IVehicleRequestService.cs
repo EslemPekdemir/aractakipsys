@@ -16,4 +16,13 @@ public interface IVehicleRequestService
     Task<(bool Success, string Message, int AssignmentId)> FulfillRequestAsync(VehicleRequestFulfillViewModel model, string adminUserId);
     Task<(bool Success, string Message)> RejectRequestAsync(int requestId, string rejectionReason, string adminUserId);
     Task<PendingNotificationSummaryViewModel> GetPendingNotificationSummaryAsync();
+
+    // Talep Seçenekleri (Admin Yönetimi)
+    Task<RequestOptionsPageViewModel> GetRequestOptionsAsync();
+    Task<(bool Success, string Message)> SaveDepartmentAsync(RequestDepartmentCreateOrEditViewModel model, string adminUserId);
+    Task<(bool Success, string Message)> ToggleDepartmentActiveAsync(int id, string adminUserId);
+    Task<(bool Success, string Message)> SaveVehicleTypeAsync(RequestVehicleTypeCreateOrEditViewModel model, string adminUserId);
+    Task<(bool Success, string Message)> ToggleVehicleTypeActiveAsync(int id, string adminUserId);
+    Task<List<string>> GetActiveDepartmentsAsync();
+    Task<List<string>> GetActiveVehicleTypesAsync();
 }

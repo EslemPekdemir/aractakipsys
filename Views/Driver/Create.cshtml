@@ -81,29 +81,68 @@
                                 <i class="fa fa-id-card mr-1"></i> Sürücü Belgesi ve Birim Bilgileri
                             </h5>
 
-                            <div class="row mb-3">
-                                <div class="col-12 col-sm-7 mb-3 mb-sm-0">
-                                    <label asp-for="LicenseNumber" class="font-weight-bold">Ehliyet Belge No <span class="text-danger">*</span></label>
-                                    <input asp-for="LicenseNumber" class="form-control text-uppercase" placeholder="Örn: TR-81-99881" />
-                                    <span asp-validation-for="LicenseNumber" class="text-danger small font-weight-bold"></span>
-                                </div>
-                                <div class="col-12 col-sm-5">
-                                    <label asp-for="LicenseClass" class="font-weight-bold">Ehliyet Sınıfı <span class="text-danger">*</span></label>
-                                    <input asp-for="LicenseClass" class="form-control text-uppercase" placeholder="Örn: B, D, E" />
-                                    <span asp-validation-for="LicenseClass" class="text-danger small font-weight-bold"></span>
-                                </div>
-                            </div>
-
                             <div class="form-group mb-3">
-                                <label asp-for="LicenseExpiryDate" class="font-weight-bold">Ehliyet Son Geçerlilik Tarihi <span class="text-danger">*</span></label>
-                                <input asp-for="LicenseExpiryDate" type="date" class="form-control" />
-                                <span asp-validation-for="LicenseExpiryDate" class="text-danger small font-weight-bold"></span>
+                                <label asp-for="LicenseNumber" class="font-weight-bold">Ehliyet Belge No <span class="text-danger">*</span></label>
+                                <input asp-for="LicenseNumber" class="form-control text-uppercase" placeholder="Örn: TR-81-99881" />
+                                <span asp-validation-for="LicenseNumber" class="text-danger small font-weight-bold"></span>
+                                <small class="form-text text-muted">Ehliyet Belge Numarası şoför kaydında tekildir.</small>
                             </div>
 
                             <div class="form-group mb-3">
                                 <label asp-for="Department" class="font-weight-bold">Bağlı Olunan Birim / Departman <span class="text-danger">*</span></label>
                                 <input asp-for="Department" class="form-control" placeholder="Örn: Rektörlük Ulaştırma Birimi" />
                                 <span asp-validation-for="Department" class="text-danger small font-weight-bold"></span>
+                            </div>
+
+                            <!-- ÇOKLU EHLİYET LİSTESİ -->
+                            <div class="card bg-light border p-3 mb-3" style="border-radius: 8px;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="font-weight-bold mb-0 text-dark">
+                                        <i class="fa fa-id-card-o mr-1"></i> Ehliyet Sınıfları & Geçerlilik <span class="text-danger">*</span>
+                                    </label>
+                                    <button type="button" class="btn btn-xs btn-primary font-weight-bold" onclick="addLicenseRow()">
+                                        <i class="fa fa-plus mr-1"></i> Ehliyet Ekle
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mb-3">Şoförün sahip olduğu ehliyet sınıflarını (B, D, E vb.) ve geçerlilik tarihlerini giriniz.</small>
+
+                                <div id="licensesContainer">
+                                    @if (Model.Licenses != null && Model.Licenses.Any())
+                                    {
+                                        for (int i = 0; i < Model.Licenses.Count; i++)
+                                        {
+                                            <div class="row align-items-center mb-2 license-row" data-index="@i">
+                                                <div class="col-4">
+                                                    <input type="text" name="Licenses[@i].LicenseClass" value="@Model.Licenses[i].LicenseClass" class="form-control form-control-sm text-uppercase" placeholder="Sınıf (B, E)" required />
+                                                </div>
+                                                <div class="col-6">
+                                                    <input type="date" name="Licenses[@i].LicenseExpiryDate" value="@(Model.Licenses[i].LicenseExpiryDate.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" required />
+                                                </div>
+                                                <div class="col-2 text-right">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-license" onclick="removeLicenseRow(this)" title="Satırı Sil">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="row align-items-center mb-2 license-row" data-index="0">
+                                            <div class="col-4">
+                                                <input type="text" name="Licenses[0].LicenseClass" value="@(string.IsNullOrEmpty(Model.LicenseClass) ? "B" : Model.LicenseClass)" class="form-control form-control-sm text-uppercase" placeholder="Sınıf (B, E)" required />
+                                            </div>
+                                            <div class="col-6">
+                                                <input type="date" name="Licenses[0].LicenseExpiryDate" value="@(Model.LicenseExpiryDate?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" required />
+                                            </div>
+                                            <div class="col-2 text-right">
+                                                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-license" onclick="removeLicenseRow(this)" title="Satırı Sil">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -151,5 +190,47 @@
         }
         $('#passwordInput').val(arr.join(''));
     }
+
+    function reindexLicenseRows() {
+        $('#licensesContainer .license-row').each(function (idx) {
+            $(this).attr('data-index', idx);
+            $(this).find('input[name$=".LicenseClass"]').attr('name', `Licenses[${idx}].LicenseClass`);
+            $(this).find('input[name$=".LicenseExpiryDate"]').attr('name', `Licenses[${idx}].LicenseExpiryDate`);
+        });
+        const rowCount = $('#licensesContainer .license-row').length;
+        $('.btn-remove-license').prop('disabled', rowCount <= 1);
+    }
+
+    function addLicenseRow() {
+        const nextIdx = $('#licensesContainer .license-row').length;
+        const html = `
+            <div class="row align-items-center mb-2 license-row" data-index="${nextIdx}">
+                <div class="col-4">
+                    <input type="text" name="Licenses[${nextIdx}].LicenseClass" class="form-control form-control-sm text-uppercase" placeholder="Sınıf (B, E)" required />
+                </div>
+                <div class="col-6">
+                    <input type="date" name="Licenses[${nextIdx}].LicenseExpiryDate" class="form-control form-control-sm" required />
+                </div>
+                <div class="col-2 text-right">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-license" onclick="removeLicenseRow(this)" title="Satırı Sil">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        $('#licensesContainer').append(html);
+        reindexLicenseRows();
+    }
+
+    function removeLicenseRow(btn) {
+        if ($('#licensesContainer .license-row').length > 1) {
+            $(btn).closest('.license-row').remove();
+            reindexLicenseRows();
+        }
+    }
+
+    $(document).ready(function () {
+        reindexLicenseRows();
+    });
 </script>
 }

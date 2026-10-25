@@ -160,6 +160,7 @@
                             <th>Başlangıç Tarihi</th>
                             <th>Bitiş Tarihi</th>
                             <th>Servis / Firma</th>
+                            <th class="text-right">Maliyet</th>
                             <th class="text-center">Durum</th>
                             <th class="text-right" style="width: 170px;">İşlemler</th>
                         </tr>
@@ -195,6 +196,9 @@
                                 </td>
                                 <td class="align-middle small text-muted">
                                     @(string.IsNullOrWhiteSpace(item.PerformedBy) ? "-" : item.PerformedBy)
+                                </td>
+                                <td class="align-middle text-right font-weight-bold">
+                                    @(item.Cost.HasValue ? $"{item.Cost.Value:N2} ₺" : "-")
                                 </td>
                                 <td class="align-middle text-center">
                                     <span class="badge @item.StatusBadgeClass px-2 py-1" style="border-radius: 12px; font-size: 0.8rem;">

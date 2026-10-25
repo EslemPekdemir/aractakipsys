@@ -4,9 +4,11 @@ using aractakipsys.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using aractakipsys.Common;
+
 namespace aractakipsys.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = AppRoles.ManagementAndAudit)]
 [Route("AuditLog")]
 public class AuditLogController : Controller
 {

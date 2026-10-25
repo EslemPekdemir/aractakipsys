@@ -44,7 +44,29 @@ public class VehicleRequest : BaseAuditableEntity
     [StringLength(500)]
     public string? RejectionReason { get; set; }
 
+    [StringLength(100, ErrorMessage = "İstenen araç türü en fazla 100 karakter olabilir.")]
+    public string? RequestedVehicleType { get; set; }
+
+    public int? PassengerCount { get; set; }
+
+    public DateTime? RequestedStartTime { get; set; }
+
+    public DateTime? RequestedEndTime { get; set; }
+
+    [StringLength(450)]
+    public string? ContactUserId { get; set; }
+
+    [StringLength(150)]
+    public string? ContactFullName { get; set; }
+
+    [StringLength(30)]
+    public string? ContactPhone { get; set; }
+
+    [StringLength(150)]
+    public string? ContactEmail { get; set; }
+
     // Navigation Properties
     public Assignment? FulfilledAssignment { get; set; }
     public ApplicationUser? FulfilledByUser { get; set; }
+    public ApplicationUser? ContactUser { get; set; }
 }

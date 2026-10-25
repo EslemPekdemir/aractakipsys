@@ -18,7 +18,7 @@
 
 ## 1. ADMIN/KULLANICI — VehicleController (`/Vehicle`)
 
-> **Rol güncellemesi:** Sistemde 3. bir rol (`Kullanici` — Şoför Şefi) eklendi. Aşağıdaki tüm yönetim ekranlarında rol artık `Admin,Kullanici` — sadece `AuditLogController` (Bölüm 6) Admin'e özel kalıyor.
+> **Rol güncellemesi (Faz 1-A):** Sistemde 5 rol (`Admin`, `DaireBaskani`, `GenelSekreter`, `Kullanici`, `Driver`) tanımlıdır. Operasyonel yönetim ekranlarında rol `AllStaffAndManagers` (`Admin,DaireBaskani,GenelSekreter,Kullanici`). `GenelSekreter` salt okunurdur ve `ReadOnlyRoleFilter` filtresi ile korunur. `AuditLogController` `Admin,DaireBaskani,GenelSekreter` rollerine açıktır. `SefController` ise yalnızca `Admin,DaireBaskani` rollerine açıktır (GenelSekreter giremez). Talep Seçenekleri (`/VehicleRequest/Options`) `Admin,DaireBaskani` rollerine açıktır.
 
 | Action | HTTP | Route | Rol | Açıklama |
 |---|---|---|---|---|
@@ -27,6 +27,15 @@
 | Create | GET/POST | `/Vehicle/Create` | Admin,Kullanici | Yeni araç ekleme formu. POST'ta `VehicleCreateViewModel` alınır. Plaka tarihsel tekillik kontrolü (VERI-MODELI 2.1). |
 | Edit | GET/POST | `/Vehicle/Edit/{id}` | Admin,Kullanici | Araç düzenleme. **`CurrentKm` ve `Status` bu formdan elle değiştirilemez** — salt okunur gösterilir. |
 | Delete | POST | `/Vehicle/Delete/{id}` | Admin,Kullanici | Soft delete (`IsDeleted = true`). Aktif/planlı Assignment'ı olan veya devam eden bakımı olan araç silinemez — hata döndür. |
+| ExpiringDocumentSummary | GET | `/Vehicle/ExpiringDocumentSummary` | Admin,Kullanici | Navbar bildirim çanı: Süresi dolan veya 30 gün içinde dolacak belgelerin ve lastik değişim eşiklerinin özeti (JSON). |
+| Documents | GET | `/Vehicle/Documents` | Admin,Kullanici | Araç Belgeleri ve Lastik yönetim ekranı. Sekmeler: Muayene, Trafik Sigortası, Kasko, Lastik. Seçili aracın tüm geçmişi ve güncel kayıt durumu. |
+| AddDocument | POST | `/Vehicle/AddDocument` | Admin,Kullanici | Yeni araç belgesi ekleme. Başlangıç, bitiş, tutar, firma, poliçe no ve notlar kaydedilir. Vehicle tablosu senkronize edilir, AuditLog yazılır. |
+| UpdateDocument | POST | `/Vehicle/UpdateDocument/{id}` | Admin,Kullanici | Araç belgesi güncelleme. Vehicle tablosu senkronize edilir, AuditLog yazılır. |
+| DeleteDocument | POST | `/Vehicle/DeleteDocument/{id}` | Admin,Kullanici | Araç belgesi silme (soft-delete). Kalan belgelere göre Vehicle tablosu senkronize edilir, AuditLog yazılır. |
+| AddTire | POST | `/Vehicle/AddTire` | Admin,Kullanici | Yeni lastik kaydı ekleme (Marka, ebat, DOT, mevsim, takılma tarihi/KM, hedef değişim KM/tarih). Vehicle tablosu senkronize edilir, AuditLog yazılır. |
+| UpdateTire | POST | `/Vehicle/UpdateTire/{id}` | Admin,Kullanici | Lastik kaydını düzenleme. Vehicle tablosu senkronize edilir, AuditLog yazılır. |
+| DeleteTire | POST | `/Vehicle/DeleteTire/{id}` | Admin,Kullanici | Lastik kaydını soft-delete yapma. Bir aracın tek/son aktif lastik kaydı silinemez. |
+| ExportTiresPdf | GET | `/Vehicle/ExportTiresPdf` | Admin,Kullanici | Tüm araçların güncel lastik durumunu, takılma ve kullanım KM'sini içeren Lastik Kullanım Raporu PDF çıktısı. |
 
 ---
 
@@ -34,10 +43,11 @@
 
 | Action | HTTP | Route | Rol | Açıklama |
 |---|---|---|---|---|
-| Index | GET | `/Driver` | Admin,Kullanici | Şoför listesi. Filtre: `IsActive`, `Department` (Select2). Ehliyet süresi dolan/60 günden az kalanlar rozetle vurgulanır. |
-| Details | GET | `/Driver/Details/{id}` | Admin,Kullanici | Şoför detayı + aktif/geçmiş görevleri + toplam sürüş istatistiği. |
-| Create | GET/POST | `/Driver/Create` | Admin,Kullanici | Yeni şoför ekleme: hem `ApplicationUser` (Identity) hem `Driver` kaydı **transaction içinde** birlikte oluşturulur. Ehliyet no tarihsel tekillik kontrolü (VERI-MODELI 1.2). |
-| Edit | GET/POST | `/Driver/Edit/{id}` | Admin,Kullanici | Ehliyet bilgisi, birim, `IsActive` güncellemesi. Aktif görevi olan şoför pasife alınamaz. |
+| Index | GET | `/Driver` | Admin,Kullanici | Şoför listesi. Filtre: `IsActive`, `Department` (Select2). Ehliyet süresi dolan/30 günden az kalanlar rozetle vurgulanır. |
+| Details | GET | `/Driver/Details/{id}` | Admin,Kullanici | Şoför detayı + sahip olduğu tüm aktif ehliyet sınıfları ve geçerlilik tarihleri + aktif/geçmiş görevleri + toplam sürüş istatistiği. |
+| Create | GET/POST | `/Driver/Create` | Admin,Kullanici | Yeni şoför ekleme: hem `ApplicationUser` (Identity) hem `Driver` hem de girilen çoklu `DriverLicense` kayıtları **transaction içinde** oluşturulur. Ehliyet no tarihsel tekillik kontrolü (VERI-MODELI 1.2). |
+| Edit | GET/POST | `/Driver/Edit/{id}` | Admin,Kullanici | Çoklu ehliyet sınıfları, geçerlilik tarihleri, `IsActive` güncellemesi. **Birim (`Department`) bilgisi yalnızca `Admin` rolü tarafından güncellenebilir**; Şef (`Kullanici`) rolü düzenleyemez (sunucu tarafında yetki kontrolü yapılır). |
+| ExpiringLicenseSummary | GET | `/Driver/ExpiringLicenseSummary` | Admin,Kullanici | Ehliyet süresi 30 gün içinde dolacak veya dolmuş şoförlerin JSON özeti (`totalCount`, `expiringDrivers`). Bildirim çanı ve live toast kontrolü için kullanılır. |
 | **ToggleStatus** | POST | `/Driver/ToggleStatus/{id}` | Admin,Kullanici | *(Spesifikasyon dışı eklendi — onaylandı)* Tek tıkla Aktif/Pasif değiştirme. Aktif/planlı görevi olan şoförde reddedilir. Şoför pasife alınınca bağlı `ApplicationUser.IsActive = false` da senkronize edilir (giriş yetkisi anında kesilir). |
 | Delete | POST | `/Driver/Delete/{id}` | Admin,Kullanici | Soft delete. Aktif/planlı Assignment'ı olan şoför silinemez. |
 
@@ -234,10 +244,10 @@
 
 | Action | HTTP | Rol | Açıklama |
 |---|---|---|---|
-| Index (`/Report`) | GET | Admin,Kullanici | **Sefer & Kullanım Raporu** — Araç/Şoför/Tarih filtresi, sadece `Completed` görevler, PDF export. |
-| Maintenance (`/Report/Maintenance`) | GET | Admin,Kullanici | **Bakım & Tamir Dökümü** — Tarih+SAAT filtresi (`datetime-local`), PDF'de de saat bilgisi var. |
-| InsuranceInspection (`/Report/InsuranceInspection`) | GET | Admin,Kullanici | **Sigorta & Muayene Durum Raporu** — Tümü/Süresi Geçenler/30 Gün filtresi. |
-| ExportPdf / ExportMaintenancePdf / ExportInsuranceInspectionPdf | GET | Admin,Kullanici | Her rapor için ayrı PDF export action'ı, aynı filtrelerle çalışır. |
+| Index (`/Report`) | GET | Admin,Kullanici | **Sefer & Kullanım Raporu** — Araç/Şoför/Tarih filtresi, sadece `Completed` görevler, satır bazında süre (`DurationHelper`, "2 sa 40 dk"), şoför bazlı gruplar ve alt toplamlar, tekil genel toplam mesafe ve süre, PDF export. |
+| Maintenance (`/Report/Maintenance`) | GET | Admin,Kullanici | **Bakım & Tamir Dökümü** — Araç/Tür/Durum/Tarih filtresi, her satırda Maliyet (boşsa -), rapor sonunda ve KPI kartında Genel Toplam Bakım Maliyeti, PDF export. |
+| InsuranceInspection (`/Report/InsuranceInspection`) | GET | Admin,Kullanici | **Sigorta & Muayene Durum Raporu** — Tümü/Süresi Geçenler/30 Gün filtresi; `VehicleDocuments` üzerinden Trafik Sigortası, Fenni Muayene ve Kasko ödenen tutarları ve toplam belge harcamaları. |
+| ExportPdf / ExportMaintenancePdf / ExportInsuranceInspectionPdf | GET | Admin,Kullanici | Her rapor için ayrı PDF export action'ı, aynı filtrelerle çalışır; kurumsal QuestPDF formatında maliyet ve süre detaylarını döker. |
 
 > Üç rapor sayfası da aynı sekme çubuğunu paylaşır, birbirine tek tıkla geçiş sağlar (Bölüm 0'daki genel kural: tutarlı navigasyon).
 
@@ -335,5 +345,80 @@ Sisteme yüklenen tüm ikili dosyalarda (İmzalı Görev Belgeleri ve Profil Fot
 - `StartAssignment`, `EndAssignment`, `SaveVehicleChecks`, `ReportFault`: Göreve atanmış HERHANGİ bir şoför işlem yapabilir; yapan şoförün adı notlara/kayda düşülür.
 - `GorevEmri/{id}`: Giriş yapan şoförün `driverId`'si ile kendi adına olan görev emri PDF'i üretilir (yatay yetki kontrolü).
 
+---
 
+## 27. FAZ 2 - B KISMI ENDPOINT GÜNCELLEMELERİ
+
+### 27.1 SurucuController — Güzergah Değiştirme
+| Action | HTTP | Rol | Açıklama |
+|---|---|---|---|
+| `GuzergahDegistir/{id:int}` | POST (AJAX) | Driver | Seferdeki (`InProgress`) görev için şoförün yeni güzergah ve gerekçe girmesini sağlar. `[ValidateAntiForgeryToken]` zorunludur.<br>**Yatay Yetki:** Göreve atanmış (asil veya yedek) herhangi bir şoför yapabilir. Atanmamış şoför talepte bulunursa HTTP 403 `Forbid` döner.<br>**Veri:** `AssignmentRouteChange` tablosuna zaman, değiştiren şoför, eski ve yeni güzergah, gerekçe kaydedilir. Ayrıca görev ana kaydındaki `Assignment.Route` güncellenir. |
+
+### 27.2 AssignmentController — Bitiş Onayı, Şef KM Düzeltmesi ve Güzergah Bildirimi
+| Action | HTTP | Rol | Açıklama |
+|---|---|---|---|
+---
+
+## 31. FAZ 6 ENDPOINT GÜNCELLEMELERİ — ARAÇ TALEP FORMU VE YÖNETİM SEÇENEKLERİ
+
+### 31.1 VehicleRequestController (`/VehicleRequest` & `/AracTalebi`)
+| Action | HTTP | Route | Rol | Açıklama |
+|---|---|---|---|---|
+| Create | GET | `/AracTalebi`, `/VehicleRequest/Create` | Anonim (`[AllowAnonymous]`) | Girişsiz araç talep formu. Admin tanımlı aktif `RequestDepartments` ve `RequestVehicleTypes` açılır listeleri doldurulur. Formda *"Yalnızca il içi görevlendirme yapılır."* uyarısı gösterilir. |
+| Create | POST | `/AracTalebi`, `/VehicleRequest/Create` | Anonim (`[AllowAnonymous]`, RateLimiting) | Talep gönderimi. `@duzce.edu.tr` kurumsal e-posta, geçerli telefon, birim açılır listesi, istenen araç türü, yolcu sayısı (`PassengerCount >= 1`), görev başlangıç ve bitiş tarih-saat zorunluluğu doğrulanır. |
+| Success | GET | `/AracTalebi/Success/{id}` | Anonim (`[AllowAnonymous]`) | Talep onay/bilgi ekranı. |
+| Index | GET | `/VehicleRequest`, `/VehicleRequest/Index` | Admin, Kullanici | Gelen talepler tablosu. İstenen araç türü ve kişi sayısı rozetleri listelenir. Üst kısımda Admin'e özel "Talep Seçenekleri" yönetim butonu yer alır. |
+| Fulfill | GET | `/VehicleRequest/Fulfill/{id}` | Admin, Kullanici | Talebi karşılama mini-formu. Talep sahibinin istediği araç türü, kişi sayısı ve tarihleri sol kartta gösterilir. Görevlendirilecek araç ve şoförün yanı sıra Ulaşım Şefleri ve Şoförler arasından **İletişim Kişisi** seçilir. |
+| Fulfill | POST | `/VehicleRequest/Fulfill/{id}` | Admin, Kullanici | Talebi karşılayıp `Assignment` oluşturur. Talep onay e-postasında **görevli şoförün yalnızca ADI** gösterilir (şoförün telefonu/e-postası gizlenir). Talep sahibinin irtibat kurması için seçilen iletişim kişisinin adı, telefonu ve e-postası e-postaya eklenir. Kurum e-posta ayarı yoksa veya gönderim hatası olursa talep akışı kesilmez, loglanır. |
+| Reject | POST | `/VehicleRequest/Reject/{id}` | Admin, Kullanici | Talebi gerekçesiyle reddeder ve ret e-postası gönderir. |
+| Options | GET | `/VehicleRequest/Options` | **Admin (sadece)** | Birim listesi ve Araç türü listesini yönetme ekranı. Admin dışındaki roller erişemez (`[Authorize(Roles = "Admin")]`). |
+| SaveDepartment | POST | `/VehicleRequest/SaveDepartment` | **Admin (sadece)** | Yeni birim ekleme veya mevcut birimi düzenleme. `[ValidateAntiForgeryToken]` zorunlu. |
+| ToggleDepartment | POST | `/VehicleRequest/ToggleDepartment/{id}` | **Admin (sadece)** | Birimi aktif/pasif yapma (fiziksel silme yok, geçmiş talepler korunur). |
+| SaveVehicleType | POST | `/VehicleRequest/SaveVehicleType` | **Admin (sadece)** | Yeni araç türü ekleme veya düzenleme. `[ValidateAntiForgeryToken]` zorunlu. |
+| ToggleVehicleType | POST | `/VehicleRequest/ToggleVehicleType/{id}` | **Admin (sadece)** | Araç türünü aktif/pasif yapma. |
+
+---
+
+## 32. FAZ 8 ENDPOINT GÜNCELLEMELERİ — PDF ÖNİZLEME UÇ NOKTALARI
+
+Tüm PDF uç noktaları aynı URL ve yetki kurallarıyla çalışır; `preview=true` parametresi verildiğinde `Content-Disposition: inline` başlığı ile döner. Yeni/yetkisiz bir uç nokta açılmamıştır.
+
+| Controller | Action | HTTP | Parametreler | İzinli Roller / Yatay Yetki | Açıklama |
+|---|---|---|---|---|---|
+| `AssignmentController` | `DownloadOrderDocument/{id}` | GET | `emptyValues` (bool), `driverId` (int?), `preview` (bool) | Admin, Kullanici | Taşıt Görev Emri (dolu, boş veya belirli şoföre özel). `preview=true` ile modalda önizleme. |
+| `SurucuController` | `GorevEmri/{id}` | GET | `emptyValues` (bool), `preview` (bool) | Driver (Şoför) | Şoförün kendi görev emri belgesi. **Yatay yetki korumalı:** Şoför sadece kendisine atanmış görevi önizleyebilir/indirebilir. |
+| `FaultReportController` | `DownloadPdf/{id}` | GET | `isBlank` (bool), `preview` (bool) | Admin, Kullanici, Driver | Araç Arıza Bildirim Formu (dolu veya boş). `preview=true` ile önizleme. |
+| `FaultReportController` | `DownloadBlankPdf` | GET | `preview` (bool) | Admin, Kullanici, Driver | Boş Matbu Arıza Bildirim Formu. `preview=true` ile önizleme. |
+| `ReportController` | `ExportPdf` | GET | `ReportFilterViewModel`, `preview` (bool) | Admin, Kullanici | Araç ve Şoför Kullanım Raporu PDF çıktısı. `preview=true` ile önizleme. |
+| `ReportController` | `ExportMaintenancePdf` | GET | `MaintenanceReportFilterViewModel`, `preview` (bool) | Admin, Kullanici | Araç Bakım ve Maliyet Raporu PDF çıktısı. `preview=true` ile önizleme. |
+| `VehicleController` | `ExportTiresPdf` | GET | `preview` (bool) | Admin, Kullanici | Araç Filosu Lastik Kullanım ve Durum Raporu PDF çıktısı. `preview=true` ile önizleme. |
+
+---
+
+## 33. FAZ 7-B ENDPOINT GÜNCELLEMELERİ — ARAÇ TALEPLERİ RAPORU VE PDF ÇIKTISI
+
+| Controller | Action | HTTP | Parametreler | İzinli Roller | Açıklama |
+|---|---|---|---|---|---|
+| `ReportController` | `VehicleRequests` | GET | `VehicleRequestReportFilterViewModel` (`StartDate`, `EndDate`) | Admin, Kullanici | Talep eden birimler bazında araç talep istatistiği HTML ekranı. Tarih filtresi `CreatedAt` üzerinden çalışır. Tablo, özet KPI kartları ve dip toplam satırı içerir. |
+| `ReportController` | `ExportVehicleRequestsPdf` | GET | `VehicleRequestReportFilterViewModel` (`StartDate`, `EndDate`), `preview` (bool) | Admin, Kullanici | Talep eden birimler bazında araç talep istatistiği QuestPDF dökümü. `preview=true` parametresiyle `Content-Disposition: inline` dönerek ortak `_PdfPreviewModal` üzerinden sayfa yenilenmeden önizlenir. Sunucu tarafında `[Authorize(Roles = "Admin,Kullanici")]` ile korunur. |
+
+---
+
+## 34. FAZ 9 ENDPOINT GÜNCELLEMELERİ — DASHBOARD TAKVİMİ VERİ UÇ NOKTASI
+
+| Controller | Action | HTTP | Parametreler | İzinli Roller | Açıklama |
+|---|---|---|---|---|---|
+| `HomeController` | `CalendarData` | GET | `year` (int?), `month` (int?) | Admin, Kullanici | Dashboard aylık araç doluluğu ve gün detaylarını tek seferlik sorgu mantığıyla (N+1 önlenerek) JSON olarak döndüren uç nokta. Şoförler erişemez; yetki sunucuda kontrol edilir. |
+
+---
+
+## 35. FAZ 1-B ENDPOINT GÜNCELLEMELERİ — YETKİ DEVRİ (VEKÂLET) UÇ NOKTALARI
+
+| Controller | Action | HTTP | Parametreler | İzinli Roller | Açıklama |
+|---|---|---|---|---|---|
+| `RoleDelegationController` | `Index` | GET | - | Admin, DaireBaskani, GenelSekreter, Kullanici | Vekâlet Yönetimi ve Geçmiş Listesi ekranı. Genel Sekreter salt okunur izler. Şefler yalnızca taraf oldukları vekâletleri; Admin ve Daire Başkanı tüm vekâletleri görür. |
+| `RoleDelegationController` | `GetCreateModal` | GET | - | Admin, DaireBaskani, Kullanici | Yetki Devri Oluşturma Modal formunu ve uygun asıl/vekil personel listesini JSON olarak döndürür. |
+| `RoleDelegationController` | `Create` | POST | `[FromBody] RoleDelegationCreateInputModel` | Admin, DaireBaskani, Kullanici | Yeni yetki devri kaydı oluşturur (`[ValidateAntiForgeryToken]`). Şef için formdan asıl yetkili alınmaz (kendi kimliği kullanılır); Admin/Daire Başkanı asıl şefi seçebilir. Çakışma ve zincirleme kontrolleri yapılır. |
+| `RoleDelegationController` | `Revoke` | POST | `[FromBody] RoleDelegationRevokeInputModel` | Admin, DaireBaskani, Kullanici | Aktif bir yetki devrini erken sonlandırır (`ActualRevokedAt = DateTime.UtcNow`). Yetkiyi devreden Şef veya Admin/Daire Başkanı sonlandırabilir. Önbellek derhal temizlenir. |
+| `RoleDelegationController` | `Print/{id}` | GET | `id` (int), `preview` (bool) | Admin, DaireBaskani, GenelSekreter, Kullanici | Yetki Devri (Vekâlet) Belgesi PDF dökümü. `preview=true` ile `inline` önizleme, parametresiz veya false ile doğrudan dosya indirme (`attachment`) sağlar. |
 

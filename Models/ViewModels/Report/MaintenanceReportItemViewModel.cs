@@ -12,6 +12,12 @@ public class MaintenanceReportItemViewModel
     public DateTime StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string? PerformedBy { get; set; }
+    public decimal? Cost { get; set; }
+
+    /// <summary>
+    /// Maliyet gösterim metni (boş ise -, dolu ise Türk Lirası)
+    /// </summary>
+    public string CostDisplay => Cost.HasValue ? $"{Cost.Value:N2} ₺" : "-";
 
     /// <summary>
     /// Bakımın devam edip etmediği

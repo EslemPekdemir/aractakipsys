@@ -5,9 +5,11 @@ using aractakipsys.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using aractakipsys.Common;
+
 namespace aractakipsys.Controllers;
 
-[Authorize(Roles = "Admin,Kullanici")]
+[Authorize(Roles = AppRoles.AllStaffAndManagers)]
 [Route("Vehicle")]
 public class VehicleController : Controller
 {
@@ -182,4 +184,206 @@ public class VehicleController : Controller
         var summary = await _vehicleService.GetExpiringDocumentsSummaryAsync();
         return Json(summary);
     }
+
+    /// <summary>
+    /// Araç Belgeleri Paneli (Muayene, Trafik Sigortası, Kasko)
+    /// GET: /Vehicle/Documents?vehicleId=...&activeTab=...
+    /// </summary>
+    [HttpGet("Documents")]
+    public async Task<IActionResult> Documents([FromQuery] int? vehicleId, [FromQuery] string? activeTab)
+    {
+        var model = await _vehicleService.GetVehicleDocumentsPageAsync(vehicleId, activeTab);
+        return View(model);
+    }
+
+    /// <summary>
+    /// Yeni Araç Belgesi Ekle (Muayene, Trafik Sigortası, Kasko)
+    /// POST: /Vehicle/AddDocument
+    /// </summary>
+    [HttpPost("AddDocument")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddDocument([FromForm] VehicleDocumentCreateViewModel model, [FromForm] string? activeTab)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "Lütfen form alanlarını eksiksiz ve doğru doldurunuz.";
+            return RedirectToAction(nameof(Documents), new { vehicleId = model.VehicleId, activeTab = activeTab ?? model.DocumentType.ToString() });
+        }
+
+        var userId = GetCurrentUserId();
+        var (success, message) = await _vehicleService.AddVehicleDocumentAsync(model, userId);
+
+        if (success)
+        {
+            TempData["SuccessMessage"] = message;
+        }
+        else
+        {
+            TempData["ErrorMessage"] = message;
+        }
+
+        return RedirectToAction(nameof(Documents), new { vehicleId = model.VehicleId, activeTab = activeTab ?? model.DocumentType.ToString() });
+    }
+
+    /// <summary>
+    /// Araç Belgesi Güncelle
+    /// POST: /Vehicle/UpdateDocument/{id}
+    /// </summary>
+    [HttpPost("UpdateDocument/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateDocument(int id, [FromForm] VehicleDocumentCreateViewModel model, [FromForm] string? activeTab)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "Lütfen form alanlarını eksiksiz ve doğru doldurunuz.";
+            return RedirectToAction(nameof(Documents), new { vehicleId = model.VehicleId, activeTab = activeTab ?? model.DocumentType.ToString() });
+        }
+
+        var userId = GetCurrentUserId();
+        var (success, message) = await _vehicleService.UpdateVehicleDocumentAsync(id, model, userId);
+
+        if (success)
+        {
+            TempData["SuccessMessage"] = message;
+        }
+        else
+        {
+            TempData["ErrorMessage"] = message;
+        }
+
+        return RedirectToAction(nameof(Documents), new { vehicleId = model.VehicleId, activeTab = activeTab ?? model.DocumentType.ToString() });
+    }
+
+    /// <summary>
+    /// Araç Belgesi Sil (Soft Delete)
+    /// POST: /Vehicle/DeleteDocument/{id}
+    /// </summary>
+    [HttpPost("DeleteDocument/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteDocument(int id, [FromForm] int vehicleId, [FromForm] string? activeTab)
+    {
+        var userId = GetCurrentUserId();
+        var (success, message) = await _vehicleService.DeleteVehicleDocumentAsync(id, userId);
+
+        if (success)
+        {
+            TempData["SuccessMessage"] = message;
+        }
+        else
+        {
+            TempData["ErrorMessage"] = message;
+        }
+
+        return RedirectToAction(nameof(Documents), new { vehicleId, activeTab = activeTab ?? "Inspection" });
+    }
+
+    /// <summary>
+    /// Araç Lastik Kaydı Ekle
+    /// POST: /Vehicle/AddTire
+    /// </summary>
+    [HttpPost("AddTire")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddTire([FromForm] VehicleTireCreateViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            var errors = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(errors) ? "Lütfen form alanlarını eksiksiz ve doğru doldurunuz." : errors;
+            return RedirectToAction(nameof(Documents), new { vehicleId = model.VehicleId, activeTab = "Tire" });
+        }
+
+        var userId = GetCurrentUserId();
+        var (success, message) = await _vehicleService.AddVehicleTireAsync(model, userId);
+
+        if (success)
+        {
+            TempData["SuccessMessage"] = message;
+        }
+        else
+        {
+            TempData["ErrorMessage"] = message;
+        }
+
+        return RedirectToAction(nameof(Documents), new { vehicleId = model.VehicleId, activeTab = "Tire" });
+    }
+
+    /// <summary>
+    /// Araç Lastik Kaydı Güncelle
+    /// POST: /Vehicle/UpdateTire/{id}
+    /// </summary>
+    [HttpPost("UpdateTire/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateTire(int id, [FromForm] VehicleTireCreateViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            var errors = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            TempData["ErrorMessage"] = string.IsNullOrWhiteSpace(errors) ? "Lütfen form alanlarını eksiksiz ve doğru doldurunuz." : errors;
+            return RedirectToAction(nameof(Documents), new { vehicleId = model.VehicleId, activeTab = "Tire" });
+        }
+
+        var userId = GetCurrentUserId();
+        var (success, message) = await _vehicleService.UpdateVehicleTireAsync(id, model, userId);
+
+        if (success)
+        {
+            TempData["SuccessMessage"] = message;
+        }
+        else
+        {
+            TempData["ErrorMessage"] = message;
+        }
+
+        return RedirectToAction(nameof(Documents), new { vehicleId = model.VehicleId, activeTab = "Tire" });
+    }
+
+    /// <summary>
+    /// Araç Lastik Kaydı Sil (Soft Delete)
+    /// POST: /Vehicle/DeleteTire/{id}
+    /// </summary>
+    [HttpPost("DeleteTire/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteTire(int id, [FromForm] int vehicleId)
+    {
+        var userId = GetCurrentUserId();
+        var (success, message) = await _vehicleService.DeleteVehicleTireAsync(id, userId);
+
+        if (success)
+        {
+            TempData["SuccessMessage"] = message;
+        }
+        else
+        {
+            TempData["ErrorMessage"] = message;
+        }
+
+        return RedirectToAction(nameof(Documents), new { vehicleId, activeTab = "Tire" });
+    }
+
+    /// <summary>
+    /// Lastik Kullanım Raporu PDF İndir
+    /// GET: /Vehicle/ExportTiresPdf
+    /// </summary>
+    [HttpGet("ExportTiresPdf")]
+    public async Task<IActionResult> ExportTiresPdf([FromQuery] bool preview = false)
+    {
+        var items = await _vehicleService.GetAllCurrentTiresReportAsync();
+        var userName = User.Identity?.Name ?? "Admin";
+
+        var document = new aractakipsys.Services.Implementations.VehicleTiresReportPdfDocument(items, userName);
+        using var memoryStream = new MemoryStream();
+        QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, memoryStream);
+        memoryStream.Position = 0;
+
+        var fileName = $"Lastik_Kullanim_Raporu_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(memoryStream.ToArray(), "application/pdf");
+        }
+
+        return File(memoryStream.ToArray(), "application/pdf", fileName);
+    }
 }
+

@@ -60,14 +60,20 @@ Aşağıdakilerin hiçbiri açık onay alınmadan ("Evet/Uygula" denmeden) yapı
 - İhtiyaç oldukça **Maintenance (Bakım)** ve **AuditLog (Değişiklik Kaydı)** varlıklarını da öner.
 
 ### 3.2 Rol ve Yetki Sınırları (RBAC)
-- İki temel rol: **Admin (Bilgi İşlem)** ve **Driver (Şoför).**
-- Her Controller/Action'da `[Authorize(Roles = "...")]` etiketini **asla unutma.**
+Sistemde 5 rol tanımlıdır:
+- **Admin (Sistem Yöneticisi):** Tam yetkili. Tüm ekranları görür, tüm verileri yönetir. DaireBaskani ve GenelSekreter hesaplarını yalnızca Admin oluşturabilir ve rol atayabilir.
+- **DaireBaskani (Daire Başkanı):** Yönetim yetkili. Admin gibi tüm operasyonel ekranları (Araçlar, Görevler, Şoförler, Bakım, Arıza, Raporlar, Talep Seçenekleri, AuditLog) görür ve veri değiştirebilir. **Kullanıcı Yönetimi Güvenliği:** Yalnızca `Kullanici` (Şef) ve `Driver` (Şoför) hesaplarını yönetebilir; `Admin`, `DaireBaskani` veya `GenelSekreter` hesaplarına (şifre sıfırlama, rol değiştirme, dondurma, silme) sunucu tarafında dokunamaz, bu rollere sahip yeni hesap oluşturamaz.
+- **GenelSekreter (Genel Sekreter):** Üst denetim yetkili / Salt Okunur (Read-Only). Dashboard, takvim, raporlar, listeler, detaylar, imzalı/arşivli belgeler ve Denetim Kayıtları (AuditLog) dahil tüm ekranları görür; PDF indirebilir/önizleyebilir. Hiçbir kayıt ekleyemez, değiştiremez, onaylayamaz veya silemez (`ReadOnlyRoleFilter` merkezi güvenlik kalkanı ile POST/PUT/PATCH/DELETE engellenir; salt okuma yapan rapor ve müsaitlik POST'ları istisnadır). **Kullanıcı Yönetimi (SefController) Genel Sekreter'e kapalıdır.**
+- **Kullanici (Ulaşım / Birim Şefi):** Operasyonel birim yöneticisi. Araç, şoför, görev, bakım ve arıza kayıtlarını yönetir, talepleri onaylar/reddeder. Talep seçenekleri ve kullanıcı yönetimine erişemez.
+- **Driver (Şoför):** Mobil saha kullanıcısı. Yalnızca kendisine atanmış görevleri, araç bilgilerini görür; görev başlangıç/bitiş KM ve araç kontrollerini kaydeder.
+- Her Controller/Action'da `[Authorize(Roles = "...")]` etiketini merkezi `AppRoles` sabitleriyle kullan.
 - **Yatay Yetki Kontrolü (Çok Önemli):** Şoför ekranı/API'sinde şoför *sadece kendisine atanmış* araç ve görevleri görebilir (`Where(x => x.DriverId == currentUserId)` mantığı zorunlu).
 
 ### 3.3 İş Mantığı Bütünlüğü
 - **Çifte Rezervasyon Koruması:** Bir araca yeni görev atanırken, o saat aralığında başka bir görevde olup olmadığı kontrolü **Service katmanında** yapılır.
 - **KM Validasyonu:** Yeni girilen KM, eski KM'den küçük olamaz.
 - **Zaman/Saat Dilimi:** Tüm görev başlangıç/bitiş zamanları sunucu saat dilimine (TR, UTC+3) göre tutulur; tarih-saat alanlarında `DateTime` yerine mümkünse `DateTimeOffset` tercih et, tutarsızlığı önle.
+- **Yetki Devri (Vekâlet) Mantığı (FAZ 1-B):** Şefler veya amirleri (Admin / Daire Başkanı), belirli tarih-saat aralıklarında görevlerini başka bir Şefe veya Şoföre devredebilir (`RoleDelegations`). Yetki devri süresince vekil Şoför "etkin rol" olarak Şef yetkilerini kullanır (`DelegationClaimsTransformation`), şoför havuzunda müsaitlik sorgularında kapalı görünür, kendisine yeni görev atanamaz ve mobil şoför saha başlat/bitir eylemleri sunucu taraflı engellenir. Vekâlet esnasında yapılan tüm işlemler denetim günlüğünde `OnBehalfOfUserId` ve `DelegationId` ile "X adına vekâleten" şeklinde işaretlenir.
 - **Audit Log (Öneri):** Araç KM güncellemesi veya görev atama/iptal işlemlerinde kim, ne zaman, ne değiştirdi bilgisi kaydedilmeli — üniversite denetimi için önemli. Kapsam netleşmeden bu tabloyu ekleme, önce Eslem'e öner.
 
 ### 3.4 Katmanlı Yapı

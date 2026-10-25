@@ -14,11 +14,16 @@ public class AuditLogService : IAuditLogService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<AuditLogService> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public AuditLogService(ApplicationDbContext context, ILogger<AuditLogService> logger)
+    public AuditLogService(
+        ApplicationDbContext context, 
+        ILogger<AuditLogService> logger,
+        IHttpContextAccessor httpContextAccessor)
     {
         _context = context;
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task LogAsync(
@@ -31,12 +36,33 @@ public class AuditLogService : IAuditLogService
     {
         try
         {
+            string? onBehalfOfUserId = null;
+            int? delegationId = null;
+
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext?.User?.Identity?.IsAuthenticated == true)
+            {
+                var onBehalfClaim = httpContext.User.FindFirst("DelegatorUserId")?.Value;
+                if (!string.IsNullOrWhiteSpace(onBehalfClaim))
+                {
+                    onBehalfOfUserId = onBehalfClaim;
+                }
+
+                var delegationIdClaim = httpContext.User.FindFirst("DelegationId")?.Value;
+                if (int.TryParse(delegationIdClaim, out var parsedDelegationId))
+                {
+                    delegationId = parsedDelegationId;
+                }
+            }
+
             var auditLog = new AuditLog
             {
                 EntityName = entityName,
                 EntityId = entityId,
                 Action = action,
                 ChangedByUserId = changedByUserId,
+                OnBehalfOfUserId = onBehalfOfUserId,
+                DelegationId = delegationId,
                 ChangedAt = DateTime.UtcNow,
                 OldValues = oldValues != null ? JsonSerializer.Serialize(oldValues) : null,
                 NewValues = newValues != null ? JsonSerializer.Serialize(newValues) : null
@@ -45,8 +71,8 @@ public class AuditLogService : IAuditLogService
             _context.AuditLogs.Add(auditLog);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("AuditLog kaydedildi. Entity: {EntityName}, Id: {EntityId}, Action: {Action}, UserId: {UserId}",
-                entityName, entityId, action, changedByUserId);
+            _logger.LogInformation("AuditLog kaydedildi. Entity: {EntityName}, Id: {EntityId}, Action: {Action}, UserId: {UserId}, OnBehalf: {OnBehalf}, DelegationId: {DelegationId}",
+                entityName, entityId, action, changedByUserId, onBehalfOfUserId, delegationId);
         }
         catch (Exception ex)
         {
@@ -58,6 +84,7 @@ public class AuditLogService : IAuditLogService
     {
         var query = _context.AuditLogs
             .Include(a => a.ChangedByUser)
+            .Include(a => a.OnBehalfOfUser)
             .AsNoTracking()
             .AsQueryable();
 
@@ -76,7 +103,7 @@ public class AuditLogService : IAuditLogService
         // 3. Kullanıcı Filtresi
         if (!string.IsNullOrWhiteSpace(filter.ChangedByUserId))
         {
-            query = query.Where(a => a.ChangedByUserId == filter.ChangedByUserId.Trim());
+            query = query.Where(a => a.ChangedByUserId == filter.ChangedByUserId.Trim() || a.OnBehalfOfUserId == filter.ChangedByUserId.Trim());
         }
 
         // 4. Tarih Aralığı Filtresi
@@ -100,6 +127,8 @@ public class AuditLogService : IAuditLogService
                 a.EntityName.ToLower().Contains(term) ||
                 (a.ChangedByUser != null && (a.ChangedByUser.FullName.ToLower().Contains(term) ||
                                             (a.ChangedByUser.Email != null && a.ChangedByUser.Email.ToLower().Contains(term)))) ||
+                (a.OnBehalfOfUser != null && (a.OnBehalfOfUser.FullName.ToLower().Contains(term) ||
+                                             (a.OnBehalfOfUser.Email != null && a.OnBehalfOfUser.Email.ToLower().Contains(term)))) ||
                 (a.OldValues != null && a.OldValues.ToLower().Contains(term)) ||
                 (a.NewValues != null && a.NewValues.ToLower().Contains(term)));
         }
@@ -126,6 +155,9 @@ public class AuditLogService : IAuditLogService
                     ? a.ChangedByUser.FullName
                     : (a.ChangedByUserId ?? "Sistem / Anonim"),
                 ChangedByUserEmail = a.ChangedByUser != null ? (a.ChangedByUser.Email ?? "") : "",
+                OnBehalfOfUserId = a.OnBehalfOfUserId,
+                OnBehalfOfUserName = a.OnBehalfOfUser != null ? a.OnBehalfOfUser.FullName : null,
+                DelegationId = a.DelegationId,
                 ChangedAt = a.ChangedAt.ToLocalTime(),
                 OldValues = a.OldValues,
                 NewValues = a.NewValues

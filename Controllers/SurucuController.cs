@@ -20,6 +20,7 @@ public class SurucuController : Controller
     private readonly IDriverService _driverService;
     private readonly IAssignmentService _assignmentService;
     private readonly IFaultReportService _faultReportService;
+    private readonly IRoleDelegationService _roleDelegationService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<SurucuController> _logger;
 
@@ -27,12 +28,14 @@ public class SurucuController : Controller
         IDriverService driverService,
         IAssignmentService assignmentService,
         IFaultReportService faultReportService,
+        IRoleDelegationService roleDelegationService,
         UserManager<ApplicationUser> userManager,
         ILogger<SurucuController> logger)
     {
         _driverService = driverService;
         _assignmentService = assignmentService;
         _faultReportService = faultReportService;
+        _roleDelegationService = roleDelegationService;
         _userManager = userManager;
         _logger = logger;
     }
@@ -109,6 +112,13 @@ public class SurucuController : Controller
             return Json(AjaxResultViewModel.Fail("Oturum süreniz dolmuş. Lütfen tekrar giriş yapınız."));
         }
 
+        // DÜZELTME 7: Vekil şoför, vekâlet süresince saha görevi action'larını kullanamaz (SUNUCU tarafı engeli)
+        var activeDelegation = await _roleDelegationService.GetActiveDelegationForUserAsync(userId);
+        if (activeDelegation != null)
+        {
+            return Json(AjaxResultViewModel.Fail("Vekâleten Ulaşım Şefliği yürüttüğünüz süre boyunca şoför saha görev işlemlerini (Başlat/Bitir) kullanamazsınız."));
+        }
+
         var result = await _driverService.StartAssignmentAsync(id, userId, request);
         return Json(result);
     }
@@ -138,7 +148,56 @@ public class SurucuController : Controller
             return Json(AjaxResultViewModel.Fail("Oturum süreniz dolmuş. Lütfen tekrar giriş yapınız."));
         }
 
+        // DÜZELTME 7: Vekil şoför, vekâlet süresince saha görevi action'larını kullanamaz (SUNUCU tarafı engeli)
+        var activeDelegation = await _roleDelegationService.GetActiveDelegationForUserAsync(userId);
+        if (activeDelegation != null)
+        {
+            return Json(AjaxResultViewModel.Fail("Vekâleten Ulaşım Şefliği yürüttüğünüz süre boyunca şoför saha görev işlemlerini (Başlat/Bitir) kullanamazsınız."));
+        }
+
         var result = await _driverService.EndAssignmentAsync(id, userId, request);
+        return Json(result);
+    }
+
+    /// <summary>
+    /// Seferdeki Görevde Güzergah Değiştirme (AJAX)
+    /// POST: /Surucu/GuzergahDegistir/{id}
+    /// Çoklu şoförde göreve atanmış herhangi bir şoför yapabilir, atanmamış şoföre 403 döner.
+    /// </summary>
+    [HttpPost("GuzergahDegistir/{id:int}")]
+    [ValidateAntiForgeryToken]
+    [Produces("application/json")]
+    public async Task<IActionResult> ChangeRoute(int id, [FromBody] ChangeRouteRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            var firstError = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault() ?? "Geçersiz veri gönderildi.";
+
+            return Json(AjaxResultViewModel.Fail(firstError));
+        }
+
+        var userId = GetCurrentUserId();
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Json(AjaxResultViewModel.Fail("Oturum süreniz dolmuş. Lütfen tekrar giriş yapınız."));
+        }
+
+        var activeDelegation = await _roleDelegationService.GetActiveDelegationForUserAsync(userId);
+        if (activeDelegation != null)
+        {
+            return Json(AjaxResultViewModel.Fail("Vekâleten Ulaşım Şefliği yürüttüğünüz süre boyunca şoför saha görev işlemlerini kullanamazsınız."));
+        }
+
+        request.AssignmentId = id;
+        var (isAuthorized, result) = await _driverService.ChangeRouteAsync(id, userId, request);
+        if (!isAuthorized)
+        {
+            return StatusCode(403, AjaxResultViewModel.Fail("Bu görevde güzergah değişikliği yapma yetkiniz bulunmamaktadır (Yalnızca göreve atanmış şoförler yapabilir)."));
+        }
+
         return Json(result);
     }
 
@@ -165,6 +224,12 @@ public class SurucuController : Controller
         if (string.IsNullOrEmpty(userId))
         {
             return Json(AjaxResultViewModel.Fail("Oturum süreniz dolmuş. Lütfen tekrar giriş yapınız."));
+        }
+
+        var activeDelegation = await _roleDelegationService.GetActiveDelegationForUserAsync(userId);
+        if (activeDelegation != null)
+        {
+            return Json(AjaxResultViewModel.Fail("Vekâleten Ulaşım Şefliği yürüttüğünüz süre boyunca kendinize şoför görevi atayamazsınız."));
         }
 
         var result = await _driverService.CreateSelfAssignmentAsync(userId, request);
@@ -307,7 +372,7 @@ public class SurucuController : Controller
     /// GET: /Surucu/GorevEmri/{id}
     /// </summary>
     [HttpGet("GorevEmri/{id:int}")]
-    public async Task<IActionResult> GorevEmri(int id, [FromQuery] bool emptyValues = false)
+    public async Task<IActionResult> GorevEmri(int id, [FromQuery] bool emptyValues = false, [FromQuery] bool preview = false)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrEmpty(userId))
@@ -338,6 +403,13 @@ public class SurucuController : Controller
         var safePlate = (assignmentDetails.VehiclePlate ?? "Arac").Replace(" ", "_");
         var driverSuffix = !string.IsNullOrWhiteSpace(driverName) ? $"_{driverName.Replace(" ", "_")}" : "";
         var fileName = $"Gorev_Emri_{assignmentDetails.Id}_{safePlate}{driverSuffix}.pdf";
+
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(pdfBytes, "application/pdf");
+        }
+
         return File(pdfBytes, "application/pdf", fileName);
     }
 }

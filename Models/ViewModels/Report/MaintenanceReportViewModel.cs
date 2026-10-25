@@ -12,6 +12,10 @@ public class MaintenanceReportViewModel
     public int OngoingCount => Items.Count(x => x.IsOngoing);
     public int CompletedCount => Items.Count(x => !x.IsOngoing);
 
+    // Maliyet Metrikleri (Faz 7-A: Maliyeti boş olan satırlar toplamda sayılmaz)
+    public decimal TotalCost => Items.Where(x => x.Cost.HasValue).Sum(x => x.Cost!.Value);
+    public string TotalCostFormatted => $"{TotalCost:N2} ₺";
+
     // Rapor Başlık & Filtre Özet Bilgileri
     public string? SelectedVehicleName { get; set; }
     public string DateRangeText { get; set; } = string.Empty;

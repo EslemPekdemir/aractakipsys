@@ -17,9 +17,14 @@
         </ol>
     </div>
     <div class="col-sm-4 text-right pt-4">
-        <a href="/FaultReport/DownloadBlankPdf" class="btn btn-outline btn-default shadow-sm font-weight-bold" target="_blank" title="Boş matbu arıza bildirim formu yazdır">
-            <i class="fa fa-print mr-1"></i> Boş Form Çıkar (PDF)
-        </a>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline btn-info shadow-sm font-weight-bold" data-pdf-preview data-pdf-url="/FaultReport/DownloadBlankPdf" title="Boş matbu arıza bildirim formunu önizle">
+                <i class="fa fa-eye mr-1"></i> Önizle
+            </button>
+            <a href="/FaultReport/DownloadBlankPdf" class="btn btn-outline btn-default shadow-sm font-weight-bold" target="_blank" title="Boş matbu arıza bildirim formu yazdır">
+                <i class="fa fa-print mr-1"></i> Boş Form (PDF)
+            </a>
+        </div>
     </div>
 </div>
 
@@ -126,9 +131,14 @@
                                         <a href="/FaultReport/Detail/@item.Id" class="btn btn-xs btn-primary mr-1" title="İncele & Onayla">
                                             <i class="fa fa-search mr-1"></i> İncele
                                         </a>
-                                        <a href="/FaultReport/DownloadPdf/@item.Id" class="btn btn-xs btn-outline btn-default" target="_blank" title="Arıza Bildirim Formu PDF">
-                                            <i class="fa fa-file-pdf-o text-danger mr-1"></i> PDF
-                                        </a>
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-xs btn-outline btn-info" data-pdf-preview data-pdf-url="/FaultReport/DownloadPdf/@item.Id" title="Arıza Bildirim Formu Önizle">
+                                                <i class="fa fa-eye mr-1"></i> Önizle
+                                            </button>
+                                            <a href="/FaultReport/DownloadPdf/@item.Id" class="btn btn-xs btn-outline btn-default" target="_blank" title="Arıza Bildirim Formu PDF İndir">
+                                                <i class="fa fa-file-pdf-o text-danger mr-1"></i> İndir
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             }

@@ -35,5 +35,9 @@ public class MaintenanceEditViewModel
     [Display(Name = "İşlemi Yapan Servis / Firma")]
     public string? PerformedBy { get; set; }
 
+    [Display(Name = "Maliyet (₺)")]
+    [Range(0, 99999999.99, ErrorMessage = "Maliyet 0 ile 99.999.999,99 ₺ arasında olmalıdır.")]
+    public decimal? Cost { get; set; }
+
     public List<SelectListItem> AvailableVehicles { get; set; } = new();
 }

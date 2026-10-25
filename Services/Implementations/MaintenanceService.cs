@@ -121,7 +121,8 @@ public class MaintenanceService : IMaintenanceService
                 Description = m.Description,
                 StartDate = m.StartDate,
                 EndDate = m.EndDate,
-                PerformedBy = m.PerformedBy
+                PerformedBy = m.PerformedBy,
+                Cost = m.Cost
             })
             .ToListAsync();
 
@@ -162,6 +163,7 @@ public class MaintenanceService : IMaintenanceService
             StartDate = m.StartDate,
             EndDate = m.EndDate,
             PerformedBy = m.PerformedBy,
+            Cost = m.Cost,
             CreatedAt = m.CreatedAt,
             CreatedBy = m.CreatedBy,
             UpdatedAt = m.UpdatedAt
@@ -236,6 +238,7 @@ public class MaintenanceService : IMaintenanceService
             StartDate = m.StartDate,
             EndDate = m.EndDate,
             PerformedBy = m.PerformedBy,
+            Cost = m.Cost,
             AvailableVehicles = vehicles
         };
     }
@@ -280,6 +283,7 @@ public class MaintenanceService : IMaintenanceService
             StartDate = model.StartDate.Date,
             EndDate = model.EndDate?.Date,
             PerformedBy = string.IsNullOrWhiteSpace(model.PerformedBy) ? null : model.PerformedBy.Trim(),
+            Cost = model.Cost,
             CreatedBy = adminUserId,
             CreatedAt = DateTime.UtcNow
         };
@@ -366,7 +370,8 @@ public class MaintenanceService : IMaintenanceService
             maintenance.Description,
             maintenance.StartDate,
             maintenance.EndDate,
-            maintenance.PerformedBy
+            maintenance.PerformedBy,
+            maintenance.Cost
         };
 
         var oldVehicleState = new { Status = maintenance.Vehicle.Status.ToString() };
@@ -376,6 +381,7 @@ public class MaintenanceService : IMaintenanceService
         maintenance.StartDate = model.StartDate.Date;
         maintenance.EndDate = model.EndDate?.Date;
         maintenance.PerformedBy = string.IsNullOrWhiteSpace(model.PerformedBy) ? null : model.PerformedBy.Trim();
+        maintenance.Cost = model.Cost;
         maintenance.UpdatedAt = DateTime.UtcNow;
         maintenance.UpdatedBy = adminUserId;
 
@@ -420,7 +426,8 @@ public class MaintenanceService : IMaintenanceService
                     maintenance.Description,
                     maintenance.StartDate,
                     maintenance.EndDate,
-                    maintenance.PerformedBy
+                    maintenance.PerformedBy,
+                    maintenance.Cost
                 }
             );
 

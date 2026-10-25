@@ -69,9 +69,11 @@ protected override void OnModelCreating(ModelBuilder builder)
 | ProfilePictureUrl | string? | MaxLength(500), opsiyonel — özel profil resmi yolu (null ise dinamik rozet avatar kullanılır) |
 
 **Roller (AspNetRoles, seed data ile oluşturulacak):**
-- `Admin` — Tam yetki (Vehicle/Driver/Assignment/Maintenance CRUD + AuditLog görüntüleme + kullanıcı yönetimi).
-- `Kullanici` — Şoförlerin operasyonel amiri ("Şoför Şefi"). Vehicle/Driver/Assignment/Maintenance CRUD yapabilir (Driver CRUD dahil, yeni şoför hesabı açabilir). **AuditLog'u göremez** — bu sadece Admin'e özel kalır. Görev Başlat/Bitir işlemlerini yapabilir ve şoförün kendi bildirdiği başlat/bitir kayıtlarını **onaylar** (bkz. 3.1, `StartReportedBySelf`/`EndReportedBySelf`).
-- `Driver` — Sadece kendi görevlerini görüntüler (salt okunur). Görev başlatma/bitirme bilgisini (saat, KM, dönüş notu) kendi girebilir, ama bu girdi Status'u kesinleştirmez — `Kullanici` veya `Admin` onayı gerekir.
+- `Admin` — Tam yetki (Vehicle/Driver/Assignment/Maintenance CRUD + AuditLog görüntüleme + kullanıcı yönetimi + Talep Seçenekleri).
+- `DaireBaskani` — Yönetim yetkili. Operasyonel tüm ekranları (Vehicle/Driver/Assignment/Maintenance/FaultReport/Report/VehicleRequest Options/AuditLog) görüntüler ve yönetir. Kullanıcı yönetiminde yalnızca `Kullanici` ve `Driver` yönetebilir; `Admin`, `DaireBaskani`, `GenelSekreter` hesaplarına sunucuda dokunamaz.
+- `GenelSekreter` — Üst denetim yetkili / Salt Okunur. Tüm ekranları (Dashboard, Takvim, Raporlar, Listeler, Detaylar, PDF İndir/Önizle, AuditLog) görüntüler; veri ekleyemez, değiştiremez veya silemez (`ReadOnlyRoleFilter` ile korunur). Kullanıcı Yönetimi erişimi kapalıdır.
+- `Kullanici` — Şoförlerin operasyonel amiri ("Şoför Şefi"). Vehicle/Driver/Assignment/Maintenance CRUD yapabilir. **AuditLog'u ve Talep Seçeneklerini göremez**. Görev Başlat/Bitir işlemlerini yapabilir ve onaylar.
+- `Driver` — Sadece kendi görevlerini görüntüler (salt okunur). Görev başlatma/bitirme bilgisini (saat, KM, dönüş notu) kendi girebilir, ama bu girdi Status'u kesinleştirmez — amir onayı gerekir.
 
 > Not: `Kullanici` rolü Admin'den yalnızca 2 şeyde ayrılır: (1) AuditLog'u göremez, (2) sistem yönetimi kapsamındaki başka hiçbir kısıtlaması yoktur — CRUD yetkileri Admin ile aynıdır.
 
@@ -82,17 +84,31 @@ protected override void OnModelCreating(ModelBuilder builder)
 |---|---|---|
 | *(Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)* | — | `BaseAuditableEntity`'den gelir, ayrıca yazma |
 | UserId | string | FK → ApplicationUser.Id, Required, Unique |
-| LicenseNumber | string | Required, MaxLength(30) — ehliyet no |
-| LicenseClass | string | MaxLength(10) — örn. "B", "C", "D" |
-| LicenseExpiryDate | DateTime | Required |
-| Department | string | MaxLength(150) — bağlı olduğu birim (opsiyonel) |
+| LicenseNumber | string | Required, MaxLength(30) — ehliyet no (tüm sınıflar için şoförde tekil) |
+| LicenseClass | string | MaxLength(50), opsiyonel — geriye dönük uyumluluk için senkron tutulur (örn. "B, E") |
+| LicenseExpiryDate | DateTime | Geriye dönük uyumluluk için senkron tutulur (en ileri geçerlilik tarihi) |
+| Department | string | MaxLength(150) — bağlı olduğu birim (yalnızca Admin rolü güncelleyebilir) |
 | IsActive | bool | Default true |
 
-**İlişki:** `Driver.UserId` → `ApplicationUser.Id` (1–1, Restrict delete — kullanıcı silinirse şoför kaydı elde kalmasın diye önce bunu ele almak gerekir, direkt cascade delete verme).
+**İlişki:** `Driver.UserId` → `ApplicationUser.Id` (1–1, Restrict delete), `Driver.DriverLicenses` → `DriverLicense` (1–N).
 
 **Tarihsel Ehliyet No Tekilliği (karar: Alternatif B):** `LicenseNumber` normal bir unique index ile korunmaz — silinmiş (soft-delete) şoförler dahil, bir ehliyet numarası sistemde bir kez kullanıldıysa bir daha kullanılamaz. Kontrol Service katmanında `IgnoreQueryFilters()` ile yapılır: `_context.Drivers.IgnoreQueryFilters().AnyAsync(d => d.LicenseNumber == cleanLicense)`. Aynı karar `Vehicle.PlateNumber` için de geçerlidir (bkz. 2.1).
 
-**Ehliyet Süresi ve Görev Ataması (iş kuralı):** Bir şoföre görev atanırken (`Assignment` oluşturma/düzenleme), `Driver.LicenseExpiryDate`, görevin `PlannedEndTime`'ını kapsamıyorsa (`LicenseExpiryDate.Date < PlannedEndTime.Date`) atama **reddedilir**. Kontrol `AssignmentService.CheckDriverAvailabilityAsync` içinde, çifte rezervasyon kontrolüyle birlikte yapılır (bkz. 3.2).
+**Eski Kolonlar Güvenlik Stratejisi (Faz 4):** `Driver.LicenseClass` ve `Driver.LicenseExpiryDate` eski kolonları geçiş güvenliği için silinmemiştir; yeni eklenen `DriverLicenses` tablosundaki aktif kayıtların birleşik sınıfı ve en ileri geçerlilik tarihiyle otomatik senkron tutulmaktadır.
+
+**Şoför Birimi Yetki Kuralı (Faz 4):** Şoförün `Department` (Birim) bilgisi sunucu ve istemci tarafında **yalnızca Admin** rolü tarafından düzenlenebilir. Şef (`Kullanici`) ve diğer roller birim bilgisini değiştiremez.
+
+### 1.3 DriverLicense (Çoklu Şoför Ehliyetleri — `BaseAuditableEntity`'den türer)
+| Alan | Tip | Kısıtlama |
+|---|---|---|
+| *(Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)* | — | `BaseAuditableEntity`'den gelir |
+| DriverId | int | FK → Driver.Id, Required (Cascade delete) |
+| LicenseClass | string | Required, MaxLength(10) — örn. "B", "C", "D", "E" |
+| LicenseExpiryDate | DateTime | Required — ehliyet sınıfının son geçerlilik tarihi |
+
+**Ehliyet Süresi ve Görev Ataması (İş Kuralı - Faz 4):** Bir şoföre görev atanırken (`Assignment` oluşturma/düzenleme), şoförün **EN AZ BİR** aktif ehliyetinin geçerlilik tarihi görevin planlanan bitiş tarihini kapsıyorsa (`LicenseExpiryDate.Date >= PlannedEndTime.Date`) şoför uygun kabul edilir. Araç türüne göre ehliyet sınıfı eşleştirmesi yapılmaz. Çoklu şoförlü görevlerde bu kontrol her şoför için bağımsız olarak çalışır.
+
+**Ehliyet Geçerlilik Uyarısı (İş Kuralı - Faz 4):** Geçerlilik süresi 30 gün içinde dolacak veya dolmuş olan ehliyetler; Dashboard'da ayrı uyarı kartında, navbar bildirim çanında, artış olduğunda toast uyarısında ve şoförün kendi mobil görev panelinde listelenir.
 
 ---
 
@@ -308,21 +324,36 @@ ApplicationUser (1) ──── (N) VehicleRequest  (FulfilledByUserId, karşı
 
 | Alan | Tip | Kısıtlama |
 |---|---|---|
-| InspectionStartDate | DateTime | Required — Fenni muayene geçerlilik başlangıcı |
-| InspectionExpiryDate | DateTime | Required — Fenni muayene bitiş tarihi |
-| InsuranceStartDate | DateTime | Required — Trafik sigortası başlangıcı |
-| InsuranceExpiryDate | DateTime | Required — Trafik sigortası bitiş tarihi |
+| InspectionStartDate | DateTime | Required — Fenni muayene geçerlilik başlangıcı (yeni yapıyla senkron tutulur) |
+| InspectionExpiryDate | DateTime | Required — Fenni muayene bitiş tarihi (yeni yapıyla senkron tutulur) |
+| InsuranceStartDate | DateTime | Required — Trafik sigortası başlangıcı (yeni yapıyla senkron tutulur) |
+| InsuranceExpiryDate | DateTime | Required — Trafik sigortası bitiş tarihi (yeni yapıyla senkron tutulur) |
 | TireBrand | string | MaxLength(50), nullable — Lastik marka/model |
 | TireYear | int | Nullable — Lastik üretim yılı (DOT) |
 | TireSeason | enum `TireSeason` | Nullable — `Summer` (Yazlık) / `Winter` (Kışlık) |
 | FineNotes | string | MaxLength(1000), nullable — Ceza/Şef notu (serbest metin, harici sistem entegrasyonu YOK) |
+
+### 7.1 VehicleDocument (Araç Belgeleri Geçmişi — `BaseAuditableEntity`'den türer - Faz 5-A)
+| Alan | Tip | Kısıtlama |
+|---|---|---|
+| *(Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)* | — | `BaseAuditableEntity`'den gelir |
+| VehicleId | int | FK → Vehicle.Id, Required (Cascade delete) |
+| DocumentType | enum `VehicleDocumentType` | Required — `Inspection` (Muayene), `Insurance` (Trafik Sigortası), `Kasko` (Kasko) |
+| StartDate | DateTime | Required — Belge / poliçe başlangıç tarihi |
+| EndDate | DateTime | Required — Belge / poliçe son geçerlilik tarihi |
+| Cost | decimal(18,2) | Default 0 — Muayene / poliçe ödenen tutar (fiyat) |
+| PolicyOrStationNumber | string | MaxLength(100), nullable — Poliçe No veya Muayene İstasyon No |
+| CompanyName | string | MaxLength(100), nullable — Sigorta şirketi veya Muayene kuruluşu adı |
+| Notes | string | MaxLength(500), nullable — Açıklama ve notlar |
+
+**Eski Kolonlar Güvenlik Stratejisi (Faz 5-A):** `Vehicle` tablosundaki `InspectionExpiryDate` ve `InsuranceExpiryDate` eski kolonları geçiş güvenliği için silinmemiştir; yeni eklenen `VehicleDocuments` tablosundaki en güncel aktif kayıtlara göre otomatik senkron tutulmaktadır.
 
 **VehicleStatus enum'una eklenen yeni değer:** `DocumentExpired` (Belgesi Geçersiz) — Muayene veya Sigorta tarihi geçtiğinde otomatik atanır.
 
 **Otomatik durum yönetimi (`VehicleDocumentExpirationWorker` — BackgroundService):**
 - Uygulama açılışında ve her 24 saatte bir çalışır.
 - Süresi geçmiş (`Idle`/`Maintenance`/`OutOfService` durumundaki) araçları `DocumentExpired`'a çeker. **`OnDuty` (görevdeki) araçlara dokunmaz**, görev bitene kadar bekler.
-- **Kurtarma kuralı:** `DocumentExpired` bir aracın tarihleri güncellenip geçerli hale gelirse, otomatik olarak `Idle` (veya açık bakımı varsa `Maintenance`) durumuna geri döner. Bu kural hem arka plan servisinde hem `VehicleService.UpdateVehicleAsync`'te (form üzerinden manuel güncellemede) çalışır — **sadece `Status == DocumentExpired` olan araçlar için**, diğer durumlara (`OnDuty`, `Maintenance`, `OutOfService`) asla müdahale etmez.
+- **Kurtarma kuralı:** `DocumentExpired` bir aracın tarihleri güncellenip geçerli hale gelirse, otomatik olarak `Idle` (veya açık bakımı varsa `Maintenance`) durumuna geri döner. Bu kural hem arka plan servisinde hem `VehicleService.SyncVehicleLegacyDocumentColumnsAsync` ve `UpdateVehicleAsync`'te çalışır — **sadece `Status == DocumentExpired` olan araçlar için**, diğer durumlara (`OnDuty`, `Maintenance`, `OutOfService`) asla müdahale etmez.
 - Her durum değişikliğinde `AuditLog`'a düşer.
 
 **Assignment/Görev ataması sırasında ek kontrol:** `AssignmentService.ValidateVehicleOperationalStatus`, `Status` alanına ek olarak **doğrudan tarihe bakarak** da kontrol yapar (`InspectionExpiryDate`/`InsuranceExpiryDate < bugün ise reddet`) — böylece `Status` alanı henüz güncellenmemiş olsa bile güvenlik boşluğu oluşmaz.
@@ -473,4 +504,184 @@ Ayrı bir entity YOKTUR — `Kullanici` rolündeki kullanıcılar sadece `Applic
   2. *Kurum Dışı Şoför:* Yalnızca dış şoför bilgisi girilir (`IsExternalDriver = true`, `DriverId = null`, `AssignmentDrivers` boş).
   3. *Şoförsüz:* Araç personelde (`IsDriverless = true`, `DriverId = null`, `AssignmentDrivers` boş).
 
+---
 
+## 15. FAZ 2 - B KISMI GÜNCELLEMELERİ — GÜZERGAH DEĞİŞİKLİĞİ VE ŞEF KM DÜZELTMESİ
+
+### 15.1 AssignmentRouteChange (Sefer Sırasında Güzergah Değişikliği — `BaseAuditableEntity`'den türer)
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| *(Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)* | — | `BaseAuditableEntity`'den gelir |
+| `AssignmentId` | int | Required, FK → Assignment.Id (Cascade) |
+| `OldRoute` | string? | MaxLength(500), nullable — Değişiklik öncesi güzergah |
+| `NewRoute` | string | Required, MaxLength(500) — Şoförün bildirdiği yeni güzergah |
+| `Reason` | string | Required, MaxLength(1000) — Değişiklik gerekçesi / açıklaması |
+| `ChangedByDriverId` | int? | Nullable, FK → Driver.Id (Restrict) — Güzergahı değiştiren şoför |
+
+- **İndeks:** `AssignmentId` üzerinde yabancı anahtar indeksi.
+- **İş Kuralı:** Yalnızca `InProgress` durumundaki görevlerde, göreve atanmış şoförler (asil veya yedek) güzergah değiştirebilir. Atanmamış şoförler için yetkisiz işlem (HTTP 403) uygulanır. Sefer sırasında birden çok kez değiştirilebilir.
+- **Raporlama Kısıtı:** Güzergah değişiklik geçmişi kurum PDF çıktılarına basılmaz, yalnızca Admin/Şef detay ekranında görüntülenir.
+
+### 15.2 Şef KM Düzeltmesi ve Doğrulama
+- **ViewModel Alanları:** `AssignmentApproveEndViewModel` içerisine `ConfirmedStartKm` (int?) ve `ConfirmedEndKm` (int?) eklenmiştir.
+- **İş Kuralı:** Şef görev onaylarken şoförün bildirdiği başlangıç ve/veya bitiş KM'sini düzeltebilir (`ConfirmedEndKm >= ConfirmedStartKm`).
+- **Veri Tutarlılığı (KM Güncelleme Kuralı):** `Vehicle.CurrentKm` değeri SADECE şu iki koşul birlikte doğruysa güncellenir: (a) bu görev aracın en son tamamlanan görevi, (b) yeni değer mevcut `CurrentKm`'den büyük. Aksi halde araç KM'sine dokunulmaz.
+- **AuditLog:** Eski ve yeni KM değerleri `AuditLog` tablosuna `Action = Update`, `EntityName = Assignment` olarak kaydedilir.
+- **Eşik Uyarısı:** Yapılan mesafe (`EndKm - StartKm`) `appsettings.json > VehicleSettings:TripDistanceThreshold` (200 KM) eşiğini aştığında kırmızı ünlem ikonlu uyarı verilir.
+
+---
+
+## 16. FAZ 5 - B KISMI GÜNCELLEMELERİ — LASTİK YÖNETİMİ VE TAKİBİ
+
+### 16.1 VehicleTire (Araç Lastik Kaydı — `BaseAuditableEntity`'den türer)
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| *(Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)* | — | `BaseAuditableEntity`'den gelir |
+| `VehicleId` | int | Required, FK → Vehicle.Id (Cascade) |
+| `Brand` | string | Required, MaxLength(100) — Lastik markası (örn: Michelin, Continental, Lassa) |
+| `Size` | string? | Nullable (eski kayıtlarda boş, yeni kayıtlarda zorunlu form doğrulaması), MaxLength(50) — Ebat (örn: 205/55 R16) |
+| `DotDate` | string? | Nullable, MaxLength(10) — DOT kodu ("52/23" hafta 01-53, yıl iki hane) |
+| `ProductionYear` | int? | Nullable — DOT kodundan türetilen 4 haneli üretim yılı |
+| `Season` | string | Required, MaxLength(30) — Mevsim (Yaz / Kış / Dört Mevsim) |
+| `InstalledDate` | DateTime? | Nullable — Takılma / değişim tarihi |
+| `InstalledKm` | int? | Nullable — Takıldığı andaki araç kilometresi |
+| `RecommendedReplaceKm` | int? | Nullable — Değiştirilmesi gereken hedef araç KM'si |
+| `RecommendedReplaceDate` | DateTime? | Nullable — Değiştirilmesi gereken hedef takvim tarihi |
+| `Cost` | decimal | Required, Precision(18,2), Default 0 — Lastik satın alma/değişim maliyeti |
+| `Notes` | string? | Nullable, MaxLength(500) — Açıklama ve notlar |
+
+- **İndeks:** `VehicleId` üzerinde yabancı anahtar indeksi.
+- **Kullanım KM'si Hesabı:** Kayıt anında dondurulmaz; her görüntülemede `Vehicle.CurrentKm - InstalledKm` formülüyle anlık hesaplanır. `InstalledKm` boş ise arayüzde "Bilinmiyor" olarak gösterilir.
+- **Tek Doğru Kaynak ve Senkronizasyon:** `VehicleTires` tablosu lastik yönetimi için tek doğru kaynaktır. `Vehicle.TireBrand`, `TireSeason`, `TireYear` eski kolonları geriye dönük uyumluluk için güncel (en son takılan) lastik kaydıyla senkron tutulur.
+- **Silme Kısıtı (Soft Delete):** Bir aracın tek (son) aktif lastik kaydı silinemez.
+
+## 17. FAZ 7 - A GÜNCELLEMELERİ — BAKIM MALİYETİ VE RAPORLAMA
+
+### 17.1 Maintenance (Araç Bakım / Servis Kaydı Güncellemesi)
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| `Cost` | decimal? | Nullable, Precision(18,2) — Bakım / servis işlem maliyeti (₺). Opsiyoneldir. Mevcut kayıtlarda null kalır. |
+
+- **İş Kuralı:** Bakım ekleme ve düzenleme formlarında girilebilir. Raporlarda boş bırakılan maliyetler "-" gösterilir ve rapor sonundaki genel toplam maliyet hesabına katılmaz.
+- **Raporlama Bütünlüğü:** Bakım ve Onarım Raporu (`Report/Maintenance`) ve PDF çıktısında satır bazında maliyet ve filtrelenen sonuçların Genel Toplam Bakım Maliyeti gösterilir.
+- **Kullanım Raporu:** Satır bazında süre (`DurationHelper`, "2 sa 40 dk"), şoför bazlı gruplu alt toplamlar ("Genel Toplam Süre", "Genel Toplam Mesafe") ve rapor sonunda tüm görevler için tekil genel toplam (çoklu şoförlü görevler yalnızca bir kez sayılır).
+- **Sigorta & Muayene Raporu:** `VehicleDocuments` tablosundan ödenen tutarlar (Sigorta, Muayene, Kasko) ve genel toplam belge harcamaları raporlanır. Para birimleri `1.250,00 ₺` formatında gösterilir.
+
+---
+
+## 18. FAZ 6 GÜNCELLEMELERİ — ARAÇ TALEP FORMU VE YÖNETİM SEÇENEKLERİ
+
+### 18.1 RequestDepartment (Talep Birim / Fakülte Seçenekleri — `BaseAuditableEntity`'den türer)
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| *(Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)* | — | `BaseAuditableEntity`'den gelir |
+| `Name` | string | Required, MaxLength(150) — Birim / Fakülte / Daire adı |
+| `DisplayOrder` | int | Required, Default 0 — Açılır listedeki sıralama |
+| `IsActive` | bool | Required, Default true — Aktiflik durumu (pasife alma desteği) |
+
+### 18.2 RequestVehicleType (Talep Edilebilir Araç Türleri — `BaseAuditableEntity`'den türer)
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| *(Id, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, IsDeleted)* | — | `BaseAuditableEntity`'den gelir |
+| `Name` | string | Required, MaxLength(100) — Araç türü tanımı (Sedan, Minibüs, Otobüs, Kamyon vb.) |
+| `DisplayOrder` | int | Required, Default 0 — Sıralama |
+| `IsActive` | bool | Required, Default true — Aktiflik durumu |
+
+- **KARAR:** Mevcut teknik `VehicleType` enum'undan bağımsızdır. Talep eden personelin seçeceği sınıfları temsil eder.
+
+### 18.3 VehicleRequest Tablosu Faz 6 İlave Alanları
+| Alan | Tip | Kısıtlama / Açıklama |
+|---|---|---|
+| `RequestedVehicleType` | string? | Nullable, MaxLength(100) — Formda seçilen araç türü adı. Eski kayıtlarda null kalır. |
+| `PassengerCount` | int? | Nullable — Kaç kişi seyahat edileceği (yolcu sayısı). Eski kayıtlarda null kalır. |
+| `RequestedStartTime` | DateTime? | Nullable — Talep edilen görev başlangıç tarih ve saati. |
+| `RequestedEndTime` | DateTime? | Nullable — Talep edilen görev bitiş tarih ve saati. |
+| `ContactUserId` | string? | Nullable, FK → AspNetUsers.Id — Talep onay e-postasında yer alacak iletişim kişisi (Ulaşım Şefi / Şoför). |
+| `ContactFullName` | string? | Nullable, MaxLength(150) — İletişim kişisi adı soyadı (kayıt anındaki snapshot). |
+| `ContactPhone` | string? | Nullable, MaxLength(30) — İletişim kişisi telefon numarası. |
+| `ContactEmail` | string? | Nullable, MaxLength(150) — İletişim kişisi kurumsal e-posta adresi. |
+
+- **E-Posta Gizlilik Kuralı:** Talep onay e-postasında görevlendirilen şoförün yalnızca ADI gösterilir; şoförün telefon ve e-postası gizlenir. Karşı tarafla irtibat için seçilen İletişim Kişisinin ad, telefon ve e-posta bilgileri gösterilir.
+- **Geçiş Planı:** Eski talep kayıtlarındaki serbest metin `Department` değerleri korunmuştur (32 kaydın 23'ünde mevcut). Yeni alanlar (`RequestedVehicleType`, `PassengerCount`, `RequestedStartTime`, `RequestedEndTime`) eski kayıtlarda null bırakılmıştır; uydurma değer yazılmamıştır. Form artık sadece admin tanımlı aktif `RequestDepartments` listesinden seçim yaptırır.
+
+---
+
+## 19. FAZ 8 GÜNCELLEMELERİ — PDF ÖNİZLEME MİMARİSİ
+
+- **Veritabanı Etkisi:** Faz 8 kapsamında yeni veritabanı tablosu veya kolonu eklenmemiştir (veri modeli değişmemiştir).
+- **HTTP İçerik Dağıtımı (`Content-Disposition`):**
+  - Tüm PDF uç noktaları isteğe bağlı `preview=true` parametresi alır.
+  - `preview=false` (varsayılan): `Content-Disposition: attachment; filename="..."` başlığıyla tarayıcıya doğrudan dosya indirme yaptırılır.
+  - `preview=true`: `Content-Disposition: inline; filename="..."` başlığıyla `application/pdf` gövdesi döndürülür, tarayıcının yerleşik PDF görüntüleyicisi veya modal iframe içinde sayfa yenilenmeden açılması sağlanır.
+- **Yetki Bütünlüğü:** Önizleme için ayrı bir endpoint veya anonim erişim açılmaz; mevcut [Authorize] ve yatay yetki kuralları (örn. şoförün yalnızca kendi görev emrine erişebilmesi) aynen korunur.
+
+---
+
+## 20. FAZ 7-B GÜNCELLEMELERİ — TALEP EDEN BİRİMLER BAZINDA ARAÇ TALEPLERİ RAPORU
+
+- **Amaç:** Talep eden birimler bazında araç talep istatistiğinin (Toplam, Karşılanan, Reddedilen, Bekleyen/Diğer) raporlanması ve QuestPDF ile kurumsal PDF dökümü.
+- **Veritabanı Etkisi:** Yeni tablo veya kolon eklenmemiştir. `VehicleRequests` tablosundaki mevcut veriler üzerinden dinamik LINQ/bellek projeksiyonu kullanılır.
+- **Tarih Filtresi Mantığı:**
+  - Eski talep kayıtlarında `RequestedStartTime/RequestedEndTime` alanları null olabildiği için, tarih aralığı filtresi talep oluşturulma tarihi olan `CreatedAt` üzerinden uygulanır (`filter.StartDate <= CreatedAt <= filter.EndDate`).
+- **Birim Adı Eşleme & Normalizasyon Kuralları:**
+  - Eski kayıtlar serbest metin, yeni kayıtlar ise admin tanımlı listeden seçilen birimdir.
+  - Aynı birim adı iki biçimde geçiyorsa (büyük/küçük harf ve baştaki/sondaki boşluklar hariç) `StringComparer.OrdinalIgnoreCase` ve `Trim()` ile tek bir satırda birleştirilir.
+  - Birim bilgisi boş (`null`, empty veya whitespace) olan kayıtlar `"Belirtilmemiş"` satırında toplanır.
+  - Eşleşmeyen serbest metin birimler ayrı birer satır olarak korunur; kesinlikle uydurma veya otomatik düzeltme yapılmaz.
+- **Durum Eşlemesi (VehicleRequestStatus):**
+  - **Karşılanan (Fulfilled):** `VehicleRequestStatus.Fulfilled` (Onaylanıp araç/şoför ataması yapılmış ve görevlendirilmiş talepler).
+  - **Reddedilen (Rejected):** `VehicleRequestStatus.Rejected` (İptal edilen veya gerekçe belirtilerek reddedilen talepler).
+  - **Bekleyen / Diğer (Pending):** `VehicleRequestStatus.Pending` (İncelenmeyi veya onay/ret kararı bekleyen talepler).
+- **Rapor Modelleri (ViewModels):**
+  - `VehicleRequestReportFilterViewModel`: `StartDate`, `EndDate`
+  - `VehicleRequestReportItemViewModel`: `Department`, `TotalCount`, `FulfilledCount`, `RejectedCount`, `PendingCount`
+  - `VehicleRequestReportViewModel`: `Filter`, `Items`, `TotalRequests`, `TotalFulfilled`, `TotalRejected`, `TotalPending`, `ReportDate`
+
+---
+
+## 21. FAZ 9 GÜNCELLEMELERİ — DASHBOARD TAKVİMİ (AYLIK ARAÇ DOLULUĞU VE GÜNLÜK DETAY)
+
+- **Veritabanı Etkisi:** Yeni tablo veya kolon eklenmemiştir. Mevcut `Assignments`, `Maintenances`, `Vehicles`, `VehicleDocuments`, `VehicleTires` ve `DriverLicenses` tabloları üzerinde ay bazlı tek seferlik sorgu mantığıyla (N+1 önlenerek) dinamik projeksiyon kullanılır.
+- **Takvim Modelleri (DTOs - `DashboardCalendarViewModels.cs`):**
+  - `DashboardCalendarDaySummaryDto`: Günlük özet (tarih, aktif araç sayısı, bakımda araç sayısı, biten belge ve ehliyet sayısı).
+  - `DashboardCalendarAssignmentItemDto`: Görev detayları (araç plaka/marka, şoförler, güzergah, amaç, birim, saat, durum).
+  - `DashboardCalendarMaintenanceItemDto`: Bakım detayları (araç, bakım türü, servis, tarihler).
+  - `DashboardCalendarDocumentItemDto`: Muayene, sigorta, kasko ve lastik geçerlilik son günleri.
+  - `DashboardCalendarLicenseItemDto`: Ehliyet süresi son günleri.
+  - `DashboardCalendarDayDetailDto`: Seçilen günün tüm detay listeleri.
+  - `DashboardCalendarMonthResponseDto`: Aylık takvim yanıtı (`Days`, `DetailsByDate`).
+
+---
+
+## 22. FAZ 1-B GÜNCELLEMELERİ — YETKİ DEVRİ (VEKÂLET) VE DENETİM GÜNLÜĞÜ VEKÂLET İZLEME
+
+### 22.1 `RoleDelegations` Tablosu
+Ulaşım Şeflerinin görevlerini geçici olarak bir başka Şefe veya Şoföre devretmesini sağlayan kayıt tablosudur. `BaseAuditableEntity` taban sınıfından türer (`Id`, `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`, `IsDeleted`).
+
+| Kolon Adı | Veri Tipi | Kısıtlamalar & Açıklama |
+|---|---|---|
+| `Id` | `int` | Primary Key, Identity. |
+| `DelegatorUserId` | `nvarchar(450)` | Asıl yetkili (Ulaşım Şefi) kullanıcı ID'si. `FK -> AspNetUsers.Id` (`DeleteBehavior.Restrict`). |
+| `DelegateeUserId` | `nvarchar(450)` | Görevi devralan vekil kullanıcı ID'si. `FK -> AspNetUsers.Id` (`DeleteBehavior.Restrict`). |
+| `StartDate` | `datetime2` | Vekâlet başlangıç tarihi ve saati (UTC). |
+| `EndDate` | `datetime2` | Vekâlet planlanan bitiş tarihi ve saati (UTC). |
+| `Reason` | `nvarchar(500)` | Yetki devri gerekçesi (zorunlu, maks 500 karakter). |
+| `OriginalDelegateeRole` | `nvarchar(50)` | Vekil personelin asıl rolü (`Driver` veya `Kullanici`). |
+| `DelegatedRole` | `nvarchar(50)` | Devredilen rol (varsayılan `Kullanici` / Şef). |
+| `ActualRevokedAt` | `datetime2` (NULL) | Görevin erken geri alınma / sonlandırılma tarihi (UTC). Boş ise vekâlet planlanan süreye kadar geçerlidir. |
+| `RevokedByUserId` | `nvarchar(450)` (NULL) | Yetkiyi sonlandıran kullanıcı ID'si. `FK -> AspNetUsers.Id` (`DeleteBehavior.Restrict`). |
+| `RevokeReason` | `nvarchar(500)` (NULL) | Yetki devrini erken sonlandırma gerekçesi. |
+
+- **İndeks:**
+  - `IX_RoleDelegations_ActiveCheck`: `(DelegateeUserId, StartDate, EndDate, ActualRevokedAt, IsDeleted)` üzerinde hızlı aktif vekâlet ve çakışma kontrolü bileşik indeksi.
+- **Etkin Vekâlet Kriteri:**
+  - `ActualRevokedAt IS NULL AND IsDeleted = 0 AND StartDate <= DateTime.UtcNow AND DateTime.UtcNow <= EndDate`
+- **Çakışma Kontrolünde Bitiş:** `ActualRevokedAt ?? EndDate`
+
+### 22.2 `AuditLogs` Tablosu Genişletmesi
+Vekil bir kullanıcı işlem yaptığında "Ahmet Şef adına Ali Demir tarafından vekâleten yapıldı" denetim izini sağlamak amacıyla iki yeni nullable kolon eklenmiştir:
+
+| Kolon Adı | Veri Tipi | Kısıtlamalar & Açıklama |
+|---|---|---|
+| `OnBehalfOfUserId` | `nvarchar(450)` (NULL) | Adına işlem yapılan asıl yetkili kullanıcı ID'si. `FK -> AspNetUsers.Id` (`DeleteBehavior.Restrict`). |
+| `DelegationId` | `int` (NULL) | İşlemin yapıldığı esnada yürürlükte olan yetki devri kaydı ID'si. `FK -> RoleDelegations.Id` (`DeleteBehavior.Restrict`). |

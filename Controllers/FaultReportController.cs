@@ -10,9 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 
+using aractakipsys.Common;
+
 namespace aractakipsys.Controllers;
 
-[Authorize(Roles = "Admin,Kullanici")]
+[Authorize(Roles = AppRoles.AllStaffAndManagers)]
 [Route("FaultReport")]
 public class FaultReportController : Controller
 {
@@ -141,7 +143,7 @@ public class FaultReportController : Controller
     /// GET: /FaultReport/DownloadPdf/{id}?isBlank=false
     /// </summary>
     [HttpGet("DownloadPdf/{id:int}")]
-    public async Task<IActionResult> DownloadPdf(int id, [FromQuery] bool isBlank = false)
+    public async Task<IActionResult> DownloadPdf(int id, [FromQuery] bool isBlank = false, [FromQuery] bool preview = false)
     {
         FaultReportPdfModel? model;
         if (isBlank)
@@ -163,6 +165,13 @@ public class FaultReportController : Controller
 
         var safePlate = (model.VehiclePlate ?? "Arac").Replace(" ", "_");
         var fileName = isBlank ? "Arac_Ariza_Bildirim_Formu_Bos.pdf" : $"Ariza_Bildirim_Formu_{model.Id}_{safePlate}.pdf";
+
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(bytes, "application/pdf");
+        }
+
         return File(bytes, "application/pdf", fileName);
     }
 
@@ -171,13 +180,20 @@ public class FaultReportController : Controller
     /// GET: /FaultReport/DownloadBlankPdf
     /// </summary>
     [HttpGet("DownloadBlankPdf")]
-    public async Task<IActionResult> DownloadBlankPdf()
+    public async Task<IActionResult> DownloadBlankPdf([FromQuery] bool preview = false)
     {
         var model = await _faultReportService.GetBlankFaultReportPdfModelAsync(string.Empty);
         var doc = new FaultReportDocument(model);
         var bytes = doc.GeneratePdf();
+        var fileName = "Arac_Ariza_Bildirim_Formu_Bos.pdf";
 
-        return File(bytes, "application/pdf", "Arac_Ariza_Bildirim_Formu_Bos.pdf");
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(bytes, "application/pdf");
+        }
+
+        return File(bytes, "application/pdf", fileName);
     }
 
     /// <summary>

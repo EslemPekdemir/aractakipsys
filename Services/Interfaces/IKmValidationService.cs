@@ -4,6 +4,7 @@ namespace aractakipsys.Services.Interfaces;
 public interface IKmValidationService
 {
     int GetDiscrepancyThreshold();
+    int GetTripDistanceThreshold();
 
     (bool IsValid, bool NeedsConfirmation, string? Message) ValidateStartKm(
         int startKm, 
@@ -14,4 +15,8 @@ public interface IKmValidationService
         int endKm, 
         int startKm, 
         bool isConfirmed = false);
+
+    (bool IsWarning, int Distance, string? WarningMessage) CheckTripDistanceWarning(
+        int startKm, 
+        int endKm);
 }

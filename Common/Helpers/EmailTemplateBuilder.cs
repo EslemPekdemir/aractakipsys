@@ -20,8 +20,10 @@ public static class EmailTemplateBuilder
         Assignment assignment, 
         string? departmentTitle = null, 
         string? organizationUnit = null,
-        bool includeDriverDetails = true,
-        string? chiefNote = null)
+        string? chiefNote = null,
+        string? contactFullName = null,
+        string? contactPhone = null,
+        string? contactEmail = null)
     {
         var activeDepartment = !string.IsNullOrWhiteSpace(departmentTitle) ? departmentTitle : DefaultDepartmentTitle;
         var activeUnit = !string.IsNullOrWhiteSpace(organizationUnit) ? organizationUnit : DefaultOrganizationUnit;
@@ -47,24 +49,34 @@ public static class EmailTemplateBuilder
         var purpose = WebUtility.HtmlEncode(rawPurpose);
         var plateNumber = WebUtility.HtmlEncode(assignment.Vehicle?.PlateNumber ?? "81 DU ---");
         var vehicleModel = WebUtility.HtmlEncode(assignment.Vehicle != null ? $"{assignment.Vehicle.Brand} {assignment.Vehicle.Model}" : "Tahsis Edilen Araç");
+        
+        // FAZ 6 KURALI: Görevli şoförün yalnızca ADI görünür, telefonu/e-postası görünmez!
         var driverName = WebUtility.HtmlEncode(assignment.Driver?.User?.FullName ?? $"Şoför #{assignment.DriverId}");
-        var driverPhone = assignment.Driver?.User?.PhoneNumber ?? "Belirtilmedi";
-        var driverPhoneClean = new string(driverPhone.Where(char.IsDigit).ToArray());
+        
+        // İletişim Kişisi (Ulaşım Şefi / İletişim Personeli)
+        var contactName = WebUtility.HtmlEncode(contactFullName ?? "Ulaşım Koordinasyon Şefliği");
+        var contactPhoneDisplay = !string.IsNullOrWhiteSpace(contactPhone) ? contactPhone : "Kurum Santrali";
+        var contactPhoneClean = new string((contactPhone ?? "").Where(char.IsDigit).ToArray());
+        var contactEmailDisplay = WebUtility.HtmlEncode(contactEmail ?? "aractakip@duzce.edu.tr");
+
         var startTime = assignment.PlannedStartTime.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
         var endTime = assignment.PlannedEndTime.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
 
-        var driverSectionHtml = includeDriverDetails
-            ? $@"
-                <strong style=""font-weight: 600; color: #0f172a; font-size: 14px;"">{driverName}</strong>
-                {(string.IsNullOrWhiteSpace(driverPhoneClean) ? "" : $@"
-                <span style=""font-size: 13px; color: #64748b; margin-left: 10px;"">
-                    Tel: <a href=""tel:{driverPhoneClean}"" style=""color: #2563eb; text-decoration: none; font-weight: 500;"">{driverPhone}</a>
-                </span>")}"
-            : @"<span style=""font-weight: 500; color: #475569; font-size: 13px;"">Kurum Görevli Personeli</span>";
+        var driverSectionHtml = $@"<strong style=""font-weight: 600; color: #0f172a; font-size: 14px;"">{driverName}</strong>";
 
-        var reminderText = includeDriverDetails
-            ? "Görev başlangıç saatinden <strong>en az 15 dakika önce</strong> tahsis edilen araç başında hazır bulunulması ve görev süresince ilgili şoför ile irtibat halinde olunması önemle rica olunur."
-            : "Görev başlangıç saatinden <strong>en az 15 dakika önce</strong> tahsis edilen araç başında hazır bulunulması önemle rica olunur.";
+        var contactSectionHtml = $@"
+            <div style=""font-weight: 600; color: #0f172a; font-size: 14px; margin-bottom: 3px;"">{contactName}</div>
+            <div style=""font-size: 13px; color: #475569;"">
+                {(string.IsNullOrWhiteSpace(contactPhoneClean) ? "" : $@"
+                <span style=""margin-right: 12px;"">
+                    Tel: <a href=""tel:{contactPhoneClean}"" style=""color: #2563eb; text-decoration: none; font-weight: 600;"">{contactPhoneDisplay}</a>
+                </span>")}
+                <span>
+                    E-Posta: <a href=""mailto:{contactEmailDisplay}"" style=""color: #2563eb; text-decoration: none; font-weight: 500;"">{contactEmailDisplay}</a>
+                </span>
+            </div>";
+
+        var reminderText = "Görev başlangıç saatinden <strong>en az 15 dakika önce</strong> tahsis edilen araç başında hazır bulunulması, görevle ilgili her türlü soru ve koordinasyon için yukarıda belirtilen <strong>İletişim Kişisi</strong> ile irtibat kurulması önemle rica olunur.";
 
         var chiefNoteRowHtml = "";
         if (!string.IsNullOrWhiteSpace(chiefNote))
@@ -175,6 +187,16 @@ public static class EmailTemplateBuilder
                                     </td>
                                     <td style=""padding: 13px 18px; border-bottom: 1px solid #edf2f7; font-size: 14px; color: #0f172a;"">
                                         {driverSectionHtml}
+                                    </td>
+                                </tr>
+
+                                <!-- İletişim Kişisi (Ulaşım Şefi / İrtibat) -->
+                                <tr>
+                                    <td style=""padding: 13px 18px; border-bottom: 1px solid #edf2f7; font-size: 13px; color: #64748b; font-weight: 600; vertical-align: top;"">
+                                        İletişim Kişisi
+                                    </td>
+                                    <td style=""padding: 13px 18px; border-bottom: 1px solid #edf2f7; font-size: 13px; color: #0f172a;"">
+                                        {contactSectionHtml}
                                     </td>
                                 </tr>
 

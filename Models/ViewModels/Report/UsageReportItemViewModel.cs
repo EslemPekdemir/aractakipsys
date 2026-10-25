@@ -19,6 +19,9 @@ public class UsageReportItemViewModel
     public int? StartKm { get; set; }
     public int? EndKm { get; set; }
 
+    public int? DriverId { get; set; }
+    public bool IsPrimaryDriver { get; set; } = true;
+
     /// <summary>
     /// Kat edilen fiili kilometre (EndKm - StartKm)
     /// </summary>
@@ -30,4 +33,25 @@ public class UsageReportItemViewModel
     /// Seferin gerçekleştiği tarih (Fiili başlangıç veya planlanan başlangıç)
     /// </summary>
     public DateTime TripDate => ActualStartTime ?? PlannedStartTime;
+
+    /// <summary>
+    /// Sefer süresi (Fiili bitiş-başlangıç, yoksa planlanan bitiş-başlangıç)
+    /// </summary>
+    public TimeSpan DurationTimeSpan
+    {
+        get
+        {
+            var start = ActualStartTime ?? PlannedStartTime;
+            var end = ActualEndTime ?? PlannedEndTime;
+            if (end > start)
+            {
+                return end - start;
+            }
+            return TimeSpan.Zero;
+        }
+    }
+
+    public int DurationMinutes => (int)Math.Round(DurationTimeSpan.TotalMinutes);
+
+    public string DurationFormatted => aractakipsys.Common.Helpers.DurationHelper.FormatDuration(DurationTimeSpan);
 }

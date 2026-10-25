@@ -1,0 +1,110 @@
+@* 
+    Ortak PDF Önizleme Modalı ve JavaScript Bileşeni
+    Tüm PDF çıktıları için iframe/embed ile sayfa yenilemeden önizleme sağlar.
+    Mobil tarayıcı fallback'i olarak doğrudan yeni sekmede açma butonu içerir.
+*@
+
+<div class="modal fade" id="globalPdfPreviewModal" tabindex="-1" role="dialog" aria-labelledby="globalPdfPreviewModalTitle" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document" style="max-width: 92vw; height: 90vh; margin: 1.75rem auto;">
+        <div class="modal-content shadow-lg border-0" style="height: 100%; display: flex; flex-direction: column; border-radius: 12px; overflow: hidden;">
+            <div class="modal-header bg-dark text-white py-2 px-3 align-items-center">
+                <h5 class="modal-title font-weight-bold font-14 mb-0 text-truncate" id="globalPdfPreviewModalTitle" style="max-width: 70%;">
+                    <i class="fa fa-file-pdf-o text-danger mr-2"></i><span id="globalPdfPreviewTitleText">Belge Önizleme</span>
+                </h5>
+                <div class="d-flex align-items-center">
+                    <a id="globalPdfDownloadBtn" href="#" class="btn btn-primary btn-sm mr-2 shadow-sm font-weight-bold" download>
+                        <i class="fa fa-download mr-1"></i> İndir
+                    </a>
+                    <a id="globalPdfNewTabBtn" href="#" target="_blank" class="btn btn-outline-light btn-sm mr-2 shadow-sm font-weight-bold" title="Yeni sekmede aç">
+                        <i class="fa fa-external-link mr-1"></i> <span class="d-none d-sm-inline">Yeni Sekmede Aç</span>
+                    </a>
+                    <button type="button" class="close text-white opacity-80" data-dismiss="modal" aria-label="Kapat" style="font-size: 1.4rem; padding: 0.5rem 0.75rem; margin: -0.5rem -0.75rem -0.5rem auto;">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-body p-0 position-relative bg-light" style="flex: 1 1 auto; overflow: hidden;">
+                <!-- Yükleniyor Göstergesi -->
+                <div id="globalPdfLoadingSpinner" class="d-flex flex-column align-items-center justify-content-center position-absolute w-100 h-100" style="top:0; left:0; background: rgba(255,255,255,0.9); z-index: 5;">
+                    <div class="spinner-border text-danger mb-2" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="sr-only">Yükleniyor...</span>
+                    </div>
+                    <span class="text-muted font-weight-bold">PDF Belgesi Hazırlanıyor...</span>
+                </div>
+
+                <!-- PDF iframe -->
+                <iframe id="globalPdfPreviewIframe" src="about:blank" style="width: 100%; height: 100%; border: none; display: block;" allow="fullscreen"></iframe>
+            </div>
+            <div class="modal-footer py-2 px-3 bg-white border-top d-flex justify-content-between align-items-center">
+                <small class="text-muted font-11">
+                    <i class="fa fa-info-circle mr-1"></i>Mobil cihazlarda PDF görüntülenemiyorsa "Yeni Sekmede Aç" butonunu kullanabilirsiniz.
+                </small>
+                <div>
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        function getCleanUrl(url) {
+            if (!url) return '';
+            return url;
+        }
+
+        function buildPreviewUrl(rawUrl) {
+            if (!rawUrl) return '';
+            var separator = rawUrl.indexOf('?') !== -1 ? '&' : '?';
+            // Eğer zaten preview parametresi yoksa ekle
+            if (rawUrl.indexOf('preview=') === -1) {
+                return rawUrl + separator + 'preview=true';
+            }
+            return rawUrl;
+        }
+
+        function buildDownloadUrl(rawUrl) {
+            if (!rawUrl) return '';
+            // preview parametresi varsa temizle
+            return rawUrl.replace(/[?&]preview=true/g, '').replace(/[?&]preview=false/g, '');
+        }
+
+        window.openPdfPreviewModal = function (url, title) {
+            if (!url) return;
+            var previewUrl = buildPreviewUrl(url);
+            var downloadUrl = buildDownloadUrl(url);
+            var displayTitle = title || 'PDF Belge Önizleme';
+
+            $('#globalPdfPreviewTitleText').text(displayTitle);
+            $('#globalPdfDownloadBtn').attr('href', downloadUrl);
+            $('#globalPdfNewTabBtn').attr('href', previewUrl);
+
+            var $spinner = $('#globalPdfLoadingSpinner');
+            var $iframe = $('#globalPdfPreviewIframe');
+
+            $spinner.show();
+            $iframe.off('load').on('load', function () {
+                $spinner.fadeOut(200);
+            });
+
+            $iframe.attr('src', previewUrl);
+            $('#globalPdfPreviewModal').modal('show');
+        };
+
+        // Modal kapandığında iframe'i temizle (bellek tasarrufu)
+        $(document).on('hidden.bs.modal', '#globalPdfPreviewModal', function () {
+            $('#globalPdfPreviewIframe').attr('src', 'about:blank');
+            $('#globalPdfLoadingSpinner').show();
+        });
+
+        // data-pdf-preview attribute'una sahip tüm buton/linkler için tekil click delegasyonu
+        $(document).on('click', '[data-pdf-preview]', function (e) {
+            e.preventDefault();
+            var $this = $(this);
+            var targetUrl = $this.attr('data-pdf-url') || $this.attr('href');
+            var title = $this.attr('data-pdf-title') || $this.attr('title') || $this.text().trim();
+            window.openPdfPreviewModal(targetUrl, title);
+        });
+    })();
+</script>

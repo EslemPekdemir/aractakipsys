@@ -94,7 +94,31 @@
                             }
                         </span>
                     </div>
-                    @if (!string.IsNullOrEmpty(Model.TireBrand) || Model.TireYear.HasValue || !string.IsNullOrEmpty(Model.TireSeason))
+                    @if (Model.CurrentTire != null)
+                    {
+                        <div class="list-group-item d-flex justify-content-between px-0 py-2 border-0">
+                            <span class="text-muted font-weight-bold">Güncel Lastik:</span>
+                            <span class="text-dark font-weight-bold">
+                                @Model.CurrentTire.Brand
+                                @if (!string.IsNullOrWhiteSpace(Model.CurrentTire.Size))
+                                {
+                                    <span class="badge badge-secondary ml-1">@Model.CurrentTire.Size</span>
+                                }
+                                <span class="badge badge-info ml-1">@Model.CurrentTire.SeasonDisplay</span>
+                            </span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between px-0 py-2 border-0">
+                            <span class="text-muted font-weight-bold">DOT & Kullanım:</span>
+                            <span class="text-dark small">
+                                <strong>@Model.CurrentTire.DotDateDisplay</strong> | Kullanım: <strong>@Model.CurrentTire.UsedKmDisplay</strong>
+                                @if (Model.CurrentTire.IsAlert)
+                                {
+                                    <span class="badge badge-danger ml-1">@Model.CurrentTire.AlertReason</span>
+                                }
+                            </span>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(Model.TireBrand) || Model.TireYear.HasValue || !string.IsNullOrEmpty(Model.TireSeason))
                     {
                         <div class="list-group-item d-flex justify-content-between px-0 py-2 border-0">
                             <span class="text-muted font-weight-bold">Lastik Durumu:</span>
@@ -209,6 +233,22 @@
                 <h5 class="m-0 font-weight-bold text-dark">
                     <i class="fa fa-wrench text-warning mr-1"></i> Bakım ve Servis Geçmişi
                 </h5>
+                @if (Model.MaintenanceHistory.Count > 0)
+                {
+                    var vehicleMaintenancePdfUrl = $"/Report/ExportMaintenancePdf?vehicleId={Model.Id}&hasSearched=true";
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-info btn-xs font-weight-bold shadow-sm"
+                                data-pdf-preview data-pdf-url="@vehicleMaintenancePdfUrl"
+                                data-pdf-title="@Model.PlateNumber - Araç Bakım ve Maliyet Raporu Önizleme">
+                            <i class="fa fa-eye mr-1"></i> Önizle
+                        </button>
+                        <a href="@vehicleMaintenancePdfUrl" target="_blank"
+                           class="btn btn-outline-danger btn-xs font-weight-bold shadow-sm"
+                           title="@Model.PlateNumber İçin Bakım ve Maliyet Raporu PDF İndir">
+                            <i class="fa fa-file-pdf-o mr-1"></i> PDF İndir
+                        </a>
+                    </div>
+                }
             </div>
             <div class="ibox-content p-0">
                 @if (Model.MaintenanceHistory.Count == 0)

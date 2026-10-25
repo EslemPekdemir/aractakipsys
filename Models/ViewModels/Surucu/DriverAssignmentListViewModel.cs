@@ -8,6 +8,12 @@ public class DriverAssignmentListViewModel
     public string DriverFullName { get; set; } = string.Empty;
     public string DriverDepartment { get; set; } = string.Empty;
 
+    // Şoförün ehliyetleri ve uyarıları (Faz 4)
+    public List<aractakipsys.Models.ViewModels.Driver.DriverLicenseItemViewModel> Licenses { get; set; } = new();
+    public List<aractakipsys.Models.ViewModels.Driver.DriverLicenseItemViewModel> ExpiringOrExpiredLicenses =>
+        Licenses.Where(l => (l.LicenseExpiryDate.Date - DateTime.UtcNow.Date).Days <= 30).ToList();
+    public bool HasLicenseAlert => ExpiringOrExpiredLicenses.Any();
+
     // Aktif devam eden görev (Varsa en üstte gösterilir)
     public AssignmentCardViewModel? ActiveAssignment { get; set; }
 

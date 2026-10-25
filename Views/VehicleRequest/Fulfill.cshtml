@@ -186,6 +186,25 @@
                             @(string.IsNullOrWhiteSpace(Model.Department) ? "Belirtilmedi" : Model.Department)
                         </div>
                     </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.RequestedVehicleType) || Model.PassengerCount.HasValue)
+                    {
+                        <div class="mb-3 p-2 rounded bg-light border">
+                            @if (!string.IsNullOrWhiteSpace(Model.RequestedVehicleType))
+                            {
+                                <div class="small mb-1">
+                                    <strong class="text-muted text-uppercase" style="font-size: 0.75rem;">İstenen Araç Türü:</strong>
+                                    <span class="font-weight-bold text-dark ml-1">@Model.RequestedVehicleType</span>
+                                </div>
+                            }
+                            @if (Model.PassengerCount.HasValue)
+                            {
+                                <div class="small">
+                                    <strong class="text-muted text-uppercase" style="font-size: 0.75rem;">Yolcu Sayısı:</strong>
+                                    <span class="badge badge-info ml-1">@Model.PassengerCount.Value Kişi</span>
+                                </div>
+                            }
+                        </div>
+                    }
                     <div class="mb-3">
                         <label class="text-muted small text-uppercase font-weight-bold d-block mb-1">Başvuru Tarihi</label>
                         <span class="text-secondary small font-weight-bold">
@@ -296,19 +315,24 @@
                             </small>
                         </div>
 
-                        <!-- ŞOFÖR BİLGİSİ E-POSTA PAYLAŞIM AYARI -->
+                        <!-- İLETİŞİM KİŞİSİ SEÇİMİ (ULAŞIM ŞEFLERİ VE ŞOFÖRLER) -->
                         <div class="form-group mb-3">
-                            <label class="inspinia-check-group" for="IncludeDriverInfoInEmail">
-                                <input type="checkbox" id="IncludeDriverInfoInEmail" asp-for="IncludeDriverInfoInEmail" />
-                                <span class="inspinia-check-box">
-                                    <i class="fa fa-check"></i>
-                                </span>
-                                <span class="inspinia-check-text">
-                                    Görevli şoförün adı ve telefon numarası talep sahibine giden e-postada yer alsın
-                                </span>
+                            <label asp-for="ContactUserId" class="font-weight-bold">
+                                <i class="fa fa-address-book-o mr-1 text-primary"></i> İletişim Kişisi (Ulaşım Şefi / Şoför) <span class="text-danger">*</span>
                             </label>
-                            <small class="form-text text-muted d-block" style="margin-left: 26px; font-size: 0.78rem;">
-                                İşaretlenirse talep sahibine iletilen onay e-postasında şoförün adı ve arama butonu yer alır. İşaret kaldırılırsa gizli tutulur.
+                            <select asp-for="ContactUserId" class="form-control select2" required>
+                                <option value="">-- İletişim Kişisi Seçiniz --</option>
+                                @foreach (var cp in Model.AvailableContactPersons)
+                                {
+                                    <option value="@cp.UserId" selected="@(cp.UserId == Model.ContactUserId)">
+                                        @cp.DisplayText
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="ContactUserId" class="text-danger small"></span>
+                            <small class="form-text text-muted" style="font-size: 0.8rem;">
+                                <i class="fa fa-info-circle mr-1 text-info"></i>
+                                Onay e-postasında <strong>şoförün yalnızca adı</strong> görünür (telefonu/e-postası gizlenir). Talep sahibinin irtibat kurması için burada seçilen iletişim kişisinin adı, telefonu ve e-postası e-postada yer alır.
                             </small>
                         </div>
 

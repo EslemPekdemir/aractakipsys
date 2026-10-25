@@ -104,11 +104,12 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                     {
                         columns.ConstantColumn(25);   // #
                         columns.RelativeColumn(2.0f); // Plaka
-                        columns.RelativeColumn(3.0f); // Marka / Model
-                        columns.RelativeColumn(2.3f); // Sigorta Başlangıç
-                        columns.RelativeColumn(2.3f); // Sigorta Bitiş
-                        columns.RelativeColumn(2.8f); // Kalan Gün / Durum
-                        columns.RelativeColumn(2.0f); // Güncel Durum
+                        columns.RelativeColumn(2.8f); // Marka / Model
+                        columns.RelativeColumn(2.2f); // Sigorta Başlangıç
+                        columns.RelativeColumn(2.2f); // Sigorta Bitiş
+                        columns.RelativeColumn(2.5f); // Kalan Gün / Durum
+                        columns.RelativeColumn(2.0f); // Ödenen Tutar
+                        columns.RelativeColumn(1.8f); // Güncel Durum
                     });
 
                     table.Header(header =>
@@ -119,6 +120,7 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Sigorta Başlangıç").Bold();
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Sigorta Bitiş").Bold();
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Kalan Gün / Durum").Bold();
+                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Ödenen Tutar").Bold();
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Güncel Durum").Bold();
                     });
 
@@ -153,9 +155,19 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                             }
                         });
 
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                            .Text(item.InsuranceCost.HasValue && item.InsuranceCost.Value > 0 ? $"{item.InsuranceCost.Value:N2} ₺" : "-").Bold().FontColor(Colors.Green.Darken3);
+
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.StatusDisplayName);
                         index++;
                     }
+
+                    // Dip Toplam
+                    table.Cell().ColumnSpan(6).Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                        .Text("TOPLAM SİGORTA MALİYETİ:").Bold().FontSize(9);
+                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                        .Text($"{_model.TotalInsuranceCost:N2} ₺").Bold().FontColor(Colors.Green.Darken4).FontSize(9);
+                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).Text("");
                 }
                 else if (scope == ReportScopeType.Inspection)
                 {
@@ -164,11 +176,12 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                     {
                         columns.ConstantColumn(25);   // #
                         columns.RelativeColumn(2.0f); // Plaka
-                        columns.RelativeColumn(3.0f); // Marka / Model
-                        columns.RelativeColumn(2.3f); // Muayene Başlangıç
-                        columns.RelativeColumn(2.3f); // Muayene Bitiş
-                        columns.RelativeColumn(2.8f); // Kalan Gün / Durum
-                        columns.RelativeColumn(2.0f); // Güncel Durum
+                        columns.RelativeColumn(2.8f); // Marka / Model
+                        columns.RelativeColumn(2.2f); // Muayene Başlangıç
+                        columns.RelativeColumn(2.2f); // Muayene Bitiş
+                        columns.RelativeColumn(2.5f); // Kalan Gün / Durum
+                        columns.RelativeColumn(2.0f); // Ödenen Tutar
+                        columns.RelativeColumn(1.8f); // Güncel Durum
                     });
 
                     table.Header(header =>
@@ -179,6 +192,7 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Muayene Başlangıç").Bold();
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Muayene Bitiş").Bold();
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Kalan Gün / Durum").Bold();
+                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Ödenen Tutar").Bold();
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Güncel Durum").Bold();
                     });
 
@@ -213,21 +227,33 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                             }
                         });
 
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                            .Text(item.InspectionCost.HasValue && item.InspectionCost.Value > 0 ? $"{item.InspectionCost.Value:N2} ₺" : "-").Bold().FontColor(Colors.Green.Darken3);
+
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.StatusDisplayName);
                         index++;
                     }
+
+                    // Dip Toplam
+                    table.Cell().ColumnSpan(6).Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                        .Text("TOPLAM MUAYENE MALİYETİ:").Bold().FontSize(9);
+                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                        .Text($"{_model.TotalInspectionCost:N2} ₺").Bold().FontColor(Colors.Green.Darken4).FontSize(9);
+                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).Text("");
                 }
                 else
                 {
-                    // Tümü (Sigorta ve Muayene)
+                    // Tümü (Sigorta, Muayene ve Kasko Dahil)
                     table.ColumnsDefinition(columns =>
                     {
                         columns.ConstantColumn(25);   // #
                         columns.RelativeColumn(1.8f); // Plaka
-                        columns.RelativeColumn(2.5f); // Marka / Model
-                        columns.RelativeColumn(3.8f); // Trafik Sigortası (Başlangıç - Bitiş)
-                        columns.RelativeColumn(3.8f); // Fenni Muayene (Başlangıç - Bitiş)
-                        columns.RelativeColumn(2.0f); // Güncel Durum
+                        columns.RelativeColumn(2.2f); // Marka / Model
+                        columns.RelativeColumn(2.8f); // Trafik Sigortası
+                        columns.RelativeColumn(2.8f); // Fenni Muayene
+                        columns.RelativeColumn(2.8f); // Kasko
+                        columns.RelativeColumn(2.0f); // Toplam Tutar
+                        columns.RelativeColumn(1.8f); // Güncel Durum
                     });
 
                     table.Header(header =>
@@ -235,8 +261,10 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("#").Bold();
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Plaka").Bold();
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Marka / Model").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Trafik Sigortası (Başlangıç - Bitiş)").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Fenni Muayene (Başlangıç - Bitiş)").Bold();
+                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Trafik Sigortası").Bold();
+                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Fenni Muayene").Bold();
+                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Kasko").Bold();
+                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Toplam Tutar").Bold();
                         header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Güncel Durum").Bold();
                     });
 
@@ -250,14 +278,9 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.PlateNumber).Bold();
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text($"{item.BrandModel} ({item.Year})");
 
-                        // Sigorta (Başlangıç + Bitiş & Kalan Gün)
+                        // Sigorta (Bitiş & Tutar)
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Column(col =>
                         {
-                            col.Item().Text(text =>
-                            {
-                                text.Span("Başlangıç: ").FontSize(8).FontColor(Colors.Grey.Darken2);
-                                text.Span(item.InsuranceStartDate.ToString("dd.MM.yyyy")).FontSize(8);
-                            });
                             col.Item().Text(text =>
                             {
                                 text.Span("Bitiş: ").Bold();
@@ -270,21 +293,13 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                                 {
                                     text.Span($" ({item.InsuranceDaysRemaining} gün kaldı)").Bold().FontColor(Colors.Orange.Darken3);
                                 }
-                                else
-                                {
-                                    text.Span($" ({item.InsuranceDaysRemaining} gün)").FontColor(Colors.Grey.Darken1);
-                                }
                             });
+                            col.Item().Text($"Tutar: {(item.InsuranceCost.HasValue && item.InsuranceCost.Value > 0 ? $"{item.InsuranceCost.Value:N2} ₺" : "-")}").FontSize(8).FontColor(Colors.Grey.Darken2);
                         });
 
-                        // Muayene (Başlangıç + Bitiş & Kalan Gün)
+                        // Muayene (Bitiş & Tutar)
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Column(col =>
                         {
-                            col.Item().Text(text =>
-                            {
-                                text.Span("Başlangıç: ").FontSize(8).FontColor(Colors.Grey.Darken2);
-                                text.Span(item.InspectionStartDate.ToString("dd.MM.yyyy")).FontSize(8);
-                            });
                             col.Item().Text(text =>
                             {
                                 text.Span("Bitiş: ").Bold();
@@ -297,18 +312,54 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                                 {
                                     text.Span($" ({item.InspectionDaysRemaining} gün kaldı)").Bold().FontColor(Colors.Orange.Darken3);
                                 }
-                                else
-                                {
-                                    text.Span($" ({item.InspectionDaysRemaining} gün)").FontColor(Colors.Grey.Darken1);
-                                }
                             });
+                            col.Item().Text($"Tutar: {(item.InspectionCost.HasValue && item.InspectionCost.Value > 0 ? $"{item.InspectionCost.Value:N2} ₺" : "-")}").FontSize(8).FontColor(Colors.Grey.Darken2);
                         });
+
+                        // Kasko (Bitiş & Tutar)
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Column(col =>
+                        {
+                            if (item.KaskoExpiryDate.HasValue)
+                            {
+                                col.Item().Text(text =>
+                                {
+                                    text.Span("Bitiş: ").Bold();
+                                    text.Span(item.KaskoExpiryDate.Value.ToString("dd.MM.yyyy")).Bold();
+                                    if (item.IsKaskoExpired)
+                                    {
+                                        text.Span($" ({Math.Abs(item.KaskoDaysRemaining!.Value)} gün geçti)").Bold().FontColor(Colors.Red.Darken2);
+                                    }
+                                    else if (item.IsKaskoExpiringSoon)
+                                    {
+                                        text.Span($" ({item.KaskoDaysRemaining!.Value} gün kaldı)").Bold().FontColor(Colors.Orange.Darken3);
+                                    }
+                                });
+                                col.Item().Text($"Tutar: {(item.KaskoCost.HasValue && item.KaskoCost.Value > 0 ? $"{item.KaskoCost.Value:N2} ₺" : "-")}").FontSize(8).FontColor(Colors.Grey.Darken2);
+                            }
+                            else
+                            {
+                                col.Item().Text("Kasko Yok").FontSize(8).FontColor(Colors.Grey.Darken1);
+                            }
+                        });
+
+                        // Toplam Tutar
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                            .Text(item.TotalDocumentCost > 0 ? $"{item.TotalDocumentCost:N2} ₺" : "-").Bold().FontColor(Colors.Green.Darken3);
 
                         // Durum
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.StatusDisplayName);
 
                         index++;
                     }
+
+                    // Dip Toplam Satırı (Genel Toplam Tutar)
+                    table.Cell().ColumnSpan(6).Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                        .Text($"GENEL TOPLAM BELGE MALİYETİ (Sigorta: {_model.TotalInsuranceCost:N2} ₺ | Muayene: {_model.TotalInspectionCost:N2} ₺ | Kasko: {_model.TotalKaskoCost:N2} ₺):").Bold().FontSize(8);
+
+                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                        .Text($"{_model.TotalCost:N2} ₺").Bold().FontColor(Colors.Green.Darken4).FontSize(9);
+
+                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).Text("");
                 }
             });
 

@@ -139,7 +139,7 @@
                 <h5><i class="fa fa-user-circle mr-1"></i> Profil Bilgilerini Düzenle</h5>
             </div>
             <div class="ibox-content p-4">
-                <form method="post" action="/Account/Profile" enctype="multipart/form-data">
+                <form method="post" action="/Account/Profile" enctype="multipart/form-data" class="readonly-allow-form">
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="Id" />
                     <input type="hidden" asp-for="Username" />

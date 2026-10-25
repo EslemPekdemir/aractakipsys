@@ -25,4 +25,13 @@ public class SefEditViewModel
 
     [Display(Name = "Hesap Durumu (Aktif)")]
     public bool IsActive { get; set; } = true;
+
+    [Display(Name = "Mevcut Rol")]
+    public string RoleName { get; set; } = "Kullanici";
+
+    [Display(Name = "Kullanıcı Rolü")]
+    public string Role { get => RoleName; set => RoleName = value; }
+
+    [Display(Name = "Rol")]
+    public string RoleDisplayName { get; set; } = "Ulaşım Şefi";
 }

@@ -12,6 +12,9 @@ public class AuditLogListItemViewModel
     public string ChangedByUserId { get; set; } = string.Empty;
     public string ChangedByUserName { get; set; } = string.Empty;
     public string ChangedByUserEmail { get; set; } = string.Empty;
+    public string? OnBehalfOfUserId { get; set; }
+    public string? OnBehalfOfUserName { get; set; }
+    public int? DelegationId { get; set; }
     public DateTime ChangedAt { get; set; }
     public string? OldValues { get; set; }
     public string? NewValues { get; set; }

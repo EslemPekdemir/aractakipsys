@@ -39,4 +39,8 @@ public class SefCreateViewModel
 
     [Display(Name = "Hesap Durumu")]
     public bool IsActive { get; set; } = true;
+
+    [Required(ErrorMessage = "Rol seçimi zorunludur.")]
+    [Display(Name = "Kullanıcı Rolü")]
+    public string Role { get; set; } = "Kullanici";
 }

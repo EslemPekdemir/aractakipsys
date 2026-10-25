@@ -36,11 +36,15 @@ public class DashboardViewModel
     public int PendingVehicleRequestsCount { get; set; }
     public List<aractakipsys.Models.ViewModels.VehicleRequest.PendingNotificationItemViewModel> PendingVehicleRequestsSummary { get; set; } = new();
 
-    // 6. Belge Süresi Yaklaşan / Geçen Araçlar (Tablo & Kart)
+    // 7. Belge Süresi Yaklaşan / Geçen Araçlar (Tablo & Kart)
     public List<DocumentExpiryTableItemViewModel> DocumentAlertVehicles { get; set; } = new();
     public int DocumentAlertVehiclesCount => DocumentAlertVehicles.Count;
 
-    // 7. Toast Bildirimi Kullanıcı & Uyarı İmzası (Oturum Hafızası)
+    // 8. Ehliyet Süresi Yaklaşan / Geçen Şoförler (Faz 4 - 30 gün içinde dolacaklar + süresi dolmuşlar)
+    public List<DriverLicenseExpiryAlertViewModel> ExpiringDriverLicenses { get; set; } = new();
+    public int ExpiringDriverLicensesCount => ExpiringDriverLicenses.Count;
+
+    // 9. Toast Bildirimi Kullanıcı & Uyarı İmzası (Oturum Hafızası)
     public string CurrentUserId { get; set; } = string.Empty;
 
     public string ToastAlertSignature
@@ -49,9 +53,25 @@ public class DashboardViewModel
         {
             var pendingIds = string.Join(",", PendingVehicleRequestsSummary.Select(p => p.Id).OrderBy(id => id));
             var docIds = string.Join(",", DocumentAlertVehicles.Select(d => d.VehicleId).OrderBy(id => id));
-            return $"user:{CurrentUserId}|pending:{PendingVehicleRequestsCount}[{pendingIds}]|docs:{DocumentAlertVehiclesCount}[{docIds}]";
+            var licIds = string.Join(",", ExpiringDriverLicenses.Select(l => $"{l.DriverId}_{l.LicenseClass}").OrderBy(id => id));
+            return $"user:{CurrentUserId}|pending:{PendingVehicleRequestsCount}[{pendingIds}]|docs:{DocumentAlertVehiclesCount}[{docIds}]|lics:{ExpiringDriverLicensesCount}[{licIds}]";
         }
     }
+}
+
+public class DriverLicenseExpiryAlertViewModel
+{
+    public int DriverId { get; set; }
+    public string DriverFullName { get; set; } = string.Empty;
+    public string? Department { get; set; }
+    public string LicenseClass { get; set; } = string.Empty;
+    public DateTime LicenseExpiryDate { get; set; }
+    public int DaysRemaining { get; set; }
+    public bool IsExpired => DaysRemaining < 0;
+
+    public string RowClass => IsExpired ? "table-danger" : "table-warning";
+    public string BadgeClass => IsExpired ? "badge-danger bg-danger text-white" : "badge-warning bg-warning text-dark";
+    public string StatusText => IsExpired ? $"{Math.Abs(DaysRemaining)} gün geçti" : (DaysRemaining == 0 ? "Bugün doluyor!" : $"{DaysRemaining} gün kaldı");
 }
 
 public class DocumentExpiryTableItemViewModel

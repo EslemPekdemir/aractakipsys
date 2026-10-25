@@ -96,9 +96,11 @@ public class SmtpEmailService : IEmailService
     public Task SendRequestFulfilledEmailAsync(
         VehicleRequest request, 
         Assignment assignment, 
-        bool includeDriverDetails = true, 
         string? departmentTitle = null,
-        string? chiefNote = null)
+        string? chiefNote = null,
+        string? contactFullName = null,
+        string? contactPhone = null,
+        string? contactEmail = null)
     {
         var activeDepartment = !string.IsNullOrWhiteSpace(departmentTitle) 
             ? departmentTitle 
@@ -110,8 +112,10 @@ public class SmtpEmailService : IEmailService
             assignment, 
             activeDepartment, 
             _emailSettings.OrganizationUnit,
-            includeDriverDetails,
-            chiefNote);
+            chiefNote,
+            contactFullName,
+            contactPhone,
+            contactEmail);
 
         return SendEmailAsync(request.RequesterEmail, subject, htmlBody, isHtml: true);
     }

@@ -7,14 +7,17 @@ namespace aractakipsys.Services.Implementations;
 public class KmValidationService : IKmValidationService
 {
     private readonly int _discrepancyThreshold;
+    private readonly int _tripDistanceThreshold;
 
     public KmValidationService(IConfiguration configuration)
     {
-        // appsettings.json'dan eşik değerini oku; varsayılan 1000 KM
+        // appsettings.json'dan eşik değerlerini oku
         _discrepancyThreshold = configuration.GetValue<int>("VehicleSettings:KmDiscrepancyThreshold", 1000);
+        _tripDistanceThreshold = configuration.GetValue<int>("VehicleSettings:TripDistanceThreshold", 200);
     }
 
     public int GetDiscrepancyThreshold() => _discrepancyThreshold;
+    public int GetTripDistanceThreshold() => _tripDistanceThreshold;
 
     public (bool IsValid, bool NeedsConfirmation, string? Message) ValidateStartKm(
         int startKm, 
@@ -52,5 +55,16 @@ public class KmValidationService : IKmValidationService
         }
 
         return (true, false, null);
+    }
+
+    public (bool IsWarning, int Distance, string? WarningMessage) CheckTripDistanceWarning(int startKm, int endKm)
+    {
+        var distance = endKm - startKm;
+        if (distance > _tripDistanceThreshold)
+        {
+            return (true, distance, $"Yapılan mesafe ({distance:N0} KM), belirlenen eşik değerini ({_tripDistanceThreshold:N0} KM) aşmaktadır. Lütfen girilen kilometre değerlerini kontrol ediniz.");
+        }
+
+        return (false, distance, null);
     }
 }

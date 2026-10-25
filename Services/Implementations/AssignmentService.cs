@@ -183,6 +183,7 @@ public class AssignmentService : IAssignmentService
             .Include(a => a.EndApprovedByUser)
             .Include(a => a.SignedDocumentUploadedByUser)
             .Include(a => a.OffRouteReportedByUser)
+            .Include(a => a.RouteChanges)
             .FirstOrDefaultAsync(a => a.Id == id);
 
         if (a == null)
@@ -325,7 +326,24 @@ public class AssignmentService : IAssignmentService
             CheckFuel = a.CheckFuel,
             CheckHydraulic = a.CheckHydraulic,
             CheckTires = a.CheckTires,
-            ChecksCompletedAt = a.ChecksCompletedAt
+            ChecksCompletedAt = a.ChecksCompletedAt,
+            RouteChanges = a.RouteChanges
+                .Where(rc => !rc.IsDeleted)
+                .OrderByDescending(rc => rc.CreatedAt)
+                .Select(rc => new AssignmentRouteChangeItemViewModel
+                {
+                    Id = rc.Id,
+                    AssignmentId = rc.AssignmentId,
+                    OldRoute = rc.OldRoute,
+                    NewRoute = rc.NewRoute,
+                    OldDestination = rc.OldDestination,
+                    NewDestination = rc.NewDestination,
+                    Reason = rc.Reason,
+                    ChangedByUserId = rc.ChangedByUserId,
+                    ChangedByFullName = rc.ChangedByFullName,
+                    CreatedAt = rc.CreatedAt
+                })
+                .ToList()
         };
     }
 
@@ -480,18 +498,28 @@ public class AssignmentService : IAssignmentService
             .ToListAsync();
 
         // Şoförleri çek ve müsaitliklerini + ehliyet durumlarını kontrol et
-        var drivers = await _context.Drivers.Include(d => d.User).Where(d => d.IsActive).OrderBy(d => d.User.FullName).ToListAsync();
+        var drivers = await _context.Drivers
+            .Include(d => d.User)
+            .Include(d => d.DriverLicenses)
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.User.FullName)
+            .ToListAsync();
+
         foreach (var d in drivers)
         {
             var (isAvail, reason, _) = await CheckDriverAvailabilityAsync(d.Id, start, end);
             var activeDutyForDriver = activeDriverDuties.FirstOrDefault(a => a.DriverId == d.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == d.Id));
             var isOnDuty = activeDutyForDriver != null;
+            var lics = d.DriverLicenses.Where(l => !l.IsDeleted).ToList();
+            var dClass = lics.Any() ? string.Join(", ", lics.Select(l => l.LicenseClass)) : (d.LicenseClass ?? "");
+            var dExpiry = lics.Any() ? lics.Max(l => l.LicenseExpiryDate) : d.LicenseExpiryDate;
+
             model.AvailableDrivers.Add(new SelectableDriverViewModel
             {
                 Id = d.Id,
                 FullName = d.User.FullName,
-                LicenseClass = d.LicenseClass,
-                LicenseExpiryDate = d.LicenseExpiryDate,
+                LicenseClass = dClass,
+                LicenseExpiryDate = dExpiry,
                 Department = d.Department,
                 IsAvailable = isAvail,
                 UnavailableReason = reason,
@@ -568,18 +596,28 @@ public class AssignmentService : IAssignmentService
             .Where(a => !a.IsDeleted && a.Status == AssignmentStatus.InProgress && (model.Id == 0 || a.Id != model.Id))
             .ToListAsync();
 
-        var drivers = await _context.Drivers.Include(d => d.User).Where(d => d.IsActive).OrderBy(d => d.User.FullName).ToListAsync();
+        var drivers = await _context.Drivers
+            .Include(d => d.User)
+            .Include(d => d.DriverLicenses)
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.User.FullName)
+            .ToListAsync();
+
         foreach (var d in drivers)
         {
             var (isAvail, reason, _) = await CheckDriverAvailabilityAsync(d.Id, start, end, model.Id);
             var activeDutyForDriver = activeDriverDutiesEdit.FirstOrDefault(a => a.DriverId == d.Id || a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == d.Id));
             var isOnDuty = activeDutyForDriver != null;
+            var lics = d.DriverLicenses.Where(l => !l.IsDeleted).ToList();
+            var dClass = lics.Any() ? string.Join(", ", lics.Select(l => l.LicenseClass)) : (d.LicenseClass ?? "");
+            var dExpiry = lics.Any() ? lics.Max(l => l.LicenseExpiryDate) : d.LicenseExpiryDate;
+
             model.AvailableDrivers.Add(new SelectableDriverViewModel
             {
                 Id = d.Id,
                 FullName = d.User.FullName,
-                LicenseClass = d.LicenseClass,
-                LicenseExpiryDate = d.LicenseExpiryDate,
+                LicenseClass = dClass,
+                LicenseExpiryDate = dExpiry,
                 Department = d.Department,
                 IsAvailable = isAvail,
                 UnavailableReason = reason,
@@ -661,7 +699,10 @@ public class AssignmentService : IAssignmentService
     public async Task<(bool IsAvailable, string? Reason, int? ConflictingAssignmentId)> CheckDriverAvailabilityAsync(
         int driverId, DateTime start, DateTime end, int? excludeAssignmentId = null)
     {
-        var driver = await _context.Drivers.Include(d => d.User).FirstOrDefaultAsync(d => d.Id == driverId);
+        var driver = await _context.Drivers
+            .Include(d => d.User)
+            .Include(d => d.DriverLicenses)
+            .FirstOrDefaultAsync(d => d.Id == driverId);
         if (driver == null)
         {
             return (false, "Şoför bulunamadı.", null);
@@ -673,10 +714,44 @@ public class AssignmentService : IAssignmentService
             return (false, "Şoför hesabı pasif durumdadır.", null);
         }
 
-        // 2. Ehliyet geçerlilik süresi kontrolü (Kritik İş Kuralı)
-        if (driver.LicenseExpiryDate.Date < end.Date)
+        // 1.1 Yetki Devri (Vekâlet) Kontrolü (DÜZELTME 7: Şoför bu saat aralığında Şef vekili ise seçilemez)
+        var startUtc = start.Kind == DateTimeKind.Utc ? start : start.ToUniversalTime();
+        var endUtc = end.Kind == DateTimeKind.Utc ? end : end.ToUniversalTime();
+        if (!string.IsNullOrEmpty(driver.UserId))
         {
-            return (false, $"Ehliyet süresi yetersiz (Son Geçerlilik: {driver.LicenseExpiryDate:dd.MM.yyyy})", null);
+            var isDelegated = await _context.RoleDelegations
+                .AnyAsync(rd => rd.DelegateeUserId == driver.UserId &&
+                                rd.ActualRevokedAt == null &&
+                                !rd.IsDeleted &&
+                                startUtc < (rd.ActualRevokedAt ?? rd.EndDate) &&
+                                endUtc > rd.StartDate);
+
+            if (isDelegated)
+            {
+                return (false, "Şoför bu tarih aralığında Ulaşım Şefliği görevini vekâleten yürütmektedir; görev atanamaz.", null);
+            }
+        }
+
+        // 2. Ehliyet geçerlilik süresi kontrolü (Kritik İş Kuralı - Çoklu Ehliyet)
+        // Şoförün EN AZ BİR ehliyetinin geçerlilik tarihi görev bitişini kapsıyorsa şoför uygundur. Araç türüne göre sınıf eşleştirmesi yapılmaz.
+        var activeLicenses = driver.DriverLicenses.Where(l => !l.IsDeleted).ToList();
+        bool hasValidLicense;
+        DateTime latestExpiry;
+
+        if (activeLicenses.Any())
+        {
+            hasValidLicense = activeLicenses.Any(l => l.LicenseExpiryDate.Date >= end.Date);
+            latestExpiry = activeLicenses.Max(l => l.LicenseExpiryDate);
+        }
+        else
+        {
+            hasValidLicense = driver.LicenseExpiryDate.Date >= end.Date;
+            latestExpiry = driver.LicenseExpiryDate;
+        }
+
+        if (!hasValidLicense)
+        {
+            return (false, $"Ehliyet süresi yetersiz (Son Geçerlilik: {latestExpiry:dd.MM.yyyy})", null);
         }
 
         // 3. Devam eden aktif görev kontrolü (Şoför şu anda fiilen seyirde mi?)
@@ -1368,6 +1443,8 @@ public class AssignmentService : IAssignmentService
             AssignmentId = assignmentId,
             ConfirmedStartTime = assignment.ActualStartTime ?? assignment.PlannedStartTime,
             ConfirmedEndTime = assignment.ActualEndTime ?? DateTime.Now,
+            ConfirmedStartKm = assignment.StartKm,
+            ConfirmedEndKm = assignment.EndKm,
             HourlyRate = assignment.HourlyRate,
             AccommodationNights = assignment.AccommodationNights,
             AccommodationCost = assignment.AccommodationCost,
@@ -1403,10 +1480,30 @@ public class AssignmentService : IAssignmentService
             return (false, $"Bu görev zaten sonlandırılmıştır ({assignment.Status.ToTurkishString()}).");
         }
 
+        var origStartKm = assignment.StartKm;
+        var origEndKm = assignment.EndKm;
+
+        // Şef KM değerlerini (başlangıç ve/veya bitiş) revize edebilir
+        if (model.ConfirmedStartKm.HasValue)
+        {
+            assignment.StartKm = model.ConfirmedStartKm.Value;
+        }
+        if (model.ConfirmedEndKm.HasValue)
+        {
+            assignment.EndKm = model.ConfirmedEndKm.Value;
+        }
+
         if (!assignment.EndKm.HasValue)
         {
-            return (false, "Şoför tarafından bildirilen bitiş kilometresi bulunamadı.");
+            return (false, "Görev bitiş kilometresi girilmelidir.");
         }
+
+        if (assignment.StartKm.HasValue && assignment.EndKm.Value < assignment.StartKm.Value)
+        {
+            return (false, $"Bitiş kilometresi ({assignment.EndKm.Value:N0} KM), başlangıç kilometresinden ({assignment.StartKm.Value:N0} KM) küçük olamaz.");
+        }
+
+        var isKmRevised = (origStartKm != assignment.StartKm) || (origEndKm != assignment.EndKm);
 
         // Şefin onayladığı başlangıç ve dönüş saatleri validasyonu
         if (model.ConfirmedEndTime <= model.ConfirmedStartTime)
@@ -1445,7 +1542,8 @@ public class AssignmentService : IAssignmentService
             assignment.Status,
             assignment.StartApprovedByUserId,
             assignment.EndApprovedByUserId,
-            assignment.EndKm,
+            StartKm = origStartKm,
+            EndKm = origEndKm,
             assignment.ActualStartTime,
             assignment.ActualEndTime,
             assignment.HourlyRate,
@@ -1521,7 +1619,27 @@ public class AssignmentService : IAssignmentService
 
             assignment.Vehicle.Status = hasOtherInProgress ? VehicleStatus.OnDuty : VehicleStatus.Idle;
         }
-        assignment.Vehicle.CurrentKm = assignment.EndKm.Value;
+
+        // İŞ KURALI: Şef onayında KM düzeltilince Vehicle.CurrentKm'yi SADECE şu iki koşul birlikte doğruysa güncelle:
+        // (a) bu görev aracın en son tamamlanan görevi
+        // (b) yeni değer mevcut CurrentKm'den büyük
+        // Aksi halde araç KM'sine dokunma.
+        var newEndKm = assignment.EndKm.Value;
+        var hasLaterCompletedAssignment = await _context.Assignments
+            .AnyAsync(a => !a.IsDeleted &&
+                           a.VehicleId == assignment.VehicleId &&
+                           a.Id != assignment.Id &&
+                           a.Status == AssignmentStatus.Completed &&
+                           (a.ActualEndTime > assignment.ActualEndTime || (a.ActualEndTime == assignment.ActualEndTime && a.Id > assignment.Id)));
+
+        bool isLatestCompleted = !hasLaterCompletedAssignment;
+        bool shouldUpdateVehicleKm = isLatestCompleted && (newEndKm > assignment.Vehicle.CurrentKm);
+
+        if (shouldUpdateVehicleKm)
+        {
+            assignment.Vehicle.CurrentKm = newEndKm;
+        }
+
         assignment.Vehicle.UpdatedAt = DateTime.UtcNow;
         assignment.Vehicle.UpdatedBy = approverUserId;
 
@@ -1541,13 +1659,19 @@ public class AssignmentService : IAssignmentService
                     assignment.Status,
                     assignment.StartApprovedByUserId,
                     assignment.EndApprovedByUserId,
+                    assignment.StartKm,
                     assignment.EndKm,
                     assignment.ActualStartTime,
                     assignment.ActualEndTime,
                     assignment.HourlyRate,
                     assignment.CalculatedDutyHours,
                     assignment.TotalDriverFee,
-                    Note = "Şef tarafından saatler ve ücret onaylandı"
+                    IsKmRevised = isKmRevised,
+                    Note = isKmRevised 
+                        ? (shouldUpdateVehicleKm 
+                            ? "Şef tarafından KM revizyonu yapılarak onaylandı (Araç KM güncellendi)" 
+                            : "Şef tarafından KM revizyonu yapılarak onaylandı (Araç KM korundu - en son görev veya büyük değer kuralı)")
+                        : "Şef tarafından saatler ve ücret onaylandı"
                 }
             );
 
@@ -1569,9 +1693,10 @@ public class AssignmentService : IAssignmentService
             _logger.LogInformation("Görev bitişi onaylandı. AssignmentId: {Id}, Approver: {UserId}, Hours: {Hours}, DriverFee: {Fee} TL, PerDiem: {PerDiem} TL, AccCost: {Acc} TL", 
                 model.AssignmentId, approverUserId, calculatedHours, totalFee ?? 0, assignment.PerDiemAmount ?? 0, assignment.AccommodationCost ?? 0);
 
+            var durationFormatted = aractakipsys.Common.Helpers.DurationHelper.FormatDurationHours(calculatedHours);
             var successMessage = (totalFee.HasValue && totalFee.Value > 0)
-                ? $"Görev bitişi başarıyla onaylandı. Çalışma süresi: {calculatedHours} saat, Şoför ek ücreti: {totalFee.Value:N2} ₺ olarak kaydedildi."
-                : $"Görev bitişi başarıyla onaylandı. Onaylanan sefer süresi: {calculatedHours} saat.";
+                ? $"Görev bitişi başarıyla onaylandı. Çalışma süresi: {durationFormatted}, Şoför ek ücreti: {totalFee.Value:N2} ₺ olarak kaydedildi."
+                : $"Görev bitişi başarıyla onaylandı. Onaylanan sefer süresi: {durationFormatted}.";
 
             return (true, successMessage);
         }
@@ -2329,6 +2454,37 @@ public class AssignmentService : IAssignmentService
         }).ToList();
 
         return model;
+    }
+
+    public async Task<(int PendingCount, List<AssignmentRouteChangeItemViewModel> LatestChanges)> GetPendingRouteChangeNotificationSummaryAsync()
+    {
+        var threshold = DateTime.UtcNow.AddHours(-24);
+        var query = _context.AssignmentRouteChanges
+            .Include(rc => rc.Assignment)
+                .ThenInclude(a => a.Vehicle)
+            .Where(rc => !rc.IsDeleted && (rc.Assignment.Status == AssignmentStatus.InProgress || rc.CreatedAt >= threshold));
+
+        var count = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(rc => rc.CreatedAt)
+            .Take(5)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var dtos = items.Select(rc => new AssignmentRouteChangeItemViewModel
+        {
+            Id = rc.Id,
+            AssignmentId = rc.AssignmentId,
+            VehiclePlate = rc.Assignment?.Vehicle?.PlateNumber ?? "-",
+            OldRoute = rc.OldRoute,
+            NewRoute = rc.NewRoute,
+            Reason = rc.Reason,
+            ChangedByUserId = rc.ChangedByUserId,
+            ChangedByFullName = rc.ChangedByFullName,
+            CreatedAt = rc.CreatedAt
+        }).ToList();
+
+        return (count, dtos);
     }
 
     #endregion

@@ -94,6 +94,12 @@
                             <td class="font-weight-600">@(string.IsNullOrWhiteSpace(Model.PerformedBy) ? "-" : Model.PerformedBy)</td>
                         </tr>
                         <tr>
+                            <td class="bg-light font-weight-bold">Maliyet / Tutar</td>
+                            <td class="font-weight-bold text-success font-15">
+                                @(Model.Cost.HasValue ? $"{Model.Cost.Value:N2} ₺" : "-")
+                            </td>
+                        </tr>
+                        <tr>
                             <td class="bg-light font-weight-bold">İşlem Açıklaması</td>
                             <td>@(string.IsNullOrWhiteSpace(Model.Description) ? "Açıklama girilmemiş." : Model.Description)</td>
                         </tr>

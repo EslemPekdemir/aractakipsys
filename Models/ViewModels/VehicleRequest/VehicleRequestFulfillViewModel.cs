@@ -40,7 +40,18 @@ public class VehicleRequestFulfillViewModel
     [StringLength(500, ErrorMessage = "Şef notu en fazla 500 karakter olabilir.")]
     public string? ChiefNote { get; set; }
 
+    [Display(Name = "İstenen Araç Türü")]
+    public string? RequestedVehicleType { get; set; }
+
+    [Display(Name = "Yolcu Sayısı")]
+    public int? PassengerCount { get; set; }
+
+    [Required(ErrorMessage = "Lütfen talep onay e-postasında yer alacak bir İletişim Kişisi (Ulaşım Şefi / Şoför) seçiniz.")]
+    [Display(Name = "İletişim Kişisi (Ulaşım Şefi / Şoför)")]
+    public string ContactUserId { get; set; } = string.Empty;
+
     // Müsaitlik ve ehliyet durumları işaretli listeler
     public List<SelectableVehicleViewModel> AvailableVehicles { get; set; } = new();
     public List<SelectableDriverViewModel> AvailableDrivers { get; set; } = new();
+    public List<SelectableContactPersonViewModel> AvailableContactPersons { get; set; } = new();
 }

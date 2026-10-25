@@ -66,4 +66,31 @@ public class Vehicle : BaseAuditableEntity
 
     [StringLength(500)]
     public string? Notes { get; set; }
+
+    // Navigation Properties
+    public ICollection<VehicleDocument> Documents { get; set; } = new List<VehicleDocument>();
+    public ICollection<VehicleTire> Tires { get; set; } = new List<VehicleTire>();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string StatusDisplayName => Status switch
+    {
+        VehicleStatus.Idle => "Boşta",
+        VehicleStatus.OnDuty => "Görevde",
+        VehicleStatus.Maintenance => "Bakımda",
+        VehicleStatus.DocumentExpired => "Belgesi Geçersiz",
+        VehicleStatus.OutOfService => "Hizmet Dışı",
+        _ => Status.ToString()
+    };
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string StatusBadgeClass => Status switch
+    {
+        VehicleStatus.Idle => "badge-success bg-success text-white",
+        VehicleStatus.OnDuty => "badge-primary bg-primary text-white",
+        VehicleStatus.Maintenance => "badge-warning bg-warning text-dark",
+        VehicleStatus.DocumentExpired => "badge-danger bg-danger text-white",
+        VehicleStatus.OutOfService => "badge-secondary bg-secondary text-white",
+        _ => "badge-secondary"
+    };
 }
+

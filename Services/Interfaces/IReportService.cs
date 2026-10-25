@@ -29,4 +29,9 @@ public interface IReportService
     /// Filodaki araçların sigorta ve muayene bitiş tarihlerine göre durum raporunu üretir.
     /// </summary>
     Task<InsuranceInspectionReportViewModel> GetInsuranceInspectionReportAsync(InsuranceInspectionReportFilterViewModel filter, bool paged = true);
+
+    /// <summary>
+    /// Talep eden birimler bazında araç talep istatistiği raporunu üretir (Faz 7-B).
+    /// </summary>
+    Task<VehicleRequestReportViewModel> GetVehicleRequestReportAsync(VehicleRequestReportFilterViewModel filter);
 }

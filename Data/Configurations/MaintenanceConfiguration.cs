@@ -19,6 +19,10 @@ public class MaintenanceConfiguration : IEntityTypeConfiguration<Maintenance>
         builder.Property(x => x.PerformedBy)
             .HasMaxLength(150);
 
+        builder.Property(x => x.Cost)
+            .HasPrecision(18, 2)
+            .IsRequired(false);
+
         builder.HasOne(x => x.Vehicle)
             .WithMany()
             .HasForeignKey(x => x.VehicleId)

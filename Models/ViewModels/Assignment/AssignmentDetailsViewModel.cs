@@ -119,7 +119,9 @@ public class AssignmentDetailsViewModel
     public bool CheckHydraulic { get; set; }
     public bool CheckTires { get; set; }
     public DateTime? ChecksCompletedAt { get; set; }
-    public bool AreChecksCompleted => ChecksCompletedAt.HasValue || CheckOil || CheckWater || CheckFuel || CheckHydraulic || CheckTires;
+    // Güzergah Değişikliği Tarihçesi (Faz 2 - B)
+    public List<AssignmentRouteChangeItemViewModel> RouteChanges { get; set; } = new();
+    public bool HasRouteChanges => RouteChanges.Any();
 
     public string StatusBadgeClass => Status switch
     {

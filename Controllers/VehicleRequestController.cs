@@ -7,13 +7,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
+using aractakipsys.Common;
+
 namespace aractakipsys.Controllers;
 
 /// <summary>
 /// Araç Talebi Kontrolcüsü.
-/// Talep oluşturma formu public (AllowAnonymous), yönetim işlemleri (Index, Fulfill, Reject) Admin ve Kullanici rollerine açıktır.
+/// Talep oluşturma formu public (AllowAnonymous), yönetim işlemleri tüm yetkili personele açıktır (GenelSekreter salt okunur).
 /// </summary>
-[Authorize(Roles = "Admin,Kullanici")]
+[Authorize(Roles = AppRoles.AllStaffAndManagers)]
 [Route("VehicleRequest")]
 public class VehicleRequestController : Controller
 {
@@ -47,9 +49,16 @@ public class VehicleRequestController : Controller
     [HttpGet("/AracTalebi/Create")]
     [HttpGet("Create")]
     [HttpGet("/Talep")]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
-        return View(new VehicleRequestCreateViewModel());
+        var model = new VehicleRequestCreateViewModel
+        {
+            AvailableDepartments = await _vehicleRequestService.GetActiveDepartmentsAsync(),
+            AvailableVehicleTypes = await _vehicleRequestService.GetActiveVehicleTypesAsync(),
+            RequestedStartTime = DateTime.Today.AddDays(1).AddHours(9),
+            RequestedEndTime = DateTime.Today.AddDays(1).AddHours(17)
+        };
+        return View(model);
     }
 
     /// <summary>
@@ -64,6 +73,17 @@ public class VehicleRequestController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(VehicleRequestCreateViewModel model)
     {
+        model.AvailableDepartments = await _vehicleRequestService.GetActiveDepartmentsAsync();
+        model.AvailableVehicleTypes = await _vehicleRequestService.GetActiveVehicleTypesAsync();
+
+        if (model.RequestedStartTime.HasValue && model.RequestedEndTime.HasValue)
+        {
+            if (model.RequestedEndTime <= model.RequestedStartTime)
+            {
+                ModelState.AddModelError(nameof(model.RequestedEndTime), "Bitiş tarih ve saati başlangıç tarihinden sonra olmalıdır.");
+            }
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -240,6 +260,114 @@ public class VehicleRequestController : Controller
     {
         var result = await _vehicleRequestService.GetPendingNotificationSummaryAsync();
         return Json(result);
+    }
+
+    #endregion
+
+    #region Talep Seçenekleri Yönetimi (Sadece Admin)
+
+    /// <summary>
+    /// Admin için Talep Seçenekleri (Birimler ve Araç Türleri) Yönetim Sayfası
+    /// GET: /VehicleRequest/Options
+    /// </summary>
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
+    [HttpGet("Options")]
+    public async Task<IActionResult> Options()
+    {
+        var model = await _vehicleRequestService.GetRequestOptionsAsync();
+        return View(model);
+    }
+
+    /// <summary>
+    /// Birim Ekleme veya Güncelleme
+    /// POST: /VehicleRequest/SaveDepartment
+    /// </summary>
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
+    [HttpPost("SaveDepartment")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveDepartment(RequestDepartmentCreateOrEditViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "Lütfen birim adı alanını doldurunuz.";
+            return RedirectToAction(nameof(Options));
+        }
+
+        var adminUserId = GetCurrentUserId();
+        var (success, message) = await _vehicleRequestService.SaveDepartmentAsync(model, adminUserId);
+
+        if (success)
+            TempData["SuccessMessage"] = message;
+        else
+            TempData["ErrorMessage"] = message;
+
+        return RedirectToAction(nameof(Options));
+    }
+
+    /// <summary>
+    /// Birim Aktif/Pasif Durumunu Değiştirme
+    /// POST: /VehicleRequest/ToggleDepartment/{id}
+    /// </summary>
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
+    [HttpPost("ToggleDepartment/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleDepartment(int id)
+    {
+        var adminUserId = GetCurrentUserId();
+        var (success, message) = await _vehicleRequestService.ToggleDepartmentActiveAsync(id, adminUserId);
+
+        if (success)
+            TempData["SuccessMessage"] = message;
+        else
+            TempData["ErrorMessage"] = message;
+
+        return RedirectToAction(nameof(Options));
+    }
+
+    /// <summary>
+    /// Araç Türü Ekleme veya Güncelleme
+    /// POST: /VehicleRequest/SaveVehicleType
+    /// </summary>
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
+    [HttpPost("SaveVehicleType")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveVehicleType(RequestVehicleTypeCreateOrEditViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "Lütfen araç türü adı alanını doldurunuz.";
+            return RedirectToAction(nameof(Options));
+        }
+
+        var adminUserId = GetCurrentUserId();
+        var (success, message) = await _vehicleRequestService.SaveVehicleTypeAsync(model, adminUserId);
+
+        if (success)
+            TempData["SuccessMessage"] = message;
+        else
+            TempData["ErrorMessage"] = message;
+
+        return RedirectToAction(nameof(Options));
+    }
+
+    /// <summary>
+    /// Araç Türü Aktif/Pasif Durumunu Değiştirme
+    /// POST: /VehicleRequest/ToggleVehicleType/{id}
+    /// </summary>
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
+    [HttpPost("ToggleVehicleType/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleVehicleType(int id)
+    {
+        var adminUserId = GetCurrentUserId();
+        var (success, message) = await _vehicleRequestService.ToggleVehicleTypeActiveAsync(id, adminUserId);
+
+        if (success)
+            TempData["SuccessMessage"] = message;
+        else
+            TempData["ErrorMessage"] = message;
+
+        return RedirectToAction(nameof(Options));
     }
 
     #endregion

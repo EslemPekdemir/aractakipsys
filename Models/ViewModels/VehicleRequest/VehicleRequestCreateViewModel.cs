@@ -28,13 +28,35 @@ public class VehicleRequestCreateViewModel
     [Display(Name = "İletişim Telefonu")]
     public string RequesterPhone { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Fakülte / Daire Başkanlığı / Birim seçimi veya girişi zorunludur.")]
+    [Required(ErrorMessage = "Fakülte / Daire Başkanlığı / Birim seçimi zorunludur.")]
     [StringLength(150, ErrorMessage = "Birim adı en fazla 150 karakter olabilir.")]
     [Display(Name = "Fakülte / Daire Başkanlığı / Birim")]
     public string Department { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "İstenen araç türü seçimi zorunludur.")]
+    [StringLength(100, ErrorMessage = "İstenen araç türü en fazla 100 karakter olabilir.")]
+    [Display(Name = "İstenen Araç Türü")]
+    public string RequestedVehicleType { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Kaç kişi seyahat edileceği (kişi sayısı) zorunludur.")]
+    [Range(1, 100, ErrorMessage = "Kişi sayısı en az 1 olmalıdır.")]
+    [Display(Name = "Kaç Kişi (Yolcu Sayısı)")]
+    public int? PassengerCount { get; set; } = 1;
+
+    [Required(ErrorMessage = "Talep edilen başlangıç tarih ve saati zorunludur.")]
+    [Display(Name = "Görev Başlangıç Tarih ve Saati")]
+    public DateTime? RequestedStartTime { get; set; }
+
+    [Required(ErrorMessage = "Talep edilen bitiş tarih ve saati zorunludur.")]
+    [Display(Name = "Görev Bitiş Tarih ve Saati")]
+    public DateTime? RequestedEndTime { get; set; }
 
     [Required(ErrorMessage = "Araç talep gerekçesi / görev detayı zorunludur.")]
     [StringLength(500, ErrorMessage = "Talep gerekçesi en fazla 500 karakter olabilir.")]
     [Display(Name = "Talep Gerekçesi ve Görev Detayı")]
     public string Purpose { get; set; } = string.Empty;
+
+    // Dropdown seçenek listeleri (Controller tarafından doldurulur)
+    public List<string> AvailableDepartments { get; set; } = new();
+    public List<string> AvailableVehicleTypes { get; set; } = new();
 }

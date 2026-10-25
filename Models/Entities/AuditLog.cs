@@ -20,12 +20,19 @@ public class AuditLog
 
     public string? ChangedByUserId { get; set; }
 
+    [StringLength(450)]
+    public string? OnBehalfOfUserId { get; set; }
+
+    public int? DelegationId { get; set; }
+
     [Required]
     public DateTime ChangedAt { get; set; } = DateTime.UtcNow;
 
     public string? OldValues { get; set; }
     public string? NewValues { get; set; }
 
-    // Navigation Property
+    // Navigation Properties
     public ApplicationUser? ChangedByUser { get; set; }
+    public ApplicationUser? OnBehalfOfUser { get; set; }
+    public RoleDelegation? Delegation { get; set; }
 }

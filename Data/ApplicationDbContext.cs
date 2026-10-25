@@ -22,6 +22,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<VehicleRequest> VehicleRequests { get; set; } = null!;
     public DbSet<VehicleFaultReport> VehicleFaultReports { get; set; } = null!;
     public DbSet<AssignmentDriver> AssignmentDrivers { get; set; } = null!;
+    public DbSet<AssignmentRouteChange> AssignmentRouteChanges { get; set; } = null!;
+    public DbSet<DriverLicense> DriverLicenses { get; set; } = null!;
+    public DbSet<VehicleDocument> VehicleDocuments { get; set; } = null!;
+    public DbSet<VehicleTire> VehicleTires { get; set; } = null!;
+    public DbSet<RequestDepartment> RequestDepartments { get; set; } = null!;
+    public DbSet<RequestVehicleType> RequestVehicleTypes { get; set; } = null!;
+    public DbSet<RoleDelegation> RoleDelegations { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -38,6 +45,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 builder.Entity(entityType.ClrType).HasQueryFilter(condition);
             }
         }
+
+        builder.Entity<VehicleRequest>()
+            .HasOne(r => r.ContactUser)
+            .WithMany()
+            .HasForeignKey(r => r.ContactUserId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }

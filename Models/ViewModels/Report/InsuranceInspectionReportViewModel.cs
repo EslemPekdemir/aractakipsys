@@ -11,6 +11,12 @@ public class InsuranceInspectionReportViewModel
     public int ExpiringSoonCount { get; set; }
     public int ValidCount { get; set; }
 
+    // Maliyet Toplamları (Faz 7-A)
+    public decimal TotalInsuranceCost => Items.Where(x => x.InsuranceCost.HasValue).Sum(x => x.InsuranceCost!.Value);
+    public decimal TotalInspectionCost => Items.Where(x => x.InspectionCost.HasValue).Sum(x => x.InspectionCost!.Value);
+    public decimal TotalKaskoCost => Items.Where(x => x.KaskoCost.HasValue).Sum(x => x.KaskoCost!.Value);
+    public decimal TotalCost => TotalInsuranceCost + TotalInspectionCost + TotalKaskoCost;
+
     // Sayfalama (Pagination) Bilgileri
     public int TotalCount { get; set; }
     public int PageNumber { get; set; } = 1;

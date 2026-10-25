@@ -17,6 +17,7 @@ public interface IDriverService
     Task<AjaxResultViewModel> EndAssignmentAsync(int assignmentId, string userId, EndAssignmentRequest request);
     Task<AjaxResultViewModel> CreateSelfAssignmentAsync(string userId, EmergencySelfAssignmentRequest request);
     Task<AjaxResultViewModel> SaveVehicleChecksAsync(int assignmentId, string userId, DriverVehicleChecksRequest request);
+    Task<(bool IsAuthorized, AjaxResultViewModel Result)> ChangeRouteAsync(int assignmentId, string userId, ChangeRouteRequest request);
 
     // ==========================================
     // 2. ADMIN ŞOFÖR YÖNETİMİ (CRUD) METOTLARI
@@ -26,8 +27,9 @@ public interface IDriverService
     Task<DriverEditViewModel?> GetDriverEditModelAsync(int id);
     Task<DriverDetailsViewModel?> GetDriverDetailsAsync(int id);
     Task<(bool Success, string Message, int DriverId)> CreateDriverAsync(DriverCreateViewModel model, string adminUserId);
-    Task<(bool Success, string Message)> UpdateDriverAsync(DriverEditViewModel model, string adminUserId);
+    Task<(bool Success, string Message)> UpdateDriverAsync(DriverEditViewModel model, string adminUserId, bool isAdmin = false);
     Task<(bool Success, string Message)> ToggleDriverStatusAsync(int id, string adminUserId);
     Task<(bool Success, string Message)> DeleteDriverAsync(int id, string adminUserId);
     Task<(bool Success, string Message)> ResetDriverPasswordAsync(int driverId, string newPassword, string adminUserId);
+    Task<ExpiringLicenseSummaryViewModel> GetExpiringLicensesSummaryAsync(int daysThreshold = 30);
 }

@@ -219,22 +219,291 @@
             color: #0d6efd !important;
             text-decoration: underline !important;
         }
+
+        /* FAZ 9: Büyük Takvim Modalı Boyut & Yerleşim Kuralları */
+        .calendar-modal-dialog {
+            width: 95vw !important;
+            max-width: 1600px !important;
+            margin: 2vh auto !important;
+        }
+        .calendar-modal-content {
+            max-height: 92vh !important;
+            height: 92vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        .calendar-modal-body {
+            overflow-x: hidden !important;
+            overflow-y: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 1 auto !important;
+            padding: 10px 14px !important;
+        }
+        .calendar-columns-row {
+            display: flex !important;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            margin-left: -6px !important;
+            margin-right: -6px !important;
+        }
+        .calendar-col-left {
+            flex: 0 0 65% !important;
+            max-width: 65% !important;
+            padding-left: 6px !important;
+            padding-right: 6px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 0 !important;
+            min-width: 0 !important;
+        }
+        .calendar-col-right {
+            flex: 0 0 35% !important;
+            max-width: 35% !important;
+            padding-left: 6px !important;
+            padding-right: 6px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 0 !important;
+            min-width: 0 !important;
+        }
+        .calendar-left-scroll-pane {
+            flex: 1 1 auto !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            min-height: 0 !important;
+        }
+        .calendar-right-scroll-pane {
+            flex: 1 1 auto !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            min-height: 0 !important;
+        }
+
+        /* 7 Eşit Sütunlu Aylık Takvim Izgarası */
+        .dashboard-calendar-grid {
+            display: grid !important;
+            grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+            gap: 4px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.80rem;
+            color: #475569;
+            padding: 5px 0;
+            background: #f8fafc;
+            border-radius: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .calendar-day-cell {
+            min-height: 76px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 3px 4px;
+            cursor: pointer;
+            transition: all 0.18s ease-in-out;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+        }
+        .calendar-day-cell:hover {
+            border-color: #1ab394;
+            box-shadow: 0 4px 12px rgba(26, 179, 148, 0.18);
+            transform: translateY(-2px);
+            z-index: 2;
+        }
+        .calendar-day-cell.other-month {
+            background-color: #f8fafc;
+            opacity: 0.45;
+        }
+        .calendar-day-cell.is-today {
+            border: 2px solid #1ab394 !important;
+            background-color: #f0fdf9 !important;
+        }
+        .calendar-day-cell.selected-day {
+            border: 2px solid #1c84c6 !important;
+            background-color: #f0f7fd !important;
+        }
+        .calendar-day-num {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1;
+        }
+        .calendar-occupancy-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 3px;
+            border-radius: 8px;
+            display: block;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+            line-height: 1.2;
+        }
+        .calendar-occupancy-badge.busy {
+            background-color: #1c84c6;
+            color: #ffffff;
+        }
+        .calendar-occupancy-badge.empty {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+        }
+        .calendar-dot-indicators {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+            flex-wrap: wrap;
+            max-width: 100%;
+        }
+        .calendar-mini-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        /* Detay Paneli Tablo Sığdırma */
+        .calendar-detail-table {
+            table-layout: fixed !important;
+            width: 100% !important;
+        }
+        .calendar-detail-table th, .calendar-detail-table td {
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            padding: 4px 6px !important;
+        }
+
+        /* Responsive Medya Kuralları */
+        @@media (max-width: 1199.98px) {
+            .calendar-col-left {
+                flex: 0 0 60% !important;
+                max-width: 60% !important;
+            }
+            .calendar-col-right {
+                flex: 0 0 40% !important;
+                max-width: 40% !important;
+            }
+        }
+
+        @@media (max-width: 991.98px) {
+            .calendar-modal-dialog {
+                width: 98vw !important;
+                max-width: 98vw !important;
+                margin: 1vh auto !important;
+            }
+            .calendar-modal-content {
+                max-height: 98vh !important;
+                height: 98vh !important;
+            }
+            .calendar-modal-body {
+                overflow-y: auto !important;
+                display: block !important;
+                padding: 8px !important;
+            }
+            .calendar-columns-row {
+                flex-direction: column !important;
+                display: block !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+            .calendar-col-left, .calendar-col-right {
+                flex: 0 0 100% !important;
+                max-width: 100% !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                display: block !important;
+                margin-bottom: 12px !important;
+            }
+            .calendar-left-scroll-pane, .calendar-right-scroll-pane {
+                overflow-y: visible !important;
+                max-height: none !important;
+            }
+            .calendar-day-cell {
+                min-height: 54px;
+                padding: 2px;
+            }
+            .calendar-day-num {
+                font-size: 0.68rem;
+            }
+            .calendar-occupancy-badge {
+                font-size: 0.56rem;
+                padding: 1px 2px;
+            }
+            .calendar-day-header {
+                font-size: 0.68rem;
+                padding: 3px 0;
+            }
+            .calendar-header-toolbar {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 6px !important;
+            }
+            .calendar-header-toolbar > div {
+                justify-content: center !important;
+            }
+        }
+
+        @@media (max-width: 576px) {
+            .calendar-modal-body {
+                padding: 4px !important;
+            }
+            .dashboard-calendar-grid {
+                gap: 2px !important;
+            }
+            .calendar-day-cell {
+                min-height: 48px;
+                padding: 1px;
+                border-radius: 4px;
+            }
+            .calendar-day-num {
+                font-size: 0.62rem;
+            }
+            .calendar-occupancy-badge {
+                font-size: 0.50rem;
+                padding: 1px 1px;
+                border-radius: 4px;
+            }
+            .calendar-day-header {
+                font-size: 0.60rem;
+                padding: 2px 0;
+            }
+            .calendar-mini-dot {
+                width: 4px;
+                height: 4px;
+            }
+        }
     </style>
 }
 
 <!-- OTOMATİK SİSTEM UYARISI TOAST BİLDİRİMİ (NATIVE BOOTSTRAP TOAST) -->
-@if ((User.IsInRole("Admin") || User.IsInRole("Kullanici")) && (Model.PendingVehicleRequestsCount > 0 || Model.DocumentAlertVehiclesCount > 0))
+@if ((User.IsInRole("Admin") || User.IsInRole("Kullanici") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter")) && (Model.PendingVehicleRequestsCount > 0 || Model.DocumentAlertVehiclesCount > 0 || Model.ExpiringDriverLicensesCount > 0))
 {
     var hasPending = Model.PendingVehicleRequestsCount > 0;
     var hasDocAlert = Model.DocumentAlertVehiclesCount > 0;
-    var primaryUrl = hasPending ? "/VehicleRequest" : "/Vehicle";
+    var hasLicAlert = Model.ExpiringDriverLicensesCount > 0;
+    var primaryUrl = hasPending ? "/VehicleRequest" : (hasDocAlert ? "/Vehicle" : "/Driver");
 
     <div aria-live="polite" aria-atomic="true" class="position-fixed" style="top: 25px; right: 25px; z-index: 99999; max-width: 420px;">
         <div id="dashboardAlertToast" class="toast shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" data-delay="8000" data-autohide="true" data-target-url="@primaryUrl" data-signature="@Model.ToastAlertSignature"
-             style="background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.18) !important; border-left: 5px solid @(hasPending && hasDocAlert ? "#ed5565" : (hasDocAlert ? "#f8ac59" : "#1c84c6")) !important; cursor: pointer; display: none;">
+             style="background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.18) !important; border-left: 5px solid @(hasDocAlert || hasLicAlert ? "#ed5565" : "#1c84c6") !important; cursor: pointer; display: none;">
             <div class="toast-header bg-light d-flex justify-content-between align-items-center py-2 px-3 border-bottom">
                 <div class="d-flex align-items-center">
-                    <span class="badge @(hasDocAlert ? "badge-danger" : "badge-warning") p-1 mr-2 text-white" style="border-radius: 6px;">
+                    <span class="badge @(hasDocAlert || hasLicAlert ? "badge-danger" : "badge-warning") p-1 mr-2 text-white" style="border-radius: 6px;">
                         <i class="fa fa-bell"></i>
                     </span>
                     <strong class="mr-auto text-dark font-13 font-weight-bold">Sistem Uyarısı</strong>
@@ -250,47 +519,37 @@
                 <div class="d-flex align-items-start mb-2">
                     <i class="fa fa-exclamation-triangle text-warning font-18 mr-2 mt-1"></i>
                     <div class="text-dark font-13" style="line-height: 1.4;">
-                        @if (hasPending && hasDocAlert)
+                        @if (hasPending)
                         {
-                            <span>
-                                <strong>@Model.PendingVehicleRequestsCount araç talebi</strong> onay bekliyor, 
-                                <strong>@Model.DocumentAlertVehiclesCount aracın</strong> belge süresi doldu/yaklaşıyor.
-                            </span>
+                            <div><i class="fa fa-envelope-open text-primary mr-1"></i> <strong>@Model.PendingVehicleRequestsCount araç talebi</strong> onay bekliyor.</div>
                         }
-                        else if (hasPending)
+                        @if (hasDocAlert)
                         {
-                            <span>
-                                <strong>@Model.PendingVehicleRequestsCount araç talebi</strong> onay bekliyor.
-                            </span>
+                            <div><i class="fa fa-car text-danger mr-1"></i> <strong>@Model.DocumentAlertVehiclesCount aracın</strong> muayene veya sigorta süresi doldu/yaklaşıyor.</div>
                         }
-                        else
+                        @if (hasLicAlert)
                         {
-                            <span>
-                                <strong>@Model.DocumentAlertVehiclesCount aracın</strong> muayene veya sigorta süresi doldu / yaklaşıyor.
-                            </span>
+                            <div><i class="fa fa-id-card text-warning mr-1"></i> <strong>@Model.ExpiringDriverLicensesCount şoförün</strong> ehliyet geçerlilik süresi doldu/yaklaşıyor.</div>
                         }
                     </div>
                 </div>
-                <div class="mt-2 pt-2 border-top d-flex justify-content-end align-items-center">
-                    @if (hasPending && hasDocAlert)
+                <div class="mt-2 pt-2 border-top d-flex justify-content-end align-items-center flex-wrap" style="gap: 4px;">
+                    @if (hasPending)
                     {
-                        <a href="/VehicleRequest" class="btn btn-xs btn-outline-primary mr-2 font-weight-bold toast-action-btn">
+                        <a href="/VehicleRequest" class="btn btn-xs btn-outline-primary font-weight-bold toast-action-btn">
                             <i class="fa fa-envelope-open mr-1"></i> Talepler (@Model.PendingVehicleRequestsCount)
                         </a>
+                    }
+                    @if (hasDocAlert)
+                    {
                         <a href="/Vehicle" class="btn btn-xs btn-outline-danger font-weight-bold toast-action-btn">
                             <i class="fa fa-car mr-1"></i> Araçlar (@Model.DocumentAlertVehiclesCount)
                         </a>
                     }
-                    else if (hasPending)
+                    @if (hasLicAlert)
                     {
-                        <a href="/VehicleRequest" class="btn btn-xs btn-primary font-weight-bold toast-action-btn">
-                            Talepleri İncele <i class="fa fa-arrow-right ml-1"></i>
-                        </a>
-                    }
-                    else
-                    {
-                        <a href="/Vehicle" class="btn btn-xs btn-danger font-weight-bold toast-action-btn">
-                            Araçları İncele <i class="fa fa-arrow-right ml-1"></i>
+                        <a href="/Driver" class="btn btn-xs btn-outline-warning font-weight-bold toast-action-btn">
+                            <i class="fa fa-id-card mr-1"></i> Şoförler (@Model.ExpiringDriverLicensesCount)
                         </a>
                     }
                 </div>
@@ -308,10 +567,13 @@
             <li class="breadcrumb-item active"><strong>Dashboard</strong></li>
         </ol>
     </div>
-    <div class="col-sm-5 col-md-4 text-right d-flex align-items-center justify-content-start justify-content-sm-end flex-wrap mt-2 mt-sm-0" style="gap: 14px;">
-        <span class="text-muted small mb-0 d-inline-flex align-items-center" style="font-size: 0.85rem; white-space: nowrap;">
+    <div class="col-sm-5 col-md-4 text-right d-flex align-items-center justify-content-start justify-content-sm-end flex-wrap mt-2 mt-sm-0" style="gap: 10px;">
+        <span class="text-muted small mb-0 d-inline-flex align-items-center d-none d-lg-inline-flex" style="font-size: 0.85rem; white-space: nowrap;">
             <i class="fa fa-calendar text-primary mr-2"></i> @DateTime.Now.ToString("dd MMMM yyyy, dddd")
         </span>
+        <button type="button" class="btn btn-outline-primary font-weight-bold shadow-sm mb-0 d-inline-flex align-items-center" id="btnOpenDashboardCalendar" data-toggle="modal" data-target="#dashboardCalendarModal" style="height: 36px; padding: 0 14px; border-radius: 6px; font-size: 0.85rem; white-space: nowrap;">
+            <i class="fa fa-calendar mr-2"></i> Takvim
+        </button>
         <a href="/Assignment/Create" class="btn btn-primary font-weight-bold shadow-sm mb-0 d-inline-flex align-items-center" style="height: 36px; padding: 0 16px; border-radius: 6px; font-size: 0.85rem; white-space: nowrap;">
             <i class="fa fa-plus-circle mr-2"></i> Yeni Görev Ata
         </a>
@@ -320,7 +582,7 @@
 
 
 
-@if (User.IsInRole("Admin") || User.IsInRole("Kullanici"))
+@if (User.IsInRole("Admin") || User.IsInRole("Kullanici") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter"))
 {
     <!-- HIZLI PLAKA ARAMA ÇUBUĞU (AŞAMA D) -->
     <div class="ibox float-e-margins mb-3 shadow-sm border" style="border-radius: 8px; border-color: #e7eaec !important; background: #ffffff;">
@@ -718,6 +980,88 @@
     </div>
 </div>
 
+<!-- FAZ 4: ŞOFÖR EHLİYET SÜRESİ UYARI KARTI -->
+<div class="row mb-4">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins shadow-sm mb-0 @(Model.ExpiringDriverLicenses.Any(x => x.IsExpired) ? "border-doc-expired" : (Model.ExpiringDriverLicensesCount > 0 ? "border-doc-warning" : ""))" style="border-left-width: 4px !important;">
+            <div class="ibox-title d-flex justify-content-between align-items-center">
+                <h5>
+                    <i class="fa fa-id-card mr-1" style="color: @(Model.ExpiringDriverLicenses.Any(x => x.IsExpired) ? "#721c24" : "#d97706");"></i>
+                    Şoför Ehliyet Süresi Uyarıları
+                    @if (Model.ExpiringDriverLicensesCount > 0)
+                    {
+                        <span class="badge ml-2 font-12 text-white @(Model.ExpiringDriverLicenses.Any(x => x.IsExpired) ? "badge-doc-expired" : "badge-doc-warning")">
+                            @Model.ExpiringDriverLicensesCount Ehliyet
+                        </span>
+                    }
+                </h5>
+                <a href="/Driver" class="btn btn-xs btn-outline-secondary font-weight-bold">
+                    Tüm Şoförleri Gör (@Model.TotalDrivers) <i class="fa fa-chevron-right ml-1"></i>
+                </a>
+            </div>
+            <div class="ibox-content p-0">
+                @if (Model.ExpiringDriverLicensesCount == 0)
+                {
+                    <div class="text-center py-4">
+                        <i class="fa fa-check-circle text-success mb-2" style="font-size: 2.2rem; opacity: 0.6;"></i>
+                        <h6 class="font-weight-bold text-dark">Tüm Şoför Ehliyetleri Geçerli</h6>
+                        <p class="text-muted small mb-0">30 gün içinde geçerlilik süresi dolacak veya süresi geçmiş şoför ehliyeti bulunmuyor.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive doc-alerts-table-scroll">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light text-dark font-12">
+                                <tr>
+                                    <th>Şoför</th>
+                                    <th>Birim</th>
+                                    <th>Ehliyet Sınıfı</th>
+                                    <th>Son Geçerlilik Tarihi</th>
+                                    <th class="text-center">Kalan Gün / Durum</th>
+                                    <th class="text-right">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.ExpiringDriverLicenses)
+                                {
+                                    <tr class="@item.RowClass">
+                                        <td class="align-middle font-weight-bold text-dark font-13">
+                                            <a href="/Driver/Details/@item.DriverId" class="text-primary font-weight-bold">
+                                                <i class="fa fa-user mr-1"></i>@item.DriverFullName
+                                            </a>
+                                        </td>
+                                        <td class="align-middle text-muted small">
+                                            @(item.Department ?? "-")
+                                        </td>
+                                        <td class="align-middle font-weight-bold">
+                                            <span class="badge bg-light text-dark border font-12">@item.LicenseClass</span>
+                                        </td>
+                                        <td class="align-middle font-weight-bold text-dark font-12">
+                                            @item.LicenseExpiryDate.ToString("dd.MM.yyyy")
+                                        </td>
+                                        <td class="align-middle text-center">
+                                            <span class="badge px-2 py-1 font-11 @item.BadgeClass" style="border-radius: 10px;">
+                                                <i class="fa @(item.IsExpired ? "fa-exclamation-circle" : "fa-clock-o") mr-1"></i>
+                                                @item.StatusText
+                                            </span>
+                                        </td>
+                                        <td class="align-middle text-right">
+                                            <a href="/Driver/Details/@item.DriverId" class="btn btn-xs btn-outline-info font-weight-bold" title="Şoför Detayını Gör">
+                                                <i class="fa fa-eye mr-1"></i> İncele
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 3. SIRA: DEVAM EDEN BAKIMLAR & HIZLI İŞLEMLER / ŞOFÖR DURUMU -->
 <div class="row">
     <!-- SOL: DEVAM EDEN / AÇIK BAKIMLAR -->
@@ -943,6 +1287,173 @@
         </div>
     </div>
 </div>
+
+<!-- FAZ 9: BÜYÜK TAKVİM MODALI (modal-xl) VE İÇ ENTEGRE DETAY PANELİ -->
+<div class="modal fade" id="dashboardCalendarModal" tabindex="-1" role="dialog" aria-labelledby="dashboardCalendarModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered calendar-modal-dialog" role="document">
+        <div class="modal-content shadow-lg border-0 calendar-modal-content" style="border-radius: 12px; overflow: hidden;">
+            <div class="modal-header bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center flex-shrink-0">
+                <div class="d-flex align-items-center">
+                    <i class="fa fa-calendar-check-o fa-lg mr-2"></i>
+                    <h5 class="modal-title font-weight-bold mb-0" id="dashboardCalendarModalTitle">
+                        Aylık Araç Doluluk & Operasyon Takvimi
+                    </h5>
+                </div>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat" style="outline: none; opacity: 0.9;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body bg-light calendar-modal-body">
+                <!-- ÜST KONTROL VE LEJANT BARI -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap mb-2 p-2 bg-white rounded border flex-shrink-0 calendar-header-toolbar" style="gap: 8px;">
+                    <div class="d-flex align-items-center flex-wrap" style="gap: 12px; font-size: 0.78rem;">
+                        <span><span class="calendar-mini-dot mr-1" style="background:#1c84c6;"></span> Görevde Araç</span>
+                        <span><span class="calendar-mini-dot mr-1" style="background:#f8ac59;"></span> Bakımda</span>
+                        <span><span class="calendar-mini-dot mr-1" style="background:#ed5565;"></span> Belge Bitiş</span>
+                        <span><span class="calendar-mini-dot mr-1" style="background:#23c6c8;"></span> Ehliyet Bitiş</span>
+                    </div>
+                    <div class="d-flex align-items-center" style="gap: 8px;">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold" id="btnPrevMonth" title="Önceki Ay">
+                                <i class="fa fa-chevron-left mr-1"></i> Önceki
+                            </button>
+                            <button type="button" class="btn btn-sm btn-light font-weight-bold text-dark border px-3" id="lblCurrentMonth" style="cursor: default; min-width: 140px;">
+                                Yükleniyor...
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold" id="btnNextMonth" title="Sonraki Ay">
+                                Sonraki <i class="fa fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold" id="btnTodayMonth" title="Bugüne Git">
+                            Bugün
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2 SÜTUNLU YAPI: SOLDA TAKVİM (%65), SAĞDA SEÇİLİ GÜN DETAYI (%35) -->
+                <div class="calendar-columns-row">
+                    <!-- SOL: AYLIK IZGARA -->
+                    <div class="calendar-col-left">
+                        <div class="p-2 p-sm-3 bg-white rounded border position-relative h-100 d-flex flex-column">
+                            <div id="calendarLoadingOverlay" class="position-absolute align-items-center justify-content-center" 
+                                 style="top:0; left:0; right:0; bottom:0; background: rgba(255,255,255,0.85); z-index: 10; display: none;">
+                                <div class="text-center text-primary font-weight-bold">
+                                    <i class="fa fa-spinner fa-spin fa-2x mb-2"></i>
+                                    <div>Takvim Yükleniyor...</div>
+                                </div>
+                            </div>
+                            <div id="calendarErrorMessage" class="alert alert-danger py-2 px-3 small font-weight-bold mb-2 text-center" style="display: none;">
+                                <i class="fa fa-exclamation-circle mr-1"></i> Takvim yüklenemedi. Lütfen tekrar deneyiniz.
+                            </div>
+
+                            <!-- HAFTA GÜNLERİ -->
+                            <div class="dashboard-calendar-grid mb-1 flex-shrink-0">
+                                <div class="calendar-day-header">Pzt</div>
+                                <div class="calendar-day-header">Sal</div>
+                                <div class="calendar-day-header">Çar</div>
+                                <div class="calendar-day-header">Per</div>
+                                <div class="calendar-day-header">Cum</div>
+                                <div class="calendar-day-header text-danger">Cmt</div>
+                                <div class="calendar-day-header text-danger">Paz</div>
+                            </div>
+
+                            <!-- 42 GÜNLÜK TAKVİM IZGARASI -->
+                            <div class="calendar-left-scroll-pane">
+                                <div id="dashboardCalendarDaysContainer" class="dashboard-calendar-grid">
+                                    <!-- JS ile doldurulacak -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SAĞ: ENTEGRE GÜN DETAYI PANELİ (%35) -->
+                    <div class="calendar-col-right">
+                        <div class="p-3 bg-white rounded border h-100 d-flex flex-column" style="min-height: 380px;">
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2 flex-shrink-0">
+                                <h6 class="font-weight-bold mb-0 text-dark">
+                                    <i class="fa fa-calendar text-primary mr-1"></i>
+                                    <span id="calendarDetailDateTitle">Seçili Gün Detayı</span>
+                                </h6>
+                                <span class="badge badge-light border text-muted px-2 py-1 font-11" id="calendarDetailStatusBadge">Gün Seçiniz</span>
+                            </div>
+
+                            <div id="calendarDetailEmptyPrompt" class="text-center text-muted my-auto py-5">
+                                <i class="fa fa-hand-pointer-o fa-2x mb-2 text-primary" style="opacity: 0.5;"></i>
+                                <div class="font-weight-bold font-13">Detay Görüntülemek İçin Bir Güne Tıklayın</div>
+                                <small class="text-muted">Seçilen güne ait görevler, bakımlar ve süresi dolan belgeler burada listelenir.</small>
+                            </div>
+
+                            <div id="calendarDetailContentContainer" class="calendar-right-scroll-pane" style="display: none;">
+                                <!-- ÖZET BANTLARI -->
+                                <div class="row no-gutters mb-2 text-center" style="gap: 4px;">
+                                    <div class="col p-1 bg-light rounded border">
+                                        <small class="text-muted d-block font-10">Görevde</small>
+                                        <strong class="text-primary font-14" id="modalCountAssignments">0</strong>
+                                    </div>
+                                    <div class="col p-1 bg-light rounded border">
+                                        <small class="text-muted d-block font-10">Bakımda</small>
+                                        <strong class="text-warning font-14" id="modalCountMaintenances">0</strong>
+                                    </div>
+                                    <div class="col p-1 bg-light rounded border">
+                                        <small class="text-muted d-block font-10">Belgeler</small>
+                                        <strong class="text-danger font-14" id="modalCountDocs">0</strong>
+                                    </div>
+                                    <div class="col p-1 bg-light rounded border">
+                                        <small class="text-muted d-block font-10">Ehliyetler</small>
+                                        <strong class="text-info font-14" id="modalCountLicenses">0</strong>
+                                    </div>
+                                </div>
+
+                                <!-- 1. GÖREVLER -->
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center font-weight-bold font-12 text-dark mb-1">
+                                        <span><i class="fa fa-road text-primary mr-1"></i> Görevler</span>
+                                        <span class="badge badge-primary px-2 py-0 font-10" id="modalBadgeAssignments">0</span>
+                                    </div>
+                                    <div id="modalAssignmentsContent"></div>
+                                </div>
+
+                                <!-- 2. BAKIMLAR -->
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center font-weight-bold font-12 text-dark mb-1">
+                                        <span><i class="fa fa-wrench text-warning mr-1"></i> Bakımlar</span>
+                                        <span class="badge badge-warning text-dark px-2 py-0 font-10" id="modalBadgeMaintenances">0</span>
+                                    </div>
+                                    <div id="modalMaintenancesContent"></div>
+                                </div>
+
+                                <!-- 3. BELGELER -->
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center font-weight-bold font-12 text-dark mb-1">
+                                        <span><i class="fa fa-shield text-danger mr-1"></i> Biten Belgeler</span>
+                                        <span class="badge badge-danger px-2 py-0 font-10" id="modalBadgeDocs">0</span>
+                                    </div>
+                                    <div id="modalDocsContent"></div>
+                                </div>
+
+                                <!-- 4. EHLİYETLER -->
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center font-weight-bold font-12 text-dark mb-1">
+                                        <span><i class="fa fa-id-card text-info mr-1"></i> Biten Ehliyetler</span>
+                                        <span class="badge badge-info px-2 py-0 font-10" id="modalBadgeLicenses">0</span>
+                                    </div>
+                                    <div id="modalLicensesContent"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white py-2 px-3 d-flex justify-content-between align-items-center flex-shrink-0">
+                <small class="text-muted"><i class="fa fa-info-circle mr-1 text-primary"></i> İlgili görevin veya aracın üzerine tıklayarak sistemdeki detay sayfasına erişebilirsiniz.</small>
+                <button type="button" class="btn btn-secondary font-weight-bold px-3" data-dismiss="modal">
+                    Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 @section Scripts {
     <!-- INSPINIA BUNDLED CHART.JS SCRIPT -->
@@ -1355,22 +1866,35 @@
 
                         <!-- SİGORTA & MUAYENE KUTULARI -->
                         <div class="row mb-2">
-                            <div class="col-12 col-md-6 mb-2">
+                            <div class="col-12 col-md-4 mb-2">
                                 <div class="p-2 border rounded bg-light d-flex justify-content-between align-items-center flex-wrap" style="gap: 4px;">
                                     <div>
-                                        <div class="text-muted small font-11"><i class="fa fa-shield text-info mr-1"></i> Sigorta Bitiş Tarihi</div>
+                                        <div class="text-muted small font-11"><i class="fa fa-shield text-info mr-1"></i> Sigorta Bitiş</div>
                                         <strong class="text-dark font-13">${new Date(vehicle.insuranceExpiryDate).toLocaleDateString('tr-TR')}</strong>
                                     </div>
                                     <div>${insBadge}</div>
                                 </div>
                             </div>
-                            <div class="col-12 col-md-6 mb-2">
+                            <div class="col-12 col-md-4 mb-2">
                                 <div class="p-2 border rounded bg-light d-flex justify-content-between align-items-center flex-wrap" style="gap: 4px;">
                                     <div>
-                                        <div class="text-muted small font-11"><i class="fa fa-calendar-check-o text-success mr-1"></i> Muayene Bitiş Tarihi</div>
+                                        <div class="text-muted small font-11"><i class="fa fa-calendar-check-o text-success mr-1"></i> Muayene Bitiş</div>
                                         <strong class="text-dark font-13">${new Date(vehicle.inspectionExpiryDate).toLocaleDateString('tr-TR')}</strong>
                                     </div>
                                     <div>${inspBadge}</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-4 mb-2">
+                                <div class="p-2 border rounded bg-light d-flex justify-content-between align-items-center flex-wrap" style="gap: 4px;">
+                                    <div>
+                                        <div class="text-muted small font-11"><i class="fa fa-circle-o-notch text-primary mr-1"></i> Güncel Lastik</div>
+                                        <strong class="text-dark font-13">${vehicle.currentTire ? escapeHtml(vehicle.currentTire.brand + (vehicle.currentTire.size ? ' (' + vehicle.currentTire.size + ')' : '')) : (escapeHtml(vehicle.tireBrand || 'Belirtilmedi'))}</strong>
+                                    </div>
+                                    <div>
+                                        ${vehicle.currentTire 
+                                            ? `<span class="badge ${vehicle.currentTire.isAlert ? 'badge-danger' : 'badge-info'} px-2 py-1">${escapeHtml(vehicle.currentTire.isAlert ? vehicle.currentTire.alertReason : vehicle.currentTire.seasonDisplay)}</span>` 
+                                            : `<span class="badge badge-secondary px-2 py-1">${escapeHtml(vehicle.tireSeason || '-')}</span>`}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1411,6 +1935,307 @@
 
                 $resultContainer.html(cardHtml);
             }
+        })();
+
+        // FAZ 9: Aylık Takvim & Günlük Detay JavaScript Mantığı
+        (function () {
+            let currentYear = new Date().getFullYear();
+            let currentMonth = new Date().getMonth() + 1;
+            let monthCalendarData = null;
+            let calendarInitialized = false;
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                return String(text)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function loadCalendarData(year, month) {
+                $('#calendarLoadingOverlay').css('display', 'flex');
+                $('#calendarErrorMessage').hide();
+
+                $.ajax({
+                    url: '/Home/CalendarData',
+                    type: 'GET',
+                    data: { year: year, month: month },
+                    dataType: 'json',
+                    success: function (res) {
+                        $('#calendarLoadingOverlay').hide();
+                        if (res && res.success && res.data) {
+                            monthCalendarData = res.data;
+                            currentYear = res.data.year;
+                            currentMonth = res.data.month;
+                            $('#lblCurrentMonth').text(res.data.monthName);
+                            renderCalendarGrid(res.data);
+                        } else {
+                            $('#calendarErrorMessage').text('Takvim yüklenemedi.').show();
+                            console.error('Takvim verisi alınamadı veya geçersiz format:', res);
+                            if (typeof toastr !== 'undefined') {
+                                toastr.error('Takvim yüklenemedi.', 'Hata');
+                            }
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        $('#calendarLoadingOverlay').hide();
+                        $('#calendarErrorMessage').text('Takvim yüklenemedi. Sunucu hatası oluştu.').show();
+                        console.error('Takvim AJAX isteği başarısız:', status, error, xhr);
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('Takvim yüklenemedi.', 'Hata');
+                        }
+                    }
+                });
+            }
+
+            function renderCalendarGrid(data) {
+                const $container = $('#dashboardCalendarDaysContainer');
+                $container.empty();
+
+                // Seçili gün detay panelini sıfırla
+                $('#calendarDetailEmptyPrompt').show();
+                $('#calendarDetailContentContainer').hide();
+                $('#calendarDetailDateTitle').text('Seçili Gün Detayı');
+                $('#calendarDetailStatusBadge').text('Gün Seçiniz').removeClass().addClass('badge badge-light border text-muted px-2 py-1 font-11');
+
+                if (!data.days || data.days.length === 0) return;
+
+                data.days.forEach(function (day) {
+                    const otherMonthClass = day.isCurrentMonth ? '' : 'other-month';
+                    const todayClass = day.isToday ? 'is-today' : '';
+                    
+                    let occupancyBadge = '';
+                    if (day.activeVehicleCount > 0) {
+                        occupancyBadge = `<span class="calendar-occupancy-badge busy" title="${day.activeVehicleCount} araç görevde / planlı"><i class="fa fa-car"></i> ${day.activeVehicleCount} Araç</span>`;
+                    } else if (day.isCurrentMonth) {
+                        occupancyBadge = `<span class="calendar-occupancy-badge empty">Boşta</span>`;
+                    }
+
+                    // Gösterge noktaları (Bakım, Belge, Ehliyet)
+                    let dotIndicators = '<div class="calendar-dot-indicators">';
+                    if (day.maintenanceVehicleCount > 0) {
+                        dotIndicators += `<span class="calendar-mini-dot" style="background:#f8ac59;" title="${day.maintenanceVehicleCount} araç bakımda"></span>`;
+                    }
+                    if (day.expiringDocumentCount > 0) {
+                        dotIndicators += `<span class="calendar-mini-dot" style="background:#ed5565;" title="${day.expiringDocumentCount} belge son günü"></span>`;
+                    }
+                    if (day.expiringLicenseCount > 0) {
+                        dotIndicators += `<span class="calendar-mini-dot" style="background:#23c6c8;" title="${day.expiringLicenseCount} ehliyet süresi"></span>`;
+                    }
+                    dotIndicators += '</div>';
+
+                    const dayHtml = `
+                        <div class="calendar-day-cell ${otherMonthClass} ${todayClass}" data-date="${day.date}">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="calendar-day-num">${day.day}</span>
+                                ${day.isToday ? '<span class="badge badge-primary py-0 px-1 font-10">Bugün</span>' : ''}
+                            </div>
+                            <div class="my-auto py-1">
+                                ${occupancyBadge}
+                            </div>
+                            <div class="mt-auto pt-1 d-flex justify-content-between align-items-center">
+                                ${dotIndicators}
+                            </div>
+                        </div>
+                    `;
+                    $container.append(dayHtml);
+                });
+            }
+
+            // Güne tıklanınca modalın sağındaki entegre detay bölümünü doldur
+            $(document).on('click', '.calendar-day-cell', function () {
+                const dateKey = $(this).data('date');
+                if (!monthCalendarData || !monthCalendarData.detailsByDate || !monthCalendarData.detailsByDate[dateKey]) {
+                    return;
+                }
+
+                $('.calendar-day-cell').removeClass('selected-day');
+                $(this).addClass('selected-day');
+
+                const detail = monthCalendarData.detailsByDate[dateKey];
+                renderDayDetailPanel(detail);
+            });
+
+            function renderDayDetailPanel(detail) {
+                $('#calendarDetailEmptyPrompt').hide();
+                $('#calendarDetailContentContainer').show();
+
+                $('#calendarDetailDateTitle').text(detail.formattedDate);
+                $('#calendarDetailStatusBadge')
+                    .text((detail.activeVehicleCount > 0 ? (detail.activeVehicleCount + ' Araç Görevde') : 'Tüm Araçlar Boşta'))
+                    .removeClass()
+                    .addClass(detail.activeVehicleCount > 0 ? 'badge badge-primary text-white px-2 py-1 font-11' : 'badge badge-light border text-muted px-2 py-1 font-11');
+
+                // Sayaçlar
+                const totalAssignments = detail.assignments ? detail.assignments.length : 0;
+                const totalMaintenances = detail.maintenances ? detail.maintenances.length : 0;
+                const totalDocs = detail.expiringDocuments ? detail.expiringDocuments.length : 0;
+                const totalLicenses = detail.expiringLicenses ? detail.expiringLicenses.length : 0;
+
+                $('#modalCountAssignments').text(totalAssignments);
+                $('#modalCountMaintenances').text(totalMaintenances);
+                $('#modalCountDocs').text(totalDocs);
+                $('#modalCountLicenses').text(totalLicenses);
+
+                $('#modalBadgeAssignments').text(totalAssignments + ' Görev');
+                $('#modalBadgeMaintenances').text(totalMaintenances + ' Bakım');
+                $('#modalBadgeDocs').text(totalDocs + ' Belge');
+                $('#modalBadgeLicenses').text(totalLicenses + ' Ehliyet');
+
+                // 1) Görevler Listesi
+                const $assignBox = $('#modalAssignmentsContent');
+                if (totalAssignments === 0) {
+                    $assignBox.html('<div class="text-center text-muted py-2 small bg-light rounded"><i class="fa fa-info-circle mr-1"></i> Bu tarihte görev bulunmuyor.</div>');
+                } else {
+                    let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 calendar-detail-table"><thead class="thead-light font-11"><tr><th style="width:28%;">Araç</th><th style="width:30%;">Şoför</th><th style="width:22%;">Saat</th><th style="width:20%;" class="text-right">İşlem</th></tr></thead><tbody>';
+                    detail.assignments.forEach(function (a) {
+                        html += `
+                            <tr>
+                                <td class="align-middle">
+                                    <strong class="text-primary font-12">${escapeHtml(a.vehiclePlate)}</strong>
+                                    <small class="text-muted d-block font-10 text-truncate" title="${escapeHtml(a.vehicleBrandModel)}">${escapeHtml(a.vehicleBrandModel)}</small>
+                                </td>
+                                <td class="align-middle">
+                                    <span class="text-dark font-11 font-weight-600 text-truncate d-block" title="${escapeHtml(a.driverNames)}">${escapeHtml(a.driverNames)}</span>
+                                    <small class="text-muted d-block font-10 text-truncate" title="${escapeHtml(a.destination)}">${escapeHtml(a.destination)}</small>
+                                </td>
+                                <td class="align-middle small font-weight-bold">
+                                    ${escapeHtml(a.startTime)}-${escapeHtml(a.endTime)}
+                                    <span class="badge ${a.statusBadgeClass} px-1 py-0 font-10 d-block mt-1">${escapeHtml(a.statusDisplayName)}</span>
+                                </td>
+                                <td class="align-middle text-right">
+                                    <a href="/Assignment/Details/${a.id}" class="btn btn-xs btn-outline-info" target="_blank" title="Görev Detayı">
+                                        <i class="fa fa-external-link"></i> Detay
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += '</tbody></table></div>';
+                    $assignBox.html(html);
+                }
+
+                // 2) Bakımlar Listesi
+                const $maintBox = $('#modalMaintenancesContent');
+                if (totalMaintenances === 0) {
+                    $maintBox.html('<div class="text-center text-muted py-2 small bg-light rounded"><i class="fa fa-info-circle mr-1"></i> Bu tarihte bakımda araç bulunmuyor.</div>');
+                } else {
+                    let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 calendar-detail-table"><thead class="thead-light font-11"><tr><th style="width:35%;">Araç</th><th style="width:35%;">Bakım</th><th style="width:30%;" class="text-right">İşlem</th></tr></thead><tbody>';
+                    detail.maintenances.forEach(function (m) {
+                        html += `
+                            <tr>
+                                <td class="align-middle">
+                                    <strong class="text-primary font-12">${escapeHtml(m.vehiclePlate)}</strong>
+                                    <small class="text-muted d-block font-10 text-truncate" title="${escapeHtml(m.vehicleBrandModel)}">${escapeHtml(m.vehicleBrandModel)}</small>
+                                </td>
+                                <td class="align-middle font-11 text-dark">
+                                    <div class="font-weight-bold text-truncate" title="${escapeHtml(m.maintenanceType)}">${escapeHtml(m.maintenanceType)}</div>
+                                    <small class="text-muted d-block text-truncate" title="${escapeHtml(m.description)}">${escapeHtml(m.description)}</small>
+                                </td>
+                                <td class="align-middle text-right">
+                                    <a href="/Maintenance" class="btn btn-xs btn-outline-warning" target="_blank" title="Bakım Sayfası">
+                                        <i class="fa fa-wrench"></i> Git
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += '</tbody></table></div>';
+                    $maintBox.html(html);
+                }
+
+                // 3) Belgeler Listesi
+                const $docBox = $('#modalDocsContent');
+                if (totalDocs === 0) {
+                    $docBox.html('<div class="text-center text-muted py-2 small bg-light rounded"><i class="fa fa-check-circle text-success mr-1"></i> Süresi dolan belge yoktur.</div>');
+                } else {
+                    let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 calendar-detail-table"><thead class="thead-light font-11"><tr><th style="width:35%;">Araç</th><th style="width:35%;">Belge</th><th style="width:30%;" class="text-right">İşlem</th></tr></thead><tbody>';
+                    detail.expiringDocuments.forEach(function (d) {
+                        html += `
+                            <tr>
+                                <td class="align-middle">
+                                    <strong class="text-primary font-12">${escapeHtml(d.vehiclePlate)}</strong>
+                                    <small class="text-muted d-block font-10 text-truncate" title="${escapeHtml(d.vehicleBrandModel)}">${escapeHtml(d.vehicleBrandModel)}</small>
+                                </td>
+                                <td class="align-middle">
+                                    <span class="badge ${d.badgeClass} px-2 py-0 font-10">${escapeHtml(d.documentType)}</span>
+                                    <small class="text-muted d-block font-10">${escapeHtml(d.expiryDate)}</small>
+                                </td>
+                                <td class="align-middle text-right">
+                                    <a href="/Vehicle/Details/${d.vehicleId}" class="btn btn-xs btn-outline-info" target="_blank" title="Araç Detayı">
+                                        <i class="fa fa-eye"></i> İncele
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += '</tbody></table></div>';
+                    $docBox.html(html);
+                }
+
+                // 4) Ehliyetler Listesi
+                const $licBox = $('#modalLicensesContent');
+                if (totalLicenses === 0) {
+                    $licBox.html('<div class="text-center text-muted py-2 small bg-light rounded"><i class="fa fa-check-circle text-success mr-1"></i> Süresi dolan ehliyet yoktur.</div>');
+                } else {
+                    let html = '<div class="table-responsive"><table class="table table-sm table-hover mb-0 calendar-detail-table"><thead class="thead-light font-11"><tr><th style="width:40%;">Şoför</th><th style="width:30%;">Sınıf / Bitiş</th><th style="width:30%;" class="text-right">İşlem</th></tr></thead><tbody>';
+                    detail.expiringLicenses.forEach(function (l) {
+                        html += `
+                            <tr>
+                                <td class="align-middle font-weight-bold text-dark font-12">
+                                    <span class="text-truncate d-block" title="${escapeHtml(l.driverFullName)}">${escapeHtml(l.driverFullName)}</span>
+                                </td>
+                                <td class="align-middle">
+                                    <span class="badge bg-light text-dark border font-10">${escapeHtml(l.licenseClass)}</span>
+                                    <small class="text-danger font-weight-bold d-block">${escapeHtml(l.expiryDate)}</small>
+                                </td>
+                                <td class="align-middle text-right">
+                                    <a href="/Driver/Details/${l.driverId}" class="btn btn-xs btn-outline-info" target="_blank" title="Şoför Detayı">
+                                        <i class="fa fa-id-card"></i> İncele
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    html += '</tbody></table></div>';
+                    $licBox.html(html);
+                }
+            }
+
+            // Ay Değiştirme Butonları
+            $('#btnPrevMonth').on('click', function () {
+                currentMonth--;
+                if (currentMonth < 1) {
+                    currentMonth = 12;
+                    currentYear--;
+                }
+                loadCalendarData(currentYear, currentMonth);
+            });
+
+            $('#btnNextMonth').on('click', function () {
+                currentMonth++;
+                if (currentMonth > 12) {
+                    currentMonth = 1;
+                    currentYear++;
+                }
+                loadCalendarData(currentYear, currentMonth);
+            });
+
+            $('#btnTodayMonth').on('click', function () {
+                currentYear = new Date().getFullYear();
+                currentMonth = new Date().getMonth() + 1;
+                loadCalendarData(currentYear, currentMonth);
+            });
+
+            // LAZY LOAD: Sayfa açılışında değil, SADECE modal ilk açıldığında veriyi çek
+            $('#dashboardCalendarModal').on('shown.bs.modal', function () {
+                if (!calendarInitialized) {
+                    loadCalendarData(currentYear, currentMonth);
+                    calendarInitialized = true;
+                }
+            });
         })();
     </script>
 }

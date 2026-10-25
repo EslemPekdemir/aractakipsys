@@ -5,9 +5,11 @@ using aractakipsys.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using aractakipsys.Common;
+
 namespace aractakipsys.Controllers;
 
-[Authorize(Roles = "Admin,Kullanici")]
+[Authorize(Roles = AppRoles.AllStaffAndManagers)]
 [Route("Maintenance")]
 public class MaintenanceController : Controller
 {

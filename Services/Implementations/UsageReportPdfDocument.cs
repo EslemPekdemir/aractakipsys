@@ -76,15 +76,15 @@ public class UsageReportPdfDocument : IDocument
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.ConstantColumn(35);   // Sıra (#)
-                    columns.RelativeColumn(2.2f); // Plaka / Araç
-                    columns.RelativeColumn(2.5f); // Şoför
-                    columns.RelativeColumn(3.2f); // Görev Amacı
-                    columns.RelativeColumn(2.2f); // Talep Eden Birim
-                    columns.RelativeColumn(2.2f); // Tarih / Saat
-                    columns.RelativeColumn(1.6f); // Başlangıç KM
-                    columns.RelativeColumn(1.6f); // Bitiş KM
-                    columns.RelativeColumn(1.8f); // Kat Edilen Mesafe
+                    columns.ConstantColumn(30);   // Sıra (#)
+                    columns.RelativeColumn(2.0f); // Plaka / Araç
+                    columns.RelativeColumn(2.8f); // Görev Amacı
+                    columns.RelativeColumn(2.0f); // Talep Eden Birim
+                    columns.RelativeColumn(2.0f); // Tarih / Saat
+                    columns.RelativeColumn(1.6f); // Süre
+                    columns.RelativeColumn(1.4f); // Başlangıç KM
+                    columns.RelativeColumn(1.4f); // Bitiş KM
+                    columns.RelativeColumn(1.6f); // Kat Edilen Mesafe
                 });
 
                 // Tablo Başlık Satırı
@@ -92,62 +92,90 @@ public class UsageReportPdfDocument : IDocument
                 {
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("#").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Plaka / Araç").Bold();
-                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Şoför").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Görev Amacı").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Talep Eden Birim").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Tarih").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignCenter().Text("Süre").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Başlangıç KM").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Bitiş KM").Bold();
                     header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Mesafe (KM)").Bold();
                 });
 
-                // Tablo Veri Satırları
+                // Tablo Veri Satırları - Şoför Grupları
                 var rowIndex = 0;
-                foreach (var item in _model.Items)
+                foreach (var group in _model.DriverGroups)
                 {
-                    var bg = (rowIndex++ % 2 == 0) ? Colors.White : Colors.Grey.Lighten5;
-
-                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text($"#{item.AssignmentId}").FontColor(Colors.Grey.Darken1);
-                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(text =>
+                    // Şoför Grup Başlığı
+                    table.Cell().ColumnSpan(9).Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text(text =>
                     {
-                        text.Line(item.PlateNumber).Bold();
-                        text.Span(item.VehicleBrandModel).FontSize(8).FontColor(Colors.Grey.Darken2);
+                        text.Span("ŞOFÖR: ").Bold();
+                        text.Span(group.DriverFullName).Bold().FontColor(Colors.Blue.Darken3);
+                        text.Span($" ({group.DriverDepartment}) — {group.SubtotalTrips} Sefer").FontSize(8).FontColor(Colors.Grey.Darken2);
                     });
 
-                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(text =>
+                    foreach (var item in group.Items)
                     {
-                        text.Line(item.DriverFullName).Bold();
-                        text.Span(item.DriverDepartment).FontSize(8).FontColor(Colors.Grey.Darken2);
-                    });
+                        var bg = (rowIndex++ % 2 == 0) ? Colors.White : Colors.Grey.Lighten5;
 
-                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.Purpose);
-                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.RequestedByDepartment ?? "-");
-
-                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(text =>
-                    {
-                        text.Line(item.TripDate.ToString("dd.MM.yyyy"));
-                        if (item.ActualStartTime.HasValue && item.ActualEndTime.HasValue)
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text($"#{item.AssignmentId}").FontColor(Colors.Grey.Darken1);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(text =>
                         {
-                            text.Span($"{item.ActualStartTime.Value:HH:mm} - {item.ActualEndTime.Value:HH:mm}").FontSize(8).FontColor(Colors.Grey.Darken2);
-                        }
-                    });
+                            text.Line(item.PlateNumber).Bold();
+                            text.Span(item.VehicleBrandModel).FontSize(8).FontColor(Colors.Grey.Darken2);
+                        });
 
-                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
-                        .Text(item.StartKm.HasValue ? $"{item.StartKm.Value:N0} KM" : "-");
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.Purpose);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.RequestedByDepartment ?? "-");
 
-                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
-                        .Text(item.EndKm.HasValue ? $"{item.EndKm.Value:N0} KM" : "-");
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(text =>
+                        {
+                            text.Line(item.TripDate.ToString("dd.MM.yyyy"));
+                            if (item.ActualStartTime.HasValue && item.ActualEndTime.HasValue)
+                            {
+                                text.Span($"{item.ActualStartTime.Value:HH:mm} - {item.ActualEndTime.Value:HH:mm}").FontSize(8).FontColor(Colors.Grey.Darken2);
+                            }
+                        });
 
-                    table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
-                        .Text($"+{item.DistanceKm:N0} KM").Bold().FontColor(Colors.Green.Darken2);
+                        // Süre Sütunu (DurationHelper ile "2 sa 40 dk")
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignCenter()
+                            .Text(item.DurationFormatted).Bold().FontColor(Colors.Blue.Darken2);
+
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                            .Text(item.StartKm.HasValue ? $"{item.StartKm.Value:N0} KM" : "-");
+
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                            .Text(item.EndKm.HasValue ? $"{item.EndKm.Value:N0} KM" : "-");
+
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
+                            .Text($"+{item.DistanceKm:N0} KM").Bold().FontColor(Colors.Green.Darken2);
+                    }
+
+                    // Şoför Bazlı Alt Toplam Satırı
+                    table.Cell().ColumnSpan(5).Background(Colors.Grey.Lighten4).BorderTop(0.5f).BorderBottom(1).BorderColor(Colors.Grey.Lighten1).Padding(4).AlignRight()
+                        .Text($"{group.DriverFullName} — Alt Toplam:").Bold().FontSize(8);
+
+                    table.Cell().Background(Colors.Grey.Lighten4).BorderTop(0.5f).BorderBottom(1).BorderColor(Colors.Grey.Lighten1).Padding(4).AlignCenter()
+                        .Text(group.SubtotalDurationFormatted).Bold().FontColor(Colors.Blue.Darken3).FontSize(8);
+
+                    table.Cell().ColumnSpan(2).Background(Colors.Grey.Lighten4).BorderTop(0.5f).BorderBottom(1).BorderColor(Colors.Grey.Lighten1).Padding(4).AlignRight()
+                        .Text("Alt Toplam Mesafe:").Bold().FontSize(8);
+
+                    table.Cell().Background(Colors.Grey.Lighten4).BorderTop(0.5f).BorderBottom(1).BorderColor(Colors.Grey.Lighten1).Padding(4).AlignRight()
+                        .Text($"{group.SubtotalDistanceKm:N0} KM").Bold().FontColor(Colors.Green.Darken3).FontSize(8);
                 }
 
-                // Tablo Dip Toplam Satırı (Footer)
-                table.Cell().ColumnSpan(8).Background(Colors.Grey.Lighten3).BorderTop(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignRight()
-                    .Text("GENEL TOPLAM MESAFE:").Bold();
+                // Tablo Dip Genel Toplam Satırı (Tekil görevler - Çift sayım engellendi)
+                table.Cell().ColumnSpan(5).Background(Colors.Grey.Lighten2).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                    .Text("GENEL TOPLAM (TEKİL GÖREVLER):").Bold().FontSize(9);
 
-                table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignRight()
-                    .Text($"{_model.TotalDistanceKm:N0} KM").Bold().FontColor(Colors.Green.Darken3).FontSize(10);
+                table.Cell().Background(Colors.Grey.Lighten2).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignCenter()
+                    .Text(_model.TotalDurationFormatted).Bold().FontColor(Colors.Blue.Darken4).FontSize(9);
+
+                table.Cell().ColumnSpan(2).Background(Colors.Grey.Lighten2).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                    .Text("GENEL TOPLAM MESAFE:").Bold().FontSize(9);
+
+                table.Cell().Background(Colors.Grey.Lighten2).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                    .Text($"{_model.TotalDistanceKm:N0} KM").Bold().FontColor(Colors.Green.Darken4).FontSize(9);
             });
 
             // 3. SAYFA ALTI (FOOTER)

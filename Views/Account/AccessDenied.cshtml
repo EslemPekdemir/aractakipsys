@@ -59,7 +59,7 @@
             Bu sayfayı görüntülemek veya bu işlemi gerçekleştirmek için gerekli yetkiye sahip değilsiniz.
         </p>
         <div class="d-flex justify-content-center">
-            <a href="@(User.IsInRole("Driver") && !User.IsInRole("Admin") && !User.IsInRole("Kullanici") ? "/Surucu" : "/")" class="btn btn-primary font-weight-bold px-4 py-2 mr-2" style="border-radius: 8px;">
+            <a href="@(User.IsInRole("Driver") && !User.IsInRole("Admin") && !User.IsInRole("Kullanici") && !User.IsInRole("DaireBaskani") && !User.IsInRole("GenelSekreter") ? "/Surucu" : "/")" class="btn btn-primary font-weight-bold px-4 py-2 mr-2" style="border-radius: 8px;">
                 <i class="fa fa-home mr-1"></i> Ana Sayfa
             </a>
             <a href="/Account/Login" class="btn btn-outline-secondary font-weight-bold px-4 py-2" style="border-radius: 8px;">

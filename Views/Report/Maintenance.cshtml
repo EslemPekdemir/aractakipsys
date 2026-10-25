@@ -129,9 +129,14 @@
                         <i class="fa fa-wrench mr-1"></i> Araç Bakım & Tamir Dökümü
                     </a>
                 </li>
-                <li class="nav-item mb-1">
+                <li class="nav-item mr-2 mb-1">
                     <a class="nav-link text-secondary py-2 px-3" href="/Report/InsuranceInspection">
                         <i class="fa fa-shield mr-1"></i> Sigorta & Muayene Durum Raporu
+                    </a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report/VehicleRequests">
+                        <i class="fa fa-envelope-open-text mr-1"></i> Araç Talepleri Raporu
                     </a>
                 </li>
             </ul>
@@ -334,14 +339,14 @@
             </div>
 
             <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
-                <div class="ibox float-e-margins mb-0 h-100 border-left border-info" style="border-left-width: 4px !important;">
+                <div class="ibox float-e-margins mb-0 h-100 border-left border-primary" style="border-left-width: 4px !important;">
                     <div class="ibox-title border-0">
-                        <span class="label label-info float-right font-weight-bold">Devam Eden</span>
-                        <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Servisteki Araçlar</h5>
+                        <span class="label label-primary float-right font-weight-bold">Maliyet</span>
+                        <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Toplam Bakım Maliyeti</h5>
                     </div>
                     <div class="ibox-content">
-                        <div class="kpi-num text-info">@Model.OngoingCount</div>
-                        <small class="text-muted">Halen serviste olan bakım</small>
+                        <div class="kpi-num text-primary">@Model.TotalCostFormatted</div>
+                        <small class="text-muted">Filtrelenen bakım harcamaları</small>
                     </div>
                 </div>
             </div>
@@ -361,16 +366,22 @@
                     </div>
                     @if (Model.Filter.HasSearched && Model.Items.Count > 0)
                     {
-                        <div class="flex-shrink-0" style="margin-top: 2px;">
-                            <a href="@Url.Action("ExportMaintenancePdf", new { 
-                                vehicleId = Model.Filter.VehicleId, 
-                                maintenanceType = Model.Filter.MaintenanceType,
-                                isOngoing = Model.Filter.IsOngoing,
-                                startDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), 
-                                endDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"),
-                                hasSearched = true 
-                            })" target="_blank" class="btn btn-sm btn-danger font-weight-bold shadow-sm d-inline-flex align-items-center" style="height: 31px; padding: 4px 10px; font-size: 0.8rem; white-space: nowrap;">
-                                <i class="fa fa-file-pdf-o mr-1"></i> PDF İndir
+                        var pdfUrl = Url.Action("ExportMaintenancePdf", new { 
+                            vehicleId = Model.Filter.VehicleId, 
+                            maintenanceType = Model.Filter.MaintenanceType,
+                            isOngoing = Model.Filter.IsOngoing,
+                            startDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), 
+                            endDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"),
+                            hasSearched = true 
+                        });
+                        <div class="flex-shrink-0 btn-group" style="margin-top: 2px;">
+                            <button type="button" class="btn btn-sm btn-outline-info font-weight-bold shadow-sm d-inline-flex align-items-center"
+                                    data-pdf-preview data-pdf-url="@pdfUrl" title="Bakım ve Maliyet Raporunu Önizle"
+                                    style="height: 31px; padding: 4px 10px; font-size: 0.8rem; white-space: nowrap;">
+                                <i class="fa fa-eye mr-1"></i> Önizle
+                            </button>
+                            <a href="@pdfUrl" target="_blank" class="btn btn-sm btn-danger font-weight-bold shadow-sm d-inline-flex align-items-center" style="height: 31px; padding: 4px 10px; font-size: 0.8rem; white-space: nowrap;">
+                                <i class="fa fa-file-pdf-o mr-1"></i> İndir
                             </a>
                         </div>
                     }
@@ -388,6 +399,7 @@
                                 <th style="width: 140px;">Giriş Tarih / Saat</th>
                                 <th style="width: 140px;">Çıkış Tarih / Saat</th>
                                 <th style="width: 80px;" class="text-center">Süre</th>
+                                <th style="width: 100px;" class="text-right">Maliyet</th>
                                 <th style="width: 100px;" class="text-center">Durum</th>
                                 <th>Açıklama / Yapılan İşlemler</th>
                                 <th style="width: 60px;" class="text-center">İşlem</th>
@@ -427,6 +439,9 @@
                                             @item.DurationDays gün
                                         </span>
                                     </td>
+                                    <td class="text-right align-middle font-weight-bold text-dark">
+                                        @item.CostDisplay
+                                    </td>
                                     <td class="text-center align-middle">
                                         @if (item.IsOngoing)
                                         {
@@ -452,6 +467,17 @@
                                 </tr>
                             }
                         </tbody>
+                        <tfoot class="bg-light font-weight-bold">
+                            <tr>
+                                <td colspan="7" class="text-right py-3 font-14">Genel Toplam Maliyet:</td>
+                                <td class="text-right py-3 text-success font-14" style="font-size: 1.05rem;">
+                                    @Model.TotalCostFormatted
+                                </td>
+                                <td colspan="3" class="text-muted small align-middle">
+                                    (Maliyeti girilmeyen bakım kayıtları toplamda sayılmaz)
+                                </td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>

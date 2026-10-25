@@ -14,8 +14,11 @@
         <h5 class="m-0 font-weight-bold text-dark">Görev Detayı</h5>
     </div>
     <div class="d-flex align-items-center" style="gap: 6px;">
+        <button type="button" class="btn btn-outline-info btn-sm font-weight-bold" data-pdf-preview data-pdf-url="/Surucu/GorevEmri/@Model.AssignmentId" style="border-radius: 8px;" title="Resmi Taşıt Görev Emri Belgesini Önizle">
+            <i class="fa fa-eye mr-1"></i> Önizle
+        </button>
         <a href="/Surucu/GorevEmri/@Model.AssignmentId" target="_blank" class="btn btn-outline-primary btn-sm font-weight-bold" style="border-radius: 8px;" title="Resmi Taşıt Görev Emri Belgesini İndir">
-            <i class="fa fa-file-pdf-o text-danger mr-1"></i> Görev Emri
+            <i class="fa fa-file-pdf-o text-danger mr-1"></i> İndir
         </a>
         <button type="button" class="btn btn-outline-danger btn-sm font-weight-bold" data-toggle="modal" data-target="#faultReportModal" style="border-radius: 8px;">
             <i class="fa fa-wrench mr-1"></i> Arıza Bildir
@@ -133,6 +136,9 @@
             </div>
         </div>
     </div>
+    <div class="mb-3 text-muted small">
+        <i class="fa fa-clock-o text-muted mr-1"></i> Planlanan Süre: <strong class="text-dark">@DurationHelper.FormatDuration(Model.PlannedStartTime, Model.PlannedEndTime)</strong>
+    </div>
 
     @if (Model.ActualStartTime.HasValue || Model.ActualEndTime.HasValue)
     {
@@ -155,6 +161,20 @@
                     </div>
                 </div>
             }
+            @if (Model.ActualStartTime.HasValue && Model.ActualEndTime.HasValue)
+            {
+                <div class="col-12 border-top pt-2 mt-2 text-center">
+                    <small class="text-muted font-weight-bold">TOPLAM GÖREV SÜRESİ:</small>
+                    <span class="text-dark font-weight-bold ml-1">@DurationHelper.FormatDuration(Model.ActualStartTime, Model.ActualEndTime)</span>
+                </div>
+            }
+            else if (Model.Status == AssignmentStatus.InProgress && Model.ActualStartTime.HasValue)
+            {
+                <div class="col-12 border-top pt-2 mt-2 text-center">
+                    <small class="text-muted font-weight-bold">GEÇEN SÜRE:</small>
+                    <span class="text-primary font-weight-bold ml-1">@DurationHelper.FormatDuration(Model.ActualStartTime, DateTime.Now)</span>
+                </div>
+            }
         </div>
     }
 
@@ -171,6 +191,10 @@
             {
                 <div class="text-muted small mb-2">
                     Toplam Yapılan Mesafe: <strong>@(Model.EndKm.Value - Model.StartKm.Value) KM</strong>
+                    @if (Model.ActualStartTime.HasValue && Model.ActualEndTime.HasValue)
+                    {
+                        <span>&nbsp;|&nbsp; Görev Süresi: <strong>@DurationHelper.FormatDuration(Model.ActualStartTime, Model.ActualEndTime)</strong></span>
+                    }
                 </div>
             }
             @if (!string.IsNullOrEmpty(Model.DriverReturnNotes))
@@ -370,6 +394,9 @@
     }
     else if (Model.Status == AssignmentStatus.InProgress)
     {
+        <button type="button" class="btn btn-warning btn-block btn-touch shadow mb-2 font-weight-bold" data-toggle="modal" data-target="#changeRouteModal" style="background-color: #f59e0b; border-color: #d97706; color: #ffffff;">
+            <i class="fa fa-map-signs mr-2" style="font-size: 1.2rem;"></i> Güzergah Değiştir
+        </button>
         <button type="button" class="btn btn-primary btn-block btn-touch shadow" data-toggle="modal" data-target="#endAssignmentModal">
             <i class="fa fa-flag-checkered mr-2" style="font-size: 1.3rem;"></i> Bitişi Bildir
         </button>
@@ -454,6 +481,10 @@
                     <small class="form-text text-muted">
                         Başlangıç KM: <strong>@((Model.StartKm ?? Model.CurrentVehicleKm).ToString("N0")) KM</strong>
                     </small>
+                    <div id="tripDistanceExceededAlert" class="alert alert-danger py-2 px-3 mt-2 d-none" style="border-radius: 8px; font-size: 0.85rem; border-left: 4px solid #dc3545;">
+                        <i class="fa fa-exclamation-circle text-danger mr-1 font-16"></i>
+                        <strong>Mesafe Uyarısı:</strong> Yapılan mesafe (<span id="tripDistanceValue" class="font-weight-bold">0</span> KM) 200 KM eşiğini aşmaktadır! Lütfen girdiğiniz bitiş kilometresini kontrol ediniz.
+                    </div>
                 </div>
 
                 <div class="form-group mb-3 bg-light p-3 rounded border">
@@ -603,14 +634,89 @@
     </div>
 </div>
 
+<!-- 4. GÜZERGAH DEĞİŞTİR MODAL (FAZ 2 - B) -->
+<div class="modal fade" id="changeRouteModal" tabindex="-1" role="dialog" aria-labelledby="changeRouteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+            <div class="modal-header bg-warning text-white" style="border-radius: 12px 12px 0 0; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;">
+                <h5 class="modal-title font-weight-bold" id="changeRouteModalLabel">
+                    <i class="fa fa-map-signs mr-2"></i> Sefer Güzergahını Değiştir
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="bg-light p-3 rounded border mb-3">
+                    <small class="text-muted d-block font-weight-bold" style="font-size: 0.75rem;">MEVCUT GÜZERGAH VE HEDEF</small>
+                    <div class="text-dark font-weight-bold mt-1" style="font-size: 0.9rem;">
+                        <i class="fa fa-map-marker text-danger mr-1"></i> @(string.IsNullOrWhiteSpace(Model.Route) ? Model.Destination : Model.Route)
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="inputNewRoute" class="font-weight-bold text-dark">
+                        Yeni Güzergah / Rota <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" class="form-control" id="inputNewRoute" maxlength="250" 
+                           placeholder="Örn: Konuralp Kampüsü -> Valilik -> Akçakoca MYO" required>
+                    <small class="form-text text-muted">Takip edilecek yeni güzergahı giriniz.</small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="inputNewDestination" class="font-weight-bold text-dark">
+                        Yeni Görev / Varış Yeri <span class="text-muted font-weight-normal">(Opsiyonel)</span>
+                    </label>
+                    <input type="text" class="form-control" id="inputNewDestination" maxlength="200" 
+                           placeholder="Örn: Akçakoca Yerleşkesi">
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="inputRouteReason" class="font-weight-bold text-dark">
+                        Değişiklik Gerekçesi / Açıklaması <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="inputRouteReason" rows="3" maxlength="500" 
+                              placeholder="Güzergahın neden değiştirildiğini açıklayınız (örn: Rektörlük acil evrak sevki, yol çalışması)..." required></textarea>
+                </div>
+
+                <div class="alert alert-info py-2 px-3 mb-0 small" style="border-radius: 8px;">
+                    <i class="fa fa-info-circle mr-1"></i> Bu değişiklik Ulaştırma Şefliği ve Yönetici ekranına anında bildirim olarak düşecektir.
+                </div>
+
+                <div id="changeRouteErrorAlert" class="alert alert-danger d-none p-2 mt-3 mb-0" style="font-size: 0.9rem;"></div>
+            </div>
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal" style="border-radius: 8px;">Vazgeç</button>
+                <button type="button" class="btn btn-warning font-weight-bold px-4 text-white" id="btnConfirmChangeRoute" style="border-radius: 8px; background-color: #f59e0b; border-color: #d97706;">
+                    <i class="fa fa-save mr-1"></i> Güzergahı Güncelle
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @Html.AntiForgeryToken()
 
 @section Scripts {
 <script>
     $(document).ready(function () {
-        $('#vehicleChecksModal, #faultReportModal, #startAssignmentModal, #endAssignmentModal').appendTo('body');
+        $('#vehicleChecksModal, #faultReportModal, #startAssignmentModal, #endAssignmentModal, #changeRouteModal').appendTo('body');
         const assignmentId = @Model.AssignmentId;
         const token = $('input[name="__RequestVerificationToken"]').val();
+        const startKmValForTrip = @(Model.StartKm ?? Model.CurrentVehicleKm);
+        const tripDistanceThreshold = 200;
+
+        // KM Gerçek Zamanlı Eşik Kontrolü (>200 km kırmızı ünlem uyarısı)
+        $('#inputEndKm').on('input change keyup', function () {
+            const currentEndKm = parseInt($(this).val(), 10) || 0;
+            const distance = currentEndKm - startKmValForTrip;
+            if (distance > tripDistanceThreshold) {
+                $('#tripDistanceValue').text(distance.toLocaleString('tr-TR'));
+                $('#tripDistanceExceededAlert').removeClass('d-none');
+            } else {
+                $('#tripDistanceExceededAlert').addClass('d-none');
+            }
+        });
 
         // 1. BAŞLANGICI BİLDİR AJAX
         $('#btnConfirmStart').on('click', function () {
@@ -838,6 +944,68 @@
                 $item.data('submitting', false);
                 $item.attr('data-checked', isCurrentlyChecked ? 'true' : 'false');
                 showNativeToast('Bağlantı hatası.', false);
+            });
+        });
+
+        // 4. GÜZERGAH DEĞİŞTİR AJAX (FAZ 2 - B)
+        $('#btnConfirmChangeRoute').on('click', function () {
+            const newRouteVal = $('#inputNewRoute').val().trim();
+            const newDestVal = $('#inputNewDestination').val().trim();
+            const reasonVal = $('#inputRouteReason').val().trim();
+            const $btn = $(this);
+            const $errorDiv = $('#changeRouteErrorAlert');
+
+            $errorDiv.addClass('d-none').text('');
+
+            if (!newRouteVal) {
+                $errorDiv.removeClass('d-none').text('Lütfen yeni güzergah / rota bilgisini giriniz.');
+                return;
+            }
+
+            if (!reasonVal) {
+                $errorDiv.removeClass('d-none').text('Lütfen güzergah değişikliği gerekçesini giriniz.');
+                return;
+            }
+
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin mr-1"></i> Güncelleniyor...');
+
+            fetch('/Surucu/GuzergahDegistir/' + assignmentId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    assignmentId: assignmentId,
+                    newRoute: newRouteVal,
+                    newDestination: newDestVal,
+                    reason: reasonVal
+                })
+            })
+            .then(res => {
+                if (res.status === 403) {
+                    throw new Error('Bu görevde güzergah değişikliği yapma yetkiniz bulunmamaktadır (Yalnızca göreve atanmış şoförler yapabilir).');
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    showNativeToast(data.message || 'Güzergah değişikliği başarıyla kaydedildi.', true);
+                    $('#changeRouteModal').modal('hide');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    $errorDiv.removeClass('d-none').text(data.message || 'Güzergah güncellenemedi.');
+                    showNativeToast(data.message || 'İşlem başarısız.', false);
+                    $btn.prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Güzergahı Güncelle');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                $errorDiv.removeClass('d-none').text(err.message || 'Sunucuyla iletişim kurulurken bir hata oluştu.');
+                showNativeToast(err.message || 'Bağlantı hatası.', false);
+                $btn.prop('disabled', false).html('<i class="fa fa-save mr-1"></i> Güzergahı Güncelle');
             });
         });
     });

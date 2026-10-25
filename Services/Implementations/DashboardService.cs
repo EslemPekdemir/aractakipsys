@@ -149,6 +149,23 @@ public class DashboardService : IDashboardService
             .OrderBy(d => d.MostUrgentDaysRemaining)
             .ToList();
 
+        // 8. Ehliyet Süresi Yaklaşan / Geçen Şoförler (Faz 4 - 30 gün içinde dolacaklar + süresi dolmuşlar)
+        var expiringDriverLicenses = await _context.DriverLicenses
+            .Include(l => l.Driver)
+            .ThenInclude(d => d.User)
+            .Where(l => !l.IsDeleted && !l.Driver.IsDeleted && l.Driver.IsActive && l.LicenseExpiryDate.Date <= threshold)
+            .OrderBy(l => l.LicenseExpiryDate)
+            .Select(l => new DriverLicenseExpiryAlertViewModel
+            {
+                DriverId = l.DriverId,
+                DriverFullName = l.Driver.User.FullName,
+                Department = l.Driver.Department,
+                LicenseClass = l.LicenseClass,
+                LicenseExpiryDate = l.LicenseExpiryDate,
+                DaysRemaining = (int)(l.LicenseExpiryDate.Date - today).TotalDays
+            })
+            .ToListAsync();
+
         return new DashboardViewModel
         {
             TotalVehicles = totalVehicles,
@@ -166,7 +183,8 @@ public class DashboardService : IDashboardService
             OngoingMaintenances = ongoingMaintenances,
             PendingVehicleRequestsCount = pendingVehicleRequestsCount,
             PendingVehicleRequestsSummary = pendingVehicleRequestsSummary,
-            DocumentAlertVehicles = docAlertVehicles
+            DocumentAlertVehicles = docAlertVehicles,
+            ExpiringDriverLicenses = expiringDriverLicenses
         };
     }
 
@@ -233,6 +251,38 @@ public class DashboardService : IDashboardService
             _ => "badge-secondary"
         };
 
+        // Güncel Lastik Bilgisi (Faz 5-B)
+        var latestTire = await _context.VehicleTires
+            .Where(t => t.VehicleId == vehicle.Id && !t.IsDeleted)
+            .OrderByDescending(t => t.InstalledDate ?? t.CreatedAt)
+            .ThenByDescending(t => t.Id)
+            .FirstOrDefaultAsync();
+
+        aractakipsys.Models.ViewModels.Vehicle.VehicleTireItemViewModel? currentTireVm = null;
+        if (latestTire != null)
+        {
+            currentTireVm = new aractakipsys.Models.ViewModels.Vehicle.VehicleTireItemViewModel
+            {
+                Id = latestTire.Id,
+                VehicleId = latestTire.VehicleId,
+                PlateNumber = vehicle.PlateNumber,
+                Brand = latestTire.Brand,
+                Size = latestTire.Size,
+                DotDate = latestTire.DotDate,
+                ProductionYear = latestTire.ProductionYear,
+                Season = latestTire.Season,
+                InstalledDate = latestTire.InstalledDate,
+                InstalledKm = latestTire.InstalledKm,
+                RecommendedReplaceKm = latestTire.RecommendedReplaceKm,
+                RecommendedReplaceDate = latestTire.RecommendedReplaceDate,
+                Cost = latestTire.Cost,
+                Notes = latestTire.Notes,
+                CreatedAt = latestTire.CreatedAt,
+                VehicleCurrentKm = vehicle.CurrentKm,
+                IsCurrentTire = true
+            };
+        }
+
         return new DashboardPlateSearchResultViewModel
         {
             VehicleId = vehicle.Id,
@@ -250,7 +300,260 @@ public class DashboardService : IDashboardService
             InspectionExpiryDate = vehicle.InspectionExpiryDate,
             InspectionDaysRemaining = (int)(vehicle.InspectionExpiryDate.Date - today).TotalDays,
             FineNotes = vehicle.FineNotes,
+            CurrentTire = currentTireVm,
             DriverHistory = completedAssignments
+        };
+    }
+
+    public async Task<DashboardCalendarMonthResponseDto> GetCalendarMonthDataAsync(int year, int month)
+    {
+        if (year < 2000 || year > 2100) year = DateTime.Today.Year;
+        if (month < 1 || month > 12) month = DateTime.Today.Month;
+
+        var culture = new System.Globalization.CultureInfo("tr-TR");
+        var firstDayOfMonth = new DateTime(year, month, 1);
+        var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+
+        // Takvim ızgarası: Pazartesi ile başlar
+        int offsetDays = ((int)firstDayOfMonth.DayOfWeek + 6) % 7;
+        var gridStartDate = firstDayOfMonth.AddDays(-offsetDays);
+        var gridEndDate = gridStartDate.AddDays(41); // 6 satır x 7 gün = 42 gün
+
+        var today = DateTime.Today;
+
+        // TEK SORGULAR (N+1 yapma kuralı)
+        // 1) Assignment'lar (Planlanan veya Seyirde olanlar)
+        var assignments = await _context.Assignments
+            .AsNoTracking()
+            .Include(a => a.Vehicle)
+            .Include(a => a.Driver).ThenInclude(d => d!.User)
+            .Include(a => a.AssignmentDrivers).ThenInclude(ad => ad.Driver).ThenInclude(d => d.User)
+            .Where(a => !a.IsDeleted &&
+                        (a.Status == AssignmentStatus.Planned || a.Status == AssignmentStatus.InProgress) &&
+                        a.PlannedStartTime.Date <= gridEndDate.Date &&
+                        a.PlannedEndTime.Date >= gridStartDate.Date)
+            .ToListAsync();
+
+        // 2) Maintenances (Bakımda olanlar)
+        var maintenances = await _context.Maintenances
+            .AsNoTracking()
+            .Include(m => m.Vehicle)
+            .Where(m => !m.IsDeleted &&
+                        m.StartDate.Date <= gridEndDate.Date &&
+                        (!m.EndDate.HasValue || m.EndDate.Value.Date >= gridStartDate.Date))
+            .ToListAsync();
+
+        // 3) Vehicle Documents & Tires
+        var vehiclesWithDocs = await _context.Vehicles
+            .AsNoTracking()
+            .Include(v => v.Documents)
+            .Include(v => v.Tires)
+            .Where(v => !v.IsDeleted)
+            .ToListAsync();
+
+        // 4) Driver Licenses
+        var driverLicenses = await _context.DriverLicenses
+            .AsNoTracking()
+            .Include(dl => dl.Driver).ThenInclude(d => d.User)
+            .Where(dl => !dl.IsDeleted && dl.LicenseExpiryDate.Date >= gridStartDate.Date && dl.LicenseExpiryDate.Date <= gridEndDate.Date)
+            .ToListAsync();
+
+        var daysList = new List<DashboardCalendarDaySummaryDto>();
+        var detailsDict = new Dictionary<string, DashboardCalendarDayDetailDto>();
+
+        for (var date = gridStartDate; date <= gridEndDate; date = date.AddDays(1))
+        {
+            var dateStr = date.ToString("yyyy-MM-dd");
+            var dayDate = date.Date;
+
+            // O güne denk gelen görevler
+            var dayAssignments = assignments
+                .Where(a => a.PlannedStartTime.Date <= dayDate && a.PlannedEndTime.Date >= dayDate)
+                .Select(a =>
+                {
+                    var driverList = new List<string>();
+                    if (a.Driver != null && a.Driver.User != null)
+                    {
+                        driverList.Add(a.Driver.User.FullName);
+                    }
+                    if (a.AssignmentDrivers != null && a.AssignmentDrivers.Any())
+                    {
+                        foreach (var ad in a.AssignmentDrivers)
+                        {
+                            if (ad.Driver?.User != null && !driverList.Contains(ad.Driver.User.FullName))
+                            {
+                                driverList.Add(ad.Driver.User.FullName);
+                            }
+                        }
+                    }
+                    if (a.IsDriverless) driverList.Add("Şoförsüz Araç");
+                    if (a.IsExternalDriver && !string.IsNullOrWhiteSpace(a.ExternalDriverFullName))
+                    {
+                        driverList.Add($"Dış Şoför: {a.ExternalDriverFullName}");
+                    }
+
+                    var statusBadge = a.Status == AssignmentStatus.InProgress ? "badge-primary bg-primary text-white" : "badge-secondary bg-secondary text-white";
+                    var statusName = a.Status == AssignmentStatus.InProgress ? "Seyirde" : "Planlandı";
+
+                    return new DashboardCalendarAssignmentItemDto
+                    {
+                        Id = a.Id,
+                        VehicleId = a.VehicleId,
+                        VehiclePlate = a.Vehicle?.PlateNumber ?? "-",
+                        VehicleBrandModel = $"{a.Vehicle?.Brand} {a.Vehicle?.Model}".Trim(),
+                        DriverNames = driverList.Any() ? string.Join(", ", driverList) : "Belirtilmemiş",
+                        Route = a.Route ?? "-",
+                        Destination = a.Destination ?? "-",
+                        Purpose = a.Purpose,
+                        Department = a.RequestedByDepartment ?? "-",
+                        Status = a.Status.ToString(),
+                        StatusDisplayName = statusName,
+                        StatusBadgeClass = statusBadge,
+                        StartTime = a.ActualStartTime?.ToString("HH:mm") ?? a.PlannedStartTime.ToString("HH:mm"),
+                        EndTime = a.PlannedEndTime.ToString("HH:mm")
+                    };
+                })
+                .ToList();
+
+            // O gün görevde / planlı olan BENZERSİZ araç sayısı
+            var activeVehiclesCount = dayAssignments.Select(x => x.VehicleId).Distinct().Count();
+
+            // O gün bakımda olan araçlar
+            var dayMaintenances = maintenances
+                .Where(m => m.StartDate.Date <= dayDate && (!m.EndDate.HasValue || m.EndDate.Value.Date >= dayDate))
+                .Select(m => new DashboardCalendarMaintenanceItemDto
+                {
+                    Id = m.Id,
+                    VehicleId = m.VehicleId,
+                    VehiclePlate = m.Vehicle?.PlateNumber ?? "-",
+                    VehicleBrandModel = $"{m.Vehicle?.Brand} {m.Vehicle?.Model}".Trim(),
+                    MaintenanceType = m.MaintenanceType,
+                    Description = m.Description ?? "-",
+                    StartDate = m.StartDate.ToString("dd.MM.yyyy"),
+                    EndDate = m.EndDate?.ToString("dd.MM.yyyy"),
+                    PerformedBy = m.PerformedBy ?? "-"
+                })
+                .ToList();
+
+            var maintenanceVehiclesCount = dayMaintenances.Select(x => x.VehicleId).Distinct().Count();
+
+            // O gün süresi dolan belgeler (Muayene, Sigorta, Kasko, Lastik)
+            var dayDocs = new List<DashboardCalendarDocumentItemDto>();
+            foreach (var v in vehiclesWithDocs)
+            {
+                if (v.InspectionExpiryDate.Date == dayDate)
+                {
+                    dayDocs.Add(new DashboardCalendarDocumentItemDto
+                    {
+                        VehicleId = v.Id,
+                        VehiclePlate = v.PlateNumber,
+                        VehicleBrandModel = $"{v.Brand} {v.Model}".Trim(),
+                        DocumentType = "Periyodik Muayene",
+                        ExpiryDate = v.InspectionExpiryDate.ToString("dd.MM.yyyy"),
+                        BadgeClass = "badge-danger bg-danger text-white",
+                        Details = "Araç muayene son geçerlilik tarihi"
+                    });
+                }
+                if (v.InsuranceExpiryDate.Date == dayDate)
+                {
+                    dayDocs.Add(new DashboardCalendarDocumentItemDto
+                    {
+                        VehicleId = v.Id,
+                        VehiclePlate = v.PlateNumber,
+                        VehicleBrandModel = $"{v.Brand} {v.Model}".Trim(),
+                        DocumentType = "Trafik Sigortası",
+                        ExpiryDate = v.InsuranceExpiryDate.ToString("dd.MM.yyyy"),
+                        BadgeClass = "badge-warning bg-warning text-dark",
+                        Details = "Zorunlu mali sorumluluk sigortası"
+                    });
+                }
+
+                // Alt belgeler
+                if (v.Documents != null)
+                {
+                    foreach (var doc in v.Documents.Where(d => !d.IsDeleted && d.EndDate.Date == dayDate))
+                    {
+                        var docName = doc.DocumentType == Models.Enums.VehicleDocumentType.Insurance ? "Trafik Sigortası"
+                                    : (doc.DocumentType == Models.Enums.VehicleDocumentType.Inspection ? "Muayene"
+                                    : (doc.DocumentType == Models.Enums.VehicleDocumentType.Kasko ? "Kasko Poliçesi" : "Diğer Belge"));
+                        if (!dayDocs.Any(x => x.VehicleId == v.Id && x.DocumentType == docName))
+                        {
+                            dayDocs.Add(new DashboardCalendarDocumentItemDto
+                            {
+                                VehicleId = v.Id,
+                                VehiclePlate = v.PlateNumber,
+                                VehicleBrandModel = $"{v.Brand} {v.Model}".Trim(),
+                                DocumentType = docName,
+                                ExpiryDate = doc.EndDate.ToString("dd.MM.yyyy"),
+                                BadgeClass = "badge-info bg-info text-white",
+                                Details = doc.PolicyOrStationNumber ?? "-"
+                            });
+                        }
+                    }
+                }
+
+                // Lastik tavsiye değişim tarihi
+                if (v.Tires != null)
+                {
+                    foreach (var tire in v.Tires.Where(t => !t.IsDeleted && t.RecommendedReplaceDate.HasValue && t.RecommendedReplaceDate.Value.Date == dayDate))
+                    {
+                        dayDocs.Add(new DashboardCalendarDocumentItemDto
+                        {
+                            VehicleId = v.Id,
+                            VehiclePlate = v.PlateNumber,
+                            VehicleBrandModel = $"{v.Brand} {v.Model}".Trim(),
+                            DocumentType = "Lastik Değişimi",
+                            ExpiryDate = tire.RecommendedReplaceDate?.ToString("dd.MM.yyyy") ?? "-",
+                            BadgeClass = "badge-secondary bg-secondary text-white",
+                            Details = $"{tire.Brand} {tire.Season}"
+                        });
+                    }
+                }
+            }
+
+            // O gün süresi dolan ehliyetler
+            var dayLicenses = driverLicenses
+                .Where(dl => dl.LicenseExpiryDate.Date == dayDate)
+                .Select(dl => new DashboardCalendarLicenseItemDto
+                {
+                    DriverId = dl.DriverId,
+                    DriverFullName = dl.Driver?.User?.FullName ?? "-",
+                    LicenseClass = dl.LicenseClass,
+                    ExpiryDate = dl.LicenseExpiryDate.ToString("dd.MM.yyyy"),
+                    Department = dl.Driver?.Department ?? "-"
+                })
+                .ToList();
+
+            daysList.Add(new DashboardCalendarDaySummaryDto
+            {
+                Date = dateStr,
+                Day = date.Day,
+                IsCurrentMonth = date.Month == month,
+                IsToday = dayDate == today,
+                ActiveVehicleCount = activeVehiclesCount,
+                MaintenanceVehicleCount = maintenanceVehiclesCount,
+                ExpiringDocumentCount = dayDocs.Count,
+                ExpiringLicenseCount = dayLicenses.Count
+            });
+
+            detailsDict[dateStr] = new DashboardCalendarDayDetailDto
+            {
+                Date = dateStr,
+                FormattedDate = date.ToString("dd MMMM yyyy, dddd", culture),
+                Assignments = dayAssignments,
+                Maintenances = dayMaintenances,
+                ExpiringDocuments = dayDocs,
+                ExpiringLicenses = dayLicenses
+            };
+        }
+
+        return new DashboardCalendarMonthResponseDto
+        {
+            Year = year,
+            Month = month,
+            MonthName = firstDayOfMonth.ToString("MMMM yyyy", culture),
+            Days = daysList,
+            DetailsByDate = detailsDict
         };
     }
 }

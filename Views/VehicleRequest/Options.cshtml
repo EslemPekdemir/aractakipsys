@@ -1,0 +1,312 @@
+@model aractakipsys.Models.ViewModels.VehicleRequest.RequestOptionsPageViewModel
+@{
+    ViewData["Title"] = "Talep Seçenekleri Yönetimi";
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-lg-10">
+        <h2 class="font-weight-bold">Talep Seçenekleri Yönetimi</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/VehicleRequest">Araç Talepleri</a></li>
+            <li class="breadcrumb-item active"><strong>Talep Seçenekleri</strong></li>
+        </ol>
+    </div>
+    <div class="col-lg-2 d-flex align-items-center justify-content-end">
+        <a href="/VehicleRequest" class="btn btn-outline-secondary btn-sm font-weight-bold">
+            <i class="fa fa-arrow-left mr-1"></i> Taleplere Dön
+        </a>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-check-circle mr-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-exclamation-circle mr-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- SOL: BİRİM LİSTESİ YÖNETİMİ -->
+        <div class="col-lg-6 mb-4">
+            <div class="ibox">
+                <div class="ibox-title d-flex justify-content-between align-items-center">
+                    <h5 class="font-weight-bold mb-0">
+                        <i class="fa fa-university text-primary mr-2"></i> Birim / Fakülte Listesi
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-xs font-weight-bold" onclick="openDepartmentModal(null, '', 0, true)">
+                        <i class="fa fa-plus mr-1"></i> Yeni Birim Ekle
+                    </button>
+                </div>
+                <div class="ibox-content p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th style="width: 50px;">Sıra</th>
+                                    <th>Birim Adı</th>
+                                    <th class="text-center" style="width: 90px;">Durum</th>
+                                    <th class="text-right" style="width: 130px;">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Departments == null || Model.Departments.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">Kayıtlı birim bulunamadı.</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var dept in Model.Departments)
+                                    {
+                                        <tr class="@(!dept.IsActive ? "text-muted bg-light" : "")">
+                                            <td class="align-middle font-weight-bold">@dept.DisplayOrder</td>
+                                            <td class="align-middle font-weight-bold text-dark">
+                                                @dept.Name
+                                                @if (!dept.IsActive)
+                                                {
+                                                    <span class="badge badge-secondary ml-1" style="font-size: 10px;">Pasif</span>
+                                                }
+                                            </td>
+                                            <td class="align-middle text-center">
+                                                @if (dept.IsActive)
+                                                {
+                                                    <span class="badge badge-primary px-2 py-1">Aktif</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-secondary px-2 py-1">Pasif</span>
+                                                }
+                                            </td>
+                                            <td class="align-middle text-right">
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-xs btn-outline-info" 
+                                                            onclick="openDepartmentModal(@dept.Id, '@dept.Name.Replace("'", "\\'")', @dept.DisplayOrder, @(dept.IsActive ? "true" : "false"))" 
+                                                            title="Düzenle">
+                                                        <i class="fa fa-pencil"></i>
+                                                    </button>
+                                                    <form method="post" action="/VehicleRequest/ToggleDepartment/@dept.Id" style="display: inline;">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-xs @(dept.IsActive ? "btn-outline-warning" : "btn-outline-success") ml-1" 
+                                                                title="@(dept.IsActive ? "Pasife Al (Geçmiş talepler korunur)" : "Aktif Et")">
+                                                            <i class="fa @(dept.IsActive ? "fa-eye-slash" : "fa-eye")"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SAĞ: ARAÇ TÜRÜ LİSTESİ YÖNETİMİ -->
+        <div class="col-lg-6 mb-4">
+            <div class="ibox">
+                <div class="ibox-title d-flex justify-content-between align-items-center">
+                    <h5 class="font-weight-bold mb-0">
+                        <i class="fa fa-car text-info mr-2"></i> Talep Edilebilir Araç Türleri
+                    </h5>
+                    <button type="button" class="btn btn-info btn-xs font-weight-bold" onclick="openVehicleTypeModal(null, '', 0, true)">
+                        <i class="fa fa-plus mr-1"></i> Yeni Araç Türü Ekle
+                    </button>
+                </div>
+                <div class="ibox-content p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th style="width: 50px;">Sıra</th>
+                                    <th>Araç Türü Adı</th>
+                                    <th class="text-center" style="width: 90px;">Durum</th>
+                                    <th class="text-right" style="width: 130px;">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.VehicleTypes == null || Model.VehicleTypes.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">Kayıtlı araç türü bulunamadı.</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var vt in Model.VehicleTypes)
+                                    {
+                                        <tr class="@(!vt.IsActive ? "text-muted bg-light" : "")">
+                                            <td class="align-middle font-weight-bold">@vt.DisplayOrder</td>
+                                            <td class="align-middle font-weight-bold text-dark">
+                                                @vt.Name
+                                                @if (!vt.IsActive)
+                                                {
+                                                    <span class="badge badge-secondary ml-1" style="font-size: 10px;">Pasif</span>
+                                                }
+                                            </td>
+                                            <td class="align-middle text-center">
+                                                @if (vt.IsActive)
+                                                {
+                                                    <span class="badge badge-primary px-2 py-1">Aktif</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-secondary px-2 py-1">Pasif</span>
+                                                }
+                                            </td>
+                                            <td class="align-middle text-right">
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-xs btn-outline-info" 
+                                                            onclick="openVehicleTypeModal(@vt.Id, '@vt.Name.Replace("'", "\\'")', @vt.DisplayOrder, @(vt.IsActive ? "true" : "false"))" 
+                                                            title="Düzenle">
+                                                        <i class="fa fa-pencil"></i>
+                                                    </button>
+                                                    <form method="post" action="/VehicleRequest/ToggleVehicleType/@vt.Id" style="display: inline;">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-xs @(vt.IsActive ? "btn-outline-warning" : "btn-outline-success") ml-1" 
+                                                                title="@(vt.IsActive ? "Pasife Al (Geçmiş talepler korunur)" : "Aktif Et")">
+                                                            <i class="fa @(vt.IsActive ? "fa-eye-slash" : "fa-eye")"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info shadow-sm" style="font-size: 0.86rem;">
+                <i class="fa fa-info-circle mr-1"></i>
+                <strong>Not:</strong> Talep formundaki araç türü seçenekleri, mevcut araç filosunun teknik <code>VehicleType</code> enum değerlerinden bağımsızdır. Buradaki liste talep sahibinin talebinde belirteceği sınıfları tanımlar. Silme işlemi fiziksel yapılmaz; pasife alınan kayıtlar formda görünmez, geçmiş taleplerin bütünlüğü korunur.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BİRİM EKLE / DÜZENLE MODALI (Kart dışında, </body> öncesi kuralına uygun) -->
+<div class="modal fade" id="departmentModal" tabindex="-1" role="dialog" aria-labelledby="departmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="departmentForm" method="post" action="/VehicleRequest/SaveDepartment">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" id="deptId" />
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title font-weight-bold" id="departmentModalLabel">
+                        <i class="fa fa-university mr-2"></i> <span id="deptModalTitle">Birim Ekle</span>
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label for="deptName" class="font-weight-bold">Birim / Fakülte / Daire Adı <span class="text-danger">*</span></label>
+                        <input type="text" name="Name" id="deptName" class="form-control" placeholder="Örn: Mühendislik Fakültesi" required />
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="deptOrder" class="font-weight-bold">Görüntüleme Sırası</label>
+                        <input type="number" name="DisplayOrder" id="deptOrder" class="form-control" value="0" />
+                        <small class="form-text text-muted">Açılır listedeki sıralama numarasıdır (küçük sayılar önce görünür).</small>
+                    </div>
+                    <div class="form-group mb-0">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" name="IsActive" value="true" class="custom-control-input" id="deptIsActive" checked />
+                            <label class="custom-control-label font-weight-bold" for="deptIsActive">Aktif (Talep formunda görünsün)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary font-weight-bold">
+                        <i class="fa fa-save mr-1"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ARAÇ TÜRÜ EKLE / DÜZENLE MODALI -->
+<div class="modal fade" id="vehicleTypeModal" tabindex="-1" role="dialog" aria-labelledby="vehicleTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="vehicleTypeForm" method="post" action="/VehicleRequest/SaveVehicleType">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" id="vtId" />
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title font-weight-bold" id="vehicleTypeModalLabel">
+                        <i class="fa fa-car mr-2"></i> <span id="vtModalTitle">Araç Türü Ekle</span>
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label for="vtName" class="font-weight-bold">Araç Türü Tanımı <span class="text-danger">*</span></label>
+                        <input type="text" name="Name" id="vtName" class="form-control" placeholder="Örn: Otobüs / Midibüs (27-45 Kişilik)" required />
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="vtOrder" class="font-weight-bold">Görüntüleme Sırası</label>
+                        <input type="number" name="DisplayOrder" id="vtOrder" class="form-control" value="0" />
+                        <small class="form-text text-muted">Açılır listedeki sıralama numarasıdır.</small>
+                    </div>
+                    <div class="form-group mb-0">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" name="IsActive" value="true" class="custom-control-input" id="vtIsActive" checked />
+                            <label class="custom-control-label font-weight-bold" for="vtIsActive">Aktif (Talep formunda görünsün)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-info font-weight-bold">
+                        <i class="fa fa-save mr-1"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openDepartmentModal(id, name, order, isActive) {
+            $('#deptId').val(id || '');
+            $('#deptName').val(name || '');
+            $('#deptOrder').val(order || 0);
+            $('#deptIsActive').prop('checked', isActive !== false);
+            $('#deptModalTitle').text(id ? 'Birim Düzenle' : 'Yeni Birim Ekle');
+            $('#departmentModal').modal('show');
+        }
+
+        function openVehicleTypeModal(id, name, order, isActive) {
+            $('#vtId').val(id || '');
+            $('#vtName').val(name || '');
+            $('#vtOrder').val(order || 0);
+            $('#vtIsActive').prop('checked', isActive !== false);
+            $('#vtModalTitle').text(id ? 'Araç Türü Düzenle' : 'Yeni Araç Türü Ekle');
+            $('#vehicleTypeModal').modal('show');
+        }
+    </script>
+}

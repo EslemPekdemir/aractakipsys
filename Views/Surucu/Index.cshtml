@@ -41,6 +41,34 @@
     </div>
 }
 
+@if (Model.HasLicenseAlert && Model.ExpiringOrExpiredLicenses.Any())
+{
+    <div class="mb-3">
+        @foreach (var lic in Model.ExpiringOrExpiredLicenses)
+        {
+            <div class="alert @(lic.IsExpired ? "alert-danger" : "alert-warning") shadow-sm mb-2" style="border-radius: 10px; border-left: 5px solid @(lic.IsExpired ? "#dc3545" : "#ffc107");">
+                <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: 8px;">
+                    <div>
+                        <strong><i class="fa fa-id-card mr-1"></i> Ehliyet Geçerlilik Uyarısı (@lic.LicenseClass Sınıfı)</strong>
+                        <div class="small mt-1">
+                            Geçerlilik Tarihi: <strong>@lic.LicenseExpiryDate.ToString("dd.MM.yyyy")</strong>
+                            @if (lic.IsExpired)
+                            {
+                                <span class="text-danger font-weight-bold ml-1">(Süresi Doldu - @Math.Abs(lic.RemainingDays) gün önce)</span>
+                            }
+                            else
+                            {
+                                <span class="text-warning font-weight-bold ml-1">(@lic.RemainingDays gün kaldı)</span>
+                            }
+                        </div>
+                    </div>
+                    <span class="badge @lic.StatusBadgeClass px-2 py-1" style="font-size: 0.8rem;">@lic.StatusBadgeText</span>
+                </div>
+            </div>
+        }
+    </div>
+}
+
 <!-- GECE VARDİYASI / ACİL GÖREV BAŞLATMA BUTONU (Devam eden aktif görev yoksa) -->
 @if (Model.ActiveAssignment == null)
 {

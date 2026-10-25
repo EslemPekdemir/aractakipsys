@@ -20,6 +20,7 @@ public class InsuranceInspectionReportItemViewModel
     public DateTime InsuranceStartDate { get; set; }
     public DateTime InsuranceExpiryDate { get; set; }
     public int InsuranceDaysRemaining { get; set; }
+    public decimal? InsuranceCost { get; set; }
     public bool IsInsuranceExpired => InsuranceDaysRemaining < 0;
     public bool IsInsuranceExpiringSoon => InsuranceDaysRemaining >= 0 && InsuranceDaysRemaining <= 30;
 
@@ -27,8 +28,20 @@ public class InsuranceInspectionReportItemViewModel
     public DateTime InspectionStartDate { get; set; }
     public DateTime InspectionExpiryDate { get; set; }
     public int InspectionDaysRemaining { get; set; }
+    public decimal? InspectionCost { get; set; }
     public bool IsInspectionExpired => InspectionDaysRemaining < 0;
     public bool IsInspectionExpiringSoon => InspectionDaysRemaining >= 0 && InspectionDaysRemaining <= 30;
+
+    // Kasko (Faz 5-A / 7-A: Kasko dahil)
+    public DateTime? KaskoStartDate { get; set; }
+    public DateTime? KaskoExpiryDate { get; set; }
+    public int? KaskoDaysRemaining { get; set; }
+    public decimal? KaskoCost { get; set; }
+    public bool IsKaskoExpired => KaskoDaysRemaining.HasValue && KaskoDaysRemaining.Value < 0;
+    public bool IsKaskoExpiringSoon => KaskoDaysRemaining.HasValue && KaskoDaysRemaining.Value >= 0 && KaskoDaysRemaining.Value <= 30;
+
+    // Araç Toplam Belge Maliyeti
+    public decimal TotalDocumentCost => (InsuranceCost ?? 0) + (InspectionCost ?? 0) + (KaskoCost ?? 0);
 
     // Genel Belge Durumu
     public bool HasAnyExpired => IsInsuranceExpired || IsInspectionExpired || Status == VehicleStatus.DocumentExpired;

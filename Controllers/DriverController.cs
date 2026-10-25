@@ -5,9 +5,11 @@ using aractakipsys.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using aractakipsys.Common;
+
 namespace aractakipsys.Controllers;
 
-[Authorize(Roles = "Admin,Kullanici")]
+[Authorize(Roles = AppRoles.AllStaffAndManagers)]
 [Route("Driver")]
 public class DriverController : Controller
 {
@@ -104,6 +106,7 @@ public class DriverController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        model.CanEditDepartment = User.IsInRole("Admin") || User.IsInRole("DaireBaskani");
         return View(model);
     }
 
@@ -123,14 +126,17 @@ public class DriverController : Controller
 
         if (!ModelState.IsValid)
         {
+            model.CanEditDepartment = User.IsInRole("Admin") || User.IsInRole("DaireBaskani");
             return View(model);
         }
 
         var adminUserId = GetCurrentUserId();
-        var (success, message) = await _driverService.UpdateDriverAsync(model, adminUserId);
+        bool isAdmin = User.IsInRole("Admin") || User.IsInRole("DaireBaskani");
+        var (success, message) = await _driverService.UpdateDriverAsync(model, adminUserId, isAdmin);
 
         if (!success)
         {
+            model.CanEditDepartment = isAdmin;
             ModelState.AddModelError(string.Empty, message);
             return View(model);
         }
@@ -212,5 +218,16 @@ public class DriverController : Controller
         }
 
         return !string.IsNullOrEmpty(returnUrl) ? Redirect(returnUrl) : RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>
+    /// Navbar Çanı / Bildirim Özeti: 30 gün içinde süresi dolacak ve süresi dolmuş ehliyetler
+    /// GET: /Driver/ExpiringLicenseSummary
+    /// </summary>
+    [HttpGet("ExpiringLicenseSummary")]
+    public async Task<IActionResult> ExpiringLicenseSummary()
+    {
+        var summary = await _driverService.GetExpiringLicensesSummaryAsync();
+        return Json(summary);
     }
 }

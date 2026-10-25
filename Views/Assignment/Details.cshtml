@@ -26,18 +26,28 @@
                 <i class="fa fa-arrow-left mr-1"></i> Listeye Dön
             </a>
             <div class="btn-group">
+                <button type="button" class="btn btn-outline-info btn-sm" data-pdf-preview data-pdf-url="/Assignment/DownloadOrderDocument/@Model.Id" title="Resmi Görevlendirme Belgesi Önizle" style="white-space: nowrap;">
+                    <i class="fa fa-eye mr-1"></i> Önizle
+                </button>
                 <a href="/Assignment/DownloadOrderDocument/@Model.Id" class="btn btn-outline-primary btn-sm" target="_blank" title="Resmi Görevlendirme Belgesini İndir (PDF)" style="white-space: nowrap;">
-                    <i class="fa fa-file-pdf-o mr-1 text-danger"></i> Görev Emri (PDF)
+                    <i class="fa fa-file-pdf-o mr-1 text-danger"></i> İndir
                 </a>
                 <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Çıktı Seçenekleri">
                     <span class="sr-only">Menü</span>
                 </button>
                 <div class="dropdown-menu dropdown-menu-right shadow-sm">
+                    <a class="dropdown-item" href="javascript:void(0)" data-pdf-preview data-pdf-url="/Assignment/DownloadOrderDocument/@Model.Id" data-pdf-title="Dolu Görev Emri Önizleme">
+                        <i class="fa fa-eye text-info mr-2"></i> Önizle: Dolu Görev Emri
+                    </a>
+                    <a class="dropdown-item" href="javascript:void(0)" data-pdf-preview data-pdf-url="/Assignment/DownloadOrderDocument/@Model.Id?emptyValues=true" data-pdf-title="Boş Görev Emri Önizleme">
+                        <i class="fa fa-eye text-info mr-2"></i> Önizle: Boş Görev Emri
+                    </a>
+                    <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="/Assignment/DownloadOrderDocument/@Model.Id" target="_blank">
-                        <i class="fa fa-file-pdf-o text-danger mr-2"></i> Dolu Görev Emri (Sistem Değerleri)
+                        <i class="fa fa-file-pdf-o text-danger mr-2"></i> Dolu Görev Emri İndir (Sistem Değerleri)
                     </a>
                     <a class="dropdown-item" href="/Assignment/DownloadOrderDocument/@Model.Id?emptyValues=true" target="_blank">
-                        <i class="fa fa-file-o text-muted mr-2"></i> Boş Görev Emri (El ile Doldurmak İçin)
+                        <i class="fa fa-file-o text-muted mr-2"></i> Boş Görev Emri İndir (El ile Doldurmak İçin)
                     </a>
                 </div>
             </div>
@@ -157,6 +167,69 @@
             </div>
         </div>
 
+        <!-- GÜZERGAH DEĞİŞİKLİKLERİ TARİHÇESİ (FAZ 2 - B) -->
+        <div class="ibox float-e-margins mb-4">
+            <div class="ibox-title d-flex justify-content-between align-items-center">
+                <h5>
+                    <i class="fa fa-map-signs mr-1 text-warning"></i> Güzergah Değişiklikleri Tarihçesi
+                    @if (Model.HasRouteChanges)
+                    {
+                        <span class="badge badge-warning text-dark ml-2">@Model.RouteChanges.Count Değişiklik</span>
+                    }
+                </h5>
+            </div>
+            <div class="ibox-content p-3">
+                @if (Model.HasRouteChanges)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0" style="font-size: 0.88rem;">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th style="width: 140px;">Tarih / Saat</th>
+                                    <th>Değiştiren</th>
+                                    <th>Eski Güzergah</th>
+                                    <th>Yeni Güzergah</th>
+                                    <th>Gerekçe / Açıklama</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var rc in Model.RouteChanges)
+                                {
+                                    <tr>
+                                        <td>
+                                            <i class="fa fa-clock-o text-muted mr-1"></i> @rc.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                                        </td>
+                                        <td>
+                                            <strong class="text-dark">@rc.ChangedByFullName</strong>
+                                        </td>
+                                        <td class="text-muted">
+                                            @(string.IsNullOrWhiteSpace(rc.OldRoute) ? (rc.OldDestination ?? "-") : rc.OldRoute)
+                                        </td>
+                                        <td>
+                                            <strong class="text-primary">@rc.NewRoute</strong>
+                                            @if (!string.IsNullOrWhiteSpace(rc.NewDestination))
+                                            {
+                                                <small class="d-block text-muted">Hedef: @rc.NewDestination</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="text-dark font-italic">@rc.Reason</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-muted text-center py-3 small">
+                        <i class="fa fa-info-circle mr-1"></i> Bu görevde herhangi bir güzergah değişikliği yapılmamıştır.
+                    </div>
+                }
+            </div>
+        </div>
+
         <!-- ZAMAN VE SAYAÇ BİLGİLERİ KARTI -->
         <div class="ibox float-e-margins mb-4">
             <div class="ibox-title">
@@ -255,7 +328,7 @@
             </div>
         </div>
 
-        @if ((User.IsInRole("Admin") || User.IsInRole("Kullanici")) && (Model.HasFinancialCalculation || Model.Status == AssignmentStatus.Completed))
+        @if ((User.IsInRole("Admin") || User.IsInRole("Kullanici") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter")) && (Model.HasFinancialCalculation || Model.Status == AssignmentStatus.Completed))
         {
             <!-- GÖREV HARCIRAH VE MALİYET İCMALİ (YETKİLİ GÖRÜNÜMÜ) -->
             <div class="ibox float-e-margins mb-4 border border-success" style="border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
@@ -309,7 +382,7 @@
                                 </div>
                                 <div class="border-top pt-2 mt-2 d-flex justify-content-between align-items-center">
                                     <span class="small font-weight-bold text-muted">Onaylanan Süre:</span>
-                                    <strong class="text-success font-16">@(Model.CalculatedDutyHours.HasValue ? $"{Model.CalculatedDutyHours.Value:N2} Saat" : "-")</strong>
+                                    <strong class="text-success font-16">@(Model.CalculatedDutyHours.HasValue ? Model.CalculatedDutyHours.Value.ToFormattedDuration() : "-")</strong>
                                 </div>
                             </div>
                         </div>
@@ -410,9 +483,12 @@
                         <div>
                             <i class="fa fa-info-circle text-info mr-1"></i> Fiili Sefer: @(Model.ActualStartTime?.ToString("dd.MM.yyyy HH:mm") ?? "-") — @(Model.ActualEndTime?.ToString("dd.MM.yyyy HH:mm") ?? "-")
                         </div>
-                        <div class="mt-2 mt-md-0">
+                        <div class="mt-2 mt-md-0 btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-info" data-pdf-preview data-pdf-url="/Assignment/DownloadOrderDocument/@Model.Id" title="Harcırah ve Görevlendirme Raporunu Önizle">
+                                <i class="fa fa-eye mr-1"></i> Önizle
+                            </button>
                             <a href="/Assignment/DownloadOrderDocument/@Model.Id" target="_blank" class="btn btn-sm btn-outline-primary">
-                                <i class="fa fa-file-pdf-o mr-1 text-danger"></i> Harcırah ve Görevlendirme Raporunu İndir (PDF)
+                                <i class="fa fa-file-pdf-o mr-1 text-danger"></i> İndir
                             </a>
                         </div>
                     </div>
@@ -682,10 +758,17 @@
                                         <td class="align-middle small">@(string.IsNullOrWhiteSpace(d.Phone) ? "-" : d.Phone)</td>
                                         <td class="align-middle small font-weight-600">@d.LicenseNumber (@d.LicenseClass)</td>
                                         <td class="align-middle text-right">
-                                            <a href="/Assignment/DownloadOrderDocument/@Model.Id?driverId=@d.DriverId" target="_blank"
-                                               class="btn btn-outline-primary btn-xs font-weight-bold shadow-sm" title="@d.FullName İçin Taşıt Görev Emri (PDF) İndir">
-                                                <i class="fa fa-file-pdf-o text-danger mr-1"></i> PDF
-                                            </a>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-outline-info btn-xs font-weight-bold shadow-sm"
+                                                        data-pdf-preview data-pdf-url="/Assignment/DownloadOrderDocument/@Model.Id?driverId=@d.DriverId"
+                                                        title="@d.FullName İçin Taşıt Görev Emri Önizle">
+                                                    <i class="fa fa-eye mr-1"></i> Önizle
+                                                </button>
+                                                <a href="/Assignment/DownloadOrderDocument/@Model.Id?driverId=@d.DriverId" target="_blank"
+                                                   class="btn btn-outline-primary btn-xs font-weight-bold shadow-sm" title="@d.FullName İçin Taşıt Görev Emri (PDF) İndir">
+                                                    <i class="fa fa-file-pdf-o text-danger mr-1"></i> İndir
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
@@ -1121,6 +1204,44 @@
                         </div>
                     </div>
 
+                    <!-- KM ONAYI VE ŞEF DÜZELTMESİ (FAZ 2 - B) -->
+                    <div class="border rounded p-3 mb-3 bg-white">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                            <h6 class="font-weight-bold text-dark mb-0">
+                                <i class="fa fa-tachometer text-primary mr-1"></i> Görev Kilometresi ve Şef Düzeltmesi
+                            </h6>
+                            <span class="badge badge-light border text-muted">
+                                <i class="fa fa-edit text-info mr-1"></i> Şef Düzenleyebilir
+                            </span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark small">
+                                    <i class="fa fa-tachometer text-primary mr-1"></i> Onaylanan Başlangıç KM
+                                </label>
+                                <input type="number" id="approveConfirmedStartKm" name="ConfirmedStartKm" class="form-control font-weight-bold" min="0" />
+                                <small class="form-text text-muted">Şoförün bildirdiği başlangıç kilometresini gerekirse düzeltebilirsiniz.</small>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label class="font-weight-bold text-dark small">
+                                    <i class="fa fa-flag-checkered text-success mr-1"></i> Onaylanan Bitiş KM <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" id="approveConfirmedEndKm" name="ConfirmedEndKm" class="form-control font-weight-bold" min="0" required />
+                                <small class="form-text text-muted">Şoförün bildirdiği bitiş kilometresini gerekirse düzeltebilirsiniz.</small>
+                            </div>
+                        </div>
+                        <div class="p-2 rounded bg-light border d-flex justify-content-between align-items-center">
+                            <span class="small text-muted font-weight-bold">Hesaplanan Toplam Mesafe:</span>
+                            <strong id="approveCalculatedDistanceText" class="text-dark font-15">0 KM</strong>
+                        </div>
+
+                        <!-- 200 KM Eşik Aşım Uyarısı (Kırmızı Ünlem İkonlu) -->
+                        <div id="approveDistanceThresholdAlert" class="alert alert-danger py-2 px-3 mt-2 mb-0 d-none" style="border-radius: 8px; font-size: 0.85rem; border-left: 4px solid #dc3545;">
+                            <i class="fa fa-exclamation-circle text-danger mr-1 font-16"></i>
+                            <strong>Mesafe Uyarısı:</strong> Yapılan mesafe (<span id="approveDistanceThresholdValue" class="font-weight-bold">0</span> KM), belirlenen 200 KM eşiğini aşmaktadır! Girdiğiniz kilometre değerlerini teyit ediniz.
+                        </div>
+                    </div>
+
                     <!-- Şefe Onay Sorusu Banner'ı -->
                     <div class="alert alert-warning border-left border-warning p-3 mb-3" style="border-left-width: 4px !important;">
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
@@ -1379,7 +1500,7 @@
     </div>
 </div>
 
-@if (User.IsInRole("Admin") || User.IsInRole("Kullanici"))
+@if (User.IsInRole("Admin") || User.IsInRole("Kullanici") || User.IsInRole("DaireBaskani"))
 {
     <!-- HARCIRAH VE MALİYET REVİZYON MODALI (TAMAMLANMIŞ GÖREVLER İÇİN) -->
     <div class="modal fade" id="updateFinancialRevisionModal" tabindex="-1" role="dialog" aria-hidden="true">
@@ -1436,7 +1557,7 @@
                                         <input type="number" id="revisionPerDiemHours" name="PerDiemHours" min="0" step="0.1" placeholder="0.0" class="form-control font-weight-bold text-primary" />
                                         <div class="input-group-append"><span class="input-group-text">Saat</span></div>
                                     </div>
-                                    <small class="form-text text-muted">Onaylanan süre: @(Model.CalculatedDutyHours.HasValue ? $"{Model.CalculatedDutyHours.Value:N2} Saat" : "-")</small>
+                                    <small class="form-text text-muted">Onaylanan süre: @(Model.CalculatedDutyHours.HasValue ? Model.CalculatedDutyHours.Value.ToFormattedDuration() : "-")</small>
                                 </div>
                                 <div class="col-md-4 col-12 form-group d-none" id="revisionPerDiemDaysGroup">
                                     <label class="font-weight-bold text-dark small">Ücretli Gün Sayısı</label>
@@ -1708,12 +1829,44 @@
     var _driverEndTimeIso = '';
     var _isTimeEditActive = false;
 
+    function formatDurationFromMinutes(totalMinutes) {
+        if (!totalMinutes || totalMinutes <= 0) return '0 sa 0 dk';
+        var h = Math.floor(totalMinutes / 60);
+        var m = totalMinutes % 60;
+        return h + ' sa ' + m + ' dk';
+    }
+
+    function formatDurationFromHours(hours) {
+        if (!hours || hours <= 0) return '0 sa 0 dk';
+        var totalMin = Math.round(hours * 60);
+        return formatDurationFromMinutes(totalMin);
+    }
+
+    function checkApproveDistanceThreshold() {
+        var startKm = parseInt($('#approveConfirmedStartKm').val()) || 0;
+        var endKm = parseInt($('#approveConfirmedEndKm').val()) || 0;
+        var distance = endKm - startKm;
+        if (distance < 0) distance = 0;
+        $('#approveCalculatedDistanceText').text(distance.toLocaleString('tr-TR') + ' KM');
+        if (distance > 200) {
+            $('#approveDistanceThresholdValue').text(distance.toLocaleString('tr-TR'));
+            $('#approveDistanceThresholdAlert').removeClass('d-none');
+        } else {
+            $('#approveDistanceThresholdAlert').addClass('d-none');
+        }
+    }
+    $('#approveConfirmedStartKm, #approveConfirmedEndKm').on('input change keyup', checkApproveDistanceThreshold);
+
     function openApproveEndModal(assignmentId, plate, driverName, startTimeIso, endTimeIso, startKm, endKm, accNights, accCost, perDiemType, perDiemHours, perDiemRate, perDiemDays, perDiemAmount, notes, plannedHours) {
         $('#approveEndCalculationForm').attr('action', '/Assignment/ApproveEnd/' + assignmentId);
         $('#approveEndVehiclePlate').text(plate);
         $('#approveEndDriverName').text(driverName);
         $('#approveEndStartKmText').text(startKm ? startKm.toLocaleString() + ' KM' : '-');
         $('#approveEndEndKmText').text(endKm ? endKm.toLocaleString() + ' KM' : '-');
+
+        $('#approveConfirmedStartKm').val(startKm || 0);
+        $('#approveConfirmedEndKm').val(endKm || 0);
+        checkApproveDistanceThreshold();
         
         var totalKm = (endKm && startKm && endKm >= startKm) ? (endKm - startKm) : 0;
         $('#approveEndTotalKmBadge').text(totalKm.toLocaleString() + ' KM');
@@ -1739,7 +1892,7 @@
 
         _initialPlannedNights = parseInt(accNights) || 0;
         _currentPlannedHours = parseFloat(plannedHours) || 0;
-        $('#approvePlannedHoursBadge').text(_currentPlannedHours.toFixed(2) + ' Saat');
+        $('#approvePlannedHoursBadge').text(formatDurationFromHours(_currentPlannedHours));
 
         $('#approveAccommodationNights').val(accNights && accNights > 0 ? accNights : '');
         $('#approveAccommodationCost').val(accCost && parseFloat(accCost) > 0 ? parseFloat(accCost).toFixed(2) : '');
@@ -1934,9 +2087,9 @@
         if (diffMs <= 0) {
             $('#approveTimeErrorAlert').removeClass('d-none');
             $('#approveTimeErrorText').text('Dönüş saati, çıkış saatinden önce veya çıkış saatiyle aynı olamaz.');
-            $('#calcDutyDurationText').text('0 Saat 0 Dakika');
-            $('#calcDutyDecimalHoursText').text('(0.00 Saat)');
-            $('#approveActualHoursBadge').text('0.00 Saat');
+            $('#calcDutyDurationText').text('0 sa 0 dk');
+            $('#calcDutyDecimalHoursText').text('');
+            $('#approveActualHoursBadge').text('0 sa 0 dk');
             $('#calcDriverFeePreviewText').text('0,00 ₺');
             $('#summaryDriverFee').text('0,00 ₺');
             $('#summaryPerDiem').text(perDiemAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');
@@ -1963,27 +2116,30 @@
 
         if ($('#approvePerDiemType').val() === 'Hourly') {
             if (isUserEditedHours && manualHours > 0) {
-                $('#calcDutyDecimalHoursText').text('(' + manualHours.toFixed(2) + ' Saat - Şef Belirledi)');
                 var h = Math.floor(manualHours);
                 var m = Math.round((manualHours - h) * 60);
-                $('#calcDutyDurationText').text(h + ' Saat ' + m + ' Dakika');
-                $('#approveActualHoursBadge').text(manualHours.toFixed(2) + ' Saat (Şef)');
+                var formatted = h + ' sa ' + m + ' dk';
+                $('#calcDutyDurationText').text(formatted);
+                $('#calcDutyDecimalHoursText').text('');
+                $('#approveActualHoursBadge').text(formatted + ' (Şef)');
                 $('#calcCalculatedDutyHours').val(manualHours);
                 recalculateApprovePerDiemAmount();
                 perDiemAmount = parseFloat($('#approvePerDiemAmount').val()) || 0;
             } else {
-                $('#calcDutyDurationText').text(hours + ' Saat ' + minutes + ' Dakika');
-                $('#calcDutyDecimalHoursText').text('(' + decimalHours.toFixed(2) + ' Saat)');
-                $('#approveActualHoursBadge').text(decimalHours.toFixed(2) + ' Saat');
+                var formatted = hours + ' sa ' + minutes + ' dk';
+                $('#calcDutyDurationText').text(formatted);
+                $('#calcDutyDecimalHoursText').text('');
+                $('#approveActualHoursBadge').text(formatted);
                 $('#calcCalculatedDutyHours').val(decimalHours);
                 $('#approvePerDiemHours').val(decimalHours.toFixed(1));
                 recalculateApprovePerDiemAmount();
                 perDiemAmount = parseFloat($('#approvePerDiemAmount').val()) || 0;
             }
         } else {
-            $('#calcDutyDurationText').text(hours + ' Saat ' + minutes + ' Dakika');
-            $('#calcDutyDecimalHoursText').text('(' + decimalHours.toFixed(2) + ' Saat)');
-            $('#approveActualHoursBadge').text(decimalHours.toFixed(2) + ' Saat');
+            var formatted = hours + ' sa ' + minutes + ' dk';
+            $('#calcDutyDurationText').text(formatted);
+            $('#calcDutyDecimalHoursText').text('');
+            $('#approveActualHoursBadge').text(formatted);
             $('#calcCalculatedDutyHours').val(decimalHours);
         }
 
@@ -2012,7 +2168,7 @@
         var grandTotal = Math.round((perDiemAmount + accommodationCost) * 100) / 100;
         var displayHours = (isUserEditedHours && manualHours > 0) ? Math.floor(manualHours) : hours;
         var displayMins = (isUserEditedHours && manualHours > 0) ? Math.round((manualHours - displayHours) * 60) : minutes;
-        $('#summaryDutyDuration').text(displayHours + ' Saat ' + displayMins + ' Dk');
+        $('#summaryDutyDuration').text(displayHours + ' sa ' + displayMins + ' dk');
         $('#summaryPerDiem').text(perDiemAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');
         $('#summaryAccommodation').text(accommodationCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');
         $('#calcGrandTotalText').text(grandTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺');

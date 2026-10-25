@@ -16,6 +16,12 @@ public class AssignmentApproveEndViewModel
     [Display(Name = "Onaylanan Bitiş Saati")]
     public DateTime ConfirmedEndTime { get; set; }
 
+    [Display(Name = "Onaylanan / Düzeltilen Başlangıç Kilometresi")]
+    public int? ConfirmedStartKm { get; set; }
+
+    [Display(Name = "Onaylanan / Düzeltilen Bitiş Kilometresi")]
+    public int? ConfirmedEndKm { get; set; }
+
     [Display(Name = "Saatlik Ücret (TL) (Opsiyonel)")]
     public decimal? HourlyRate { get; set; }
 

@@ -9,9 +9,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using QuestPDF.Fluent;
 
+using aractakipsys.Common;
+
 namespace aractakipsys.Controllers;
 
-[Authorize(Roles = "Admin,Kullanici")]
+[Authorize(Roles = AppRoles.AllStaffAndManagers)]
 [Route("Assignment")]
 public class AssignmentController : Controller
 {
@@ -68,7 +70,7 @@ public class AssignmentController : Controller
     /// GET: /Assignment/DownloadOrderDocument/{id}
     /// </summary>
     [HttpGet("DownloadOrderDocument/{id:int}")]
-    public async Task<IActionResult> DownloadOrderDocument(int id, [FromQuery] bool emptyValues = false, [FromQuery] int? driverId = null)
+    public async Task<IActionResult> DownloadOrderDocument(int id, [FromQuery] bool emptyValues = false, [FromQuery] int? driverId = null, [FromQuery] bool preview = false)
     {
         var model = await _assignmentService.GetAssignmentDetailsAsync(id);
         if (model == null)
@@ -105,6 +107,13 @@ public class AssignmentController : Controller
         var prefix = emptyValues ? "Gorevlendirme_Belgesi_Bos" : "Gorevlendirme_Belgesi";
         var driverSuffix = !string.IsNullOrWhiteSpace(specificDriverName) ? $"_{specificDriverName.Replace(" ", "_")}" : "";
         var fileName = $"{prefix}_{model.Id}_{safePlate}{driverSuffix}.pdf";
+
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(pdfBytes, "application/pdf");
+        }
+
         return File(pdfBytes, "application/pdf", fileName);
     }
 
@@ -550,5 +559,30 @@ public class AssignmentController : Controller
     {
         var model = await _assignmentService.GetSignedDocumentArchiveAsync(filter);
         return View(model);
+    }
+
+    /// <summary>
+    /// Üst Navbar Bildirim Çanı İçin Seferdeki Güzergah Değişiklikleri Özeti
+    /// GET: /Assignment/PendingRouteChangeNotificationSummary
+    /// </summary>
+    [HttpGet("PendingRouteChangeNotificationSummary")]
+    public async Task<IActionResult> PendingRouteChangeNotificationSummary()
+    {
+        var (count, items) = await _assignmentService.GetPendingRouteChangeNotificationSummaryAsync();
+
+        return Json(new
+        {
+            pendingCount = count,
+            latestChanges = items.Select(x => new
+            {
+                id = x.Id,
+                assignmentId = x.AssignmentId,
+                plate = x.VehiclePlate,
+                driver = x.ChangedByFullName,
+                newRoute = x.NewRoute,
+                reason = x.Reason,
+                formattedDate = x.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            })
+        });
     }
 }

@@ -139,14 +139,14 @@ public class AccountController : Controller
 
             var roles = await _userManager.GetRolesAsync(user);
             var isDriver = roles.Contains("Driver");
-            var isAdminOrKullanici = roles.Contains("Admin") || roles.Contains("Kullanici");
+            var isAdminOrStaff = roles.Contains("Admin") || roles.Contains("DaireBaskani") || roles.Contains("GenelSekreter") || roles.Contains("Kullanici");
 
             // ReturnUrl doğrulama: Sadece kullanıcının rolüyle yetki uyumluysa ReturnUrl'e yönlendir
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
                 var returnUrlLower = model.ReturnUrl.ToLowerInvariant();
 
-                if (isDriver && !isAdminOrKullanici)
+                if (isDriver && !isAdminOrStaff)
                 {
                     // Şoför yalnızca /surucu veya kendi /account sayfalarına gidebilir; aksi takdirde görmezden gel
                     if (returnUrlLower.StartsWith("/surucu") || returnUrlLower.StartsWith("/account"))
@@ -155,9 +155,9 @@ public class AccountController : Controller
                     }
                     _logger.LogInformation("Şoför kullanıcısı için yetkisiz ReturnUrl ({ReturnUrl}) yok sayıldı, /Surucu'ya yönlendiriliyor.", model.ReturnUrl);
                 }
-                else if (isAdminOrKullanici)
+                else if (isAdminOrStaff)
                 {
-                    // Admin veya Şef/Kullanıcı şoför portalına (/surucu) gidemez; harici panel sayfalarını açabilir
+                    // Yönetici veya Personel şoför portalına (/surucu) gidemez; harici panel sayfalarını açabilir
                     if (!returnUrlLower.StartsWith("/surucu"))
                     {
                         return Redirect(model.ReturnUrl);
@@ -167,7 +167,7 @@ public class AccountController : Controller
             }
 
             // Rol bazlı varsayılan yönlendirme
-            if (isDriver && !isAdminOrKullanici)
+            if (isDriver && !isAdminOrStaff)
             {
                 return RedirectToAction("Index", "Surucu");
             }
@@ -575,7 +575,7 @@ public class AccountController : Controller
 
     private IActionResult RedirectUserByRole()
     {
-        if (User.IsInRole("Admin") || User.IsInRole("Kullanici"))
+        if (User.IsInRole("Admin") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter") || User.IsInRole("Kullanici"))
         {
             return RedirectToAction("Index", "Home");
         }

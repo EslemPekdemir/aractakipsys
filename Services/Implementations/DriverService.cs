@@ -42,12 +42,22 @@ public class DriverService : IDriverService
     {
         var driver = await _context.Drivers
             .Include(d => d.User)
+            .Include(d => d.DriverLicenses)
             .FirstOrDefaultAsync(d => d.UserId == userId && d.IsActive);
 
         var viewModel = new DriverAssignmentListViewModel
         {
             DriverFullName = driver?.User?.FullName ?? "Şoför",
-            DriverDepartment = driver?.Department ?? "Ulaştırma Birimi"
+            DriverDepartment = driver?.Department ?? "Ulaştırma Birimi",
+            Licenses = driver?.DriverLicenses
+                .Where(l => !l.IsDeleted)
+                .OrderBy(l => l.LicenseExpiryDate)
+                .Select(l => new DriverLicenseItemViewModel
+                {
+                    Id = l.Id,
+                    LicenseClass = l.LicenseClass,
+                    LicenseExpiryDate = l.LicenseExpiryDate
+                }).ToList() ?? new()
         };
 
         if (driver == null)
@@ -265,6 +275,10 @@ public class DriverService : IDriverService
         var kmCheck = _kmValidationService.ValidateStartKm(request.StartKm, assignment.Vehicle.CurrentKm, false);
         if (!kmCheck.IsValid)
         {
+            if (kmCheck.NeedsConfirmation)
+            {
+                return AjaxResultViewModel.Error("Girilen kilometre aracın sistemdeki kilometresinden çok farklı. Lütfen değeri kontrol edin; doğruysa Ulaştırma Şefi'ne başvurun.");
+            }
             return AjaxResultViewModel.Error(kmCheck.Message!);
         }
 
@@ -365,6 +379,10 @@ public class DriverService : IDriverService
         var kmCheck = _kmValidationService.ValidateEndKm(request.EndKm, assignment.StartKm.Value, false);
         if (!kmCheck.IsValid)
         {
+            if (kmCheck.NeedsConfirmation)
+            {
+                return AjaxResultViewModel.Error("Girilen kilometre aracın sistemdeki kilometresinden çok farklı. Lütfen değeri kontrol edin; doğruysa Ulaştırma Şefi'ne başvurun.");
+            }
             return AjaxResultViewModel.Error(kmCheck.Message!);
         }
 
@@ -504,6 +522,119 @@ public class DriverService : IDriverService
     }
 
     /// <summary>
+    /// Seferdeki görev için güzergah değiştirme (Faz 2 - B).
+    /// Çoklu şoförde göreve atanmış herhangi bir şoför yapabilir, atanmamış şoföre 403 döner.
+    /// </summary>
+    public async Task<(bool IsAuthorized, AjaxResultViewModel Result)> ChangeRouteAsync(int assignmentId, string userId, ChangeRouteRequest request)
+    {
+        var driver = await _context.Drivers
+            .Include(d => d.User)
+            .FirstOrDefaultAsync(d => d.UserId == userId && d.IsActive);
+
+        if (driver == null)
+        {
+            return (false, AjaxResultViewModel.Error("Şoför profiliniz bulunamadı veya hesabınız pasif durumda."));
+        }
+
+        var assignment = await _context.Assignments
+            .Include(a => a.Vehicle)
+            .Include(a => a.AssignmentDrivers)
+            .FirstOrDefaultAsync(a => a.Id == assignmentId && !a.IsDeleted);
+
+        if (assignment == null)
+        {
+            return (true, AjaxResultViewModel.Error("Görev kaydı bulunamadı."));
+        }
+
+        // Yatay Yetki Kontrolü: Görevin asıl şoförü veya ek atanmış şoförlerinden biri olmalı
+        bool isAssigned = (assignment.DriverId == driver.Id) ||
+                          (assignment.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driver.Id));
+
+        if (!isAssigned)
+        {
+            _logger.LogWarning("Yetkisiz güzergah değiştirme girişimi. DriverUserId: {UserId}, DriverId: {DriverId}, AssignmentId: {AssignmentId}",
+                userId, driver.Id, assignmentId);
+            return (false, AjaxResultViewModel.Error("Bu görevde güzergah değişikliği yapma yetkiniz bulunmamaktadır."));
+        }
+
+        // Görev seferde (InProgress) olmalıdır
+        if (assignment.Status != AssignmentStatus.InProgress)
+        {
+            return (true, AjaxResultViewModel.Error($"Güzergah değişikliği yalnızca seferdeki (devam eden) görevlerde yapılabilir. Mevcut durum: {assignment.Status.ToTurkishString()}"));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NewRoute))
+        {
+            return (true, AjaxResultViewModel.Error("Lütfen yeni güzergah bilgisini giriniz."));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return (true, AjaxResultViewModel.Error("Lütfen güzergah değişikliği gerekçesini / açıklamasını giriniz."));
+        }
+
+        var oldRoute = assignment.Route;
+        var oldDestination = assignment.Destination;
+        var newRoute = request.NewRoute.Trim();
+        var newDestination = string.IsNullOrWhiteSpace(request.NewDestination) ? assignment.Destination : request.NewDestination.Trim();
+
+        var routeChange = new AssignmentRouteChange
+        {
+            AssignmentId = assignment.Id,
+            OldRoute = oldRoute,
+            NewRoute = newRoute,
+            OldDestination = oldDestination,
+            NewDestination = newDestination,
+            Reason = request.Reason.Trim(),
+            ChangedByUserId = userId,
+            ChangedByFullName = driver.User?.FullName ?? "Şoför",
+            CreatedAt = DateTime.Now,
+            IsReviewedByAdmin = false
+        };
+
+        _context.AssignmentRouteChanges.Add(routeChange);
+
+        assignment.Route = newRoute;
+        if (!string.IsNullOrWhiteSpace(request.NewDestination))
+        {
+            assignment.Destination = newDestination;
+        }
+        assignment.UpdatedAt = DateTime.UtcNow;
+        assignment.UpdatedBy = userId;
+
+        try
+        {
+            await _context.SaveChangesAsync();
+
+            await _auditLogService.LogAsync(
+                nameof(Assignment),
+                assignment.Id,
+                AuditAction.Update,
+                userId,
+                new { Route = oldRoute, Destination = oldDestination },
+                new
+                {
+                    Route = assignment.Route,
+                    Destination = assignment.Destination,
+                    Reason = request.Reason.Trim(),
+                    ChangedBy = driver.User?.FullName,
+                    Note = "Şoför sefer esnasında güzergah değişikliği bildirdi"
+                }
+            );
+
+            _logger.LogInformation("Güzergah değişikliği kaydedildi. AssignmentId: {Id}, NewRoute: {Route}, DriverUserId: {UserId}",
+                assignment.Id, newRoute, userId);
+
+            return (true, AjaxResultViewModel.Ok("Güzergah değişikliği başarıyla kaydedildi ve yetkililere bildirildi."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Güzergah değişikliği kaydedilirken hata oluştu. AssignmentId: {Id}", assignmentId);
+            return (true, AjaxResultViewModel.Error("Güzergah değişikliği kaydedilirken bir sistem hatası oluştu."));
+        }
+    }
+
+    /// <summary>
     /// Şoförün gece vardiyasında / acil durumda kendine görev atayıp başlatması
     /// </summary>
     public async Task<AjaxResultViewModel> CreateSelfAssignmentAsync(string userId, EmergencySelfAssignmentRequest request)
@@ -517,9 +648,17 @@ public class DriverService : IDriverService
             return AjaxResultViewModel.Error("Sistemde aktif şoför kaydınız bulunamadı.");
         }
 
-        if (driver.LicenseExpiryDate.Date < DateTime.Today)
+        var activeLicenses = await _context.DriverLicenses
+            .Where(l => !l.IsDeleted && l.DriverId == driver.Id)
+            .ToListAsync();
+        bool hasValidLicense = activeLicenses.Any()
+            ? activeLicenses.Any(l => l.LicenseExpiryDate.Date >= DateTime.Today)
+            : driver.LicenseExpiryDate.Date >= DateTime.Today;
+
+        if (!hasValidLicense)
         {
-            return AjaxResultViewModel.Error($"Ehliyetinizin geçerlilik süresi ({driver.LicenseExpiryDate:dd.MM.yyyy}) dolmuştur. Görev başlatamazsınız.");
+            var maxExpiry = activeLicenses.Any() ? activeLicenses.Max(l => l.LicenseExpiryDate) : driver.LicenseExpiryDate;
+            return AjaxResultViewModel.Error($"Ehliyetinizin geçerlilik süresi ({maxExpiry:dd.MM.yyyy}) dolmuştur. Görev başlatamazsınız.");
         }
 
         // Halihazırda devam eden ve henüz teslim edilmemiş aktif bir görev var mı?
@@ -552,9 +691,14 @@ public class DriverService : IDriverService
         }
 
         // KM kontrolü
-        if (request.StartKm < vehicle.CurrentKm)
+        var kmCheck = _kmValidationService.ValidateStartKm(request.StartKm, vehicle.CurrentKm, false);
+        if (!kmCheck.IsValid)
         {
-            return AjaxResultViewModel.Error($"Başlangıç kilometresi ({request.StartKm:N0} KM), aracın güncel kilometresinden ({vehicle.CurrentKm:N0} KM) küçük olamaz.");
+            if (kmCheck.NeedsConfirmation)
+            {
+                return AjaxResultViewModel.Error("Girilen kilometre aracın sistemdeki kilometresinden çok farklı. Lütfen değeri kontrol edin; doğruysa Ulaştırma Şefi'ne başvurun.");
+            }
+            return AjaxResultViewModel.Error(kmCheck.Message!);
         }
 
         var now = DateTime.Now;
@@ -670,11 +814,18 @@ public class DriverService : IDriverService
         filter.PageNumber = Math.Max(1, filter.PageNumber);
         filter.PageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
 
-        var items = await query
+        var driversList = await query
+            .Include(d => d.User)
+            .Include(d => d.DriverLicenses)
             .OrderByDescending(d => d.CreatedAt)
             .Skip((filter.PageNumber - 1) * filter.PageSize)
             .Take(filter.PageSize)
-            .Select(d => new DriverListItemViewModel
+            .ToListAsync();
+
+        var items = driversList.Select(d =>
+        {
+            var lics = d.DriverLicenses.Where(l => !l.IsDeleted).OrderBy(l => l.LicenseClass).ToList();
+            return new DriverListItemViewModel
             {
                 Id = d.Id,
                 UserId = d.UserId,
@@ -682,12 +833,18 @@ public class DriverService : IDriverService
                 Email = d.User.Email ?? string.Empty,
                 PhoneNumber = d.User.PhoneNumber,
                 LicenseNumber = d.LicenseNumber,
-                LicenseClass = d.LicenseClass,
-                LicenseExpiryDate = d.LicenseExpiryDate,
+                LicenseClass = lics.Any() ? string.Join(", ", lics.Select(l => l.LicenseClass)) : (d.LicenseClass ?? ""),
+                LicenseExpiryDate = lics.Any() ? lics.Max(l => l.LicenseExpiryDate) : d.LicenseExpiryDate,
                 Department = d.Department,
-                IsActive = d.IsActive
-            })
-            .ToListAsync();
+                IsActive = d.IsActive,
+                Licenses = lics.Select(l => new DriverLicenseItemViewModel
+                {
+                    Id = l.Id,
+                    LicenseClass = l.LicenseClass,
+                    LicenseExpiryDate = l.LicenseExpiryDate
+                }).ToList()
+            };
+        }).ToList();
 
         filter.Drivers = items;
         return filter;
@@ -697,6 +854,7 @@ public class DriverService : IDriverService
     {
         return await _context.Drivers
             .Include(d => d.User)
+            .Include(d => d.DriverLicenses)
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 
@@ -704,11 +862,32 @@ public class DriverService : IDriverService
     {
         var driver = await _context.Drivers
             .Include(d => d.User)
+            .Include(d => d.DriverLicenses)
             .FirstOrDefaultAsync(d => d.Id == id);
 
         if (driver == null)
         {
             return null;
+        }
+
+        var lics = driver.DriverLicenses
+            .Where(l => !l.IsDeleted)
+            .OrderBy(l => l.LicenseClass)
+            .Select(l => new DriverLicenseItemViewModel
+            {
+                Id = l.Id,
+                LicenseClass = l.LicenseClass,
+                LicenseExpiryDate = l.LicenseExpiryDate
+            })
+            .ToList();
+
+        if (lics.Count == 0 && !string.IsNullOrWhiteSpace(driver.LicenseClass))
+        {
+            lics.Add(new DriverLicenseItemViewModel
+            {
+                LicenseClass = driver.LicenseClass,
+                LicenseExpiryDate = driver.LicenseExpiryDate
+            });
         }
 
         return new DriverEditViewModel
@@ -722,7 +901,8 @@ public class DriverService : IDriverService
             LicenseClass = driver.LicenseClass,
             LicenseExpiryDate = driver.LicenseExpiryDate,
             Department = driver.Department,
-            IsActive = driver.IsActive
+            IsActive = driver.IsActive,
+            Licenses = lics
         };
     }
 
@@ -730,12 +910,24 @@ public class DriverService : IDriverService
     {
         var driver = await _context.Drivers
             .Include(d => d.User)
+            .Include(d => d.DriverLicenses)
             .FirstOrDefaultAsync(d => d.Id == id);
 
         if (driver == null)
         {
             return null;
         }
+
+        var lics = driver.DriverLicenses
+            .Where(l => !l.IsDeleted)
+            .OrderBy(l => l.LicenseClass)
+            .Select(l => new DriverLicenseItemViewModel
+            {
+                Id = l.Id,
+                LicenseClass = l.LicenseClass,
+                LicenseExpiryDate = l.LicenseExpiryDate
+            })
+            .ToList();
 
         // Şoförün devam eden aktif görevi
         var activeAssignment = await _context.Assignments
@@ -787,12 +979,13 @@ public class DriverService : IDriverService
             Email = driver.User.Email ?? string.Empty,
             PhoneNumber = driver.User.PhoneNumber,
             LicenseNumber = driver.LicenseNumber,
-            LicenseClass = driver.LicenseClass,
-            LicenseExpiryDate = driver.LicenseExpiryDate,
+            LicenseClass = lics.Any() ? string.Join(", ", lics.Select(l => l.LicenseClass)) : (driver.LicenseClass ?? ""),
+            LicenseExpiryDate = lics.Any() ? lics.Max(l => l.LicenseExpiryDate) : driver.LicenseExpiryDate,
             Department = driver.Department,
             IsActive = driver.IsActive,
             CreatedAt = driver.CreatedAt,
             UpdatedAt = driver.UpdatedAt,
+            Licenses = lics,
             CurrentActiveAssignment = activeAssignment,
             RecentAssignments = recentAssignments,
             TotalCompletedAssignments = completedAssignments.Count,
@@ -822,7 +1015,23 @@ public class DriverService : IDriverService
             return (false, "Bu ehliyet numarası sistemde daha önce kayıtlı (veya silinmiş) bir şoföre aittir, kullanılamaz.", 0);
         }
 
-        // 3. Atomik Transaction (AGENTS.md kuralı)
+        // 3. Çoklu ehliyet listesi hazırlama
+        var validLicenses = model.Licenses?
+            .Where(l => !string.IsNullOrWhiteSpace(l.LicenseClass))
+            .Select(l => new { Class = l.LicenseClass.Trim().ToUpper(), Expiry = l.LicenseExpiryDate.Date })
+            .ToList() ?? new();
+
+        if (validLicenses.Count == 0 && !string.IsNullOrWhiteSpace(model.LicenseClass) && model.LicenseExpiryDate.HasValue)
+        {
+            validLicenses.Add(new { Class = model.LicenseClass.Trim().ToUpper(), Expiry = model.LicenseExpiryDate.Value.Date });
+        }
+
+        if (validLicenses.Count == 0)
+        {
+            return (false, "Lütfen şoför için en az bir geçerli ehliyet sınıfı ve geçerlilik tarihi giriniz.", 0);
+        }
+
+        // 4. Atomik Transaction (AGENTS.md kuralı)
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
@@ -855,12 +1064,13 @@ public class DriverService : IDriverService
             }
 
             // Driver Entity Oluştur
+            // Eski kolonlar (LicenseClass, LicenseExpiryDate) veri tutarlılığı ve geriye dönük sorgu güvenliği için aktif ehliyetlerin birleşik sınıfı ve en uzun geçerlilik tarihiyle senkron tutulmaktadır.
             var driver = new Driver
             {
                 UserId = user.Id,
                 LicenseNumber = cleanLicense,
-                LicenseClass = model.LicenseClass.Trim().ToUpper(),
-                LicenseExpiryDate = model.LicenseExpiryDate.Date,
+                LicenseClass = string.Join(", ", validLicenses.Select(l => l.Class)),
+                LicenseExpiryDate = validLicenses.Max(l => l.Expiry),
                 Department = model.Department.Trim(),
                 IsActive = true,
                 CreatedBy = adminUserId,
@@ -868,6 +1078,20 @@ public class DriverService : IDriverService
             };
 
             _context.Drivers.Add(driver);
+            await _context.SaveChangesAsync();
+
+            // Çoklu ehliyet satırlarını ekle
+            foreach (var lic in validLicenses)
+            {
+                _context.DriverLicenses.Add(new DriverLicense
+                {
+                    DriverId = driver.Id,
+                    LicenseClass = lic.Class,
+                    LicenseExpiryDate = lic.Expiry,
+                    CreatedBy = adminUserId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
             await _context.SaveChangesAsync();
 
             await transaction.CommitAsync();
@@ -895,10 +1119,11 @@ public class DriverService : IDriverService
         }
     }
 
-    public async Task<(bool Success, string Message)> UpdateDriverAsync(DriverEditViewModel model, string adminUserId)
+    public async Task<(bool Success, string Message)> UpdateDriverAsync(DriverEditViewModel model, string adminUserId, bool isAdmin = false)
     {
         var driver = await _context.Drivers
             .Include(d => d.User)
+            .Include(d => d.DriverLicenses)
             .FirstOrDefaultAsync(d => d.Id == model.Id);
 
         if (driver == null)
@@ -939,6 +1164,69 @@ public class DriverService : IDriverService
             }
         }
 
+        // 4. Çoklu ehliyet listesi kontrolü
+        var validLicenses = model.Licenses?
+            .Where(l => !string.IsNullOrWhiteSpace(l.LicenseClass))
+            .ToList() ?? new();
+
+        if (validLicenses.Count == 0 && !string.IsNullOrWhiteSpace(model.LicenseClass) && model.LicenseExpiryDate.HasValue)
+        {
+            validLicenses.Add(new DriverLicenseItemViewModel
+            {
+                LicenseClass = model.LicenseClass.Trim().ToUpper(),
+                LicenseExpiryDate = model.LicenseExpiryDate.Value.Date
+            });
+        }
+
+        if (validLicenses.Count == 0)
+        {
+            return (false, "Lütfen şoför için en az bir geçerli ehliyet sınıfı ve geçerlilik tarihi giriniz.");
+        }
+
+        var existingLicenses = await _context.DriverLicenses
+            .Where(l => l.DriverId == driver.Id && !l.IsDeleted)
+            .ToListAsync();
+
+        // Çıkarılan ehliyetleri soft delete yap
+        var validLicenseIds = validLicenses.Where(l => l.Id > 0).Select(l => l.Id).ToHashSet();
+        foreach (var existing in existingLicenses)
+        {
+            if (!validLicenseIds.Contains(existing.Id))
+            {
+                existing.IsDeleted = true;
+                existing.UpdatedAt = DateTime.UtcNow;
+                existing.UpdatedBy = adminUserId;
+            }
+        }
+
+        // Güncellenen veya yeni eklenen ehliyetler
+        foreach (var item in validLicenses)
+        {
+            var cleanClass = item.LicenseClass.Trim().ToUpper();
+            if (item.Id > 0)
+            {
+                var existing = existingLicenses.FirstOrDefault(l => l.Id == item.Id);
+                if (existing != null)
+                {
+                    existing.LicenseClass = cleanClass;
+                    existing.LicenseExpiryDate = item.LicenseExpiryDate.Date;
+                    existing.UpdatedAt = DateTime.UtcNow;
+                    existing.UpdatedBy = adminUserId;
+                }
+            }
+            else
+            {
+                _context.DriverLicenses.Add(new DriverLicense
+                {
+                    DriverId = driver.Id,
+                    LicenseClass = cleanClass,
+                    LicenseExpiryDate = item.LicenseExpiryDate.Date,
+                    CreatedBy = adminUserId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
         var oldState = new
         {
             driver.User.FullName,
@@ -958,9 +1246,16 @@ public class DriverService : IDriverService
         driver.User.IsActive = model.IsActive;
 
         driver.LicenseNumber = cleanLicense;
-        driver.LicenseClass = model.LicenseClass.Trim().ToUpper();
-        driver.LicenseExpiryDate = model.LicenseExpiryDate.Date;
-        driver.Department = model.Department.Trim();
+        // Eski kolonlar (LicenseClass, LicenseExpiryDate) veri tutarlılığı ve geriye dönük sorgu güvenliği için aktif ehliyetlerin birleşik sınıfı ve en uzun geçerlilik tarihiyle senkron tutulmaktadır.
+        driver.LicenseClass = string.Join(", ", validLicenses.Select(l => l.LicenseClass.Trim().ToUpper()));
+        driver.LicenseExpiryDate = validLicenses.Max(l => l.LicenseExpiryDate.Date);
+
+        // Faz 4 Kuralı: Birim (Department) bilgisini yalnızca Admin rolü düzenleyebilir; Admin dışındaki roller (Şef dahil) düzenleyemez.
+        if (isAdmin && !string.IsNullOrWhiteSpace(model.Department))
+        {
+            driver.Department = model.Department.Trim();
+        }
+
         driver.IsActive = model.IsActive;
         driver.UpdatedAt = DateTime.UtcNow;
         driver.UpdatedBy = adminUserId;
@@ -976,27 +1271,46 @@ public class DriverService : IDriverService
                 AuditAction.Update,
                 adminUserId,
                 oldState,
-                new
-                {
-                    driver.User.FullName,
-                    driver.User.Email,
-                    driver.User.PhoneNumber,
-                    driver.LicenseNumber,
-                    driver.LicenseClass,
-                    driver.LicenseExpiryDate,
-                    driver.Department,
-                    driver.IsActive
-                }
+                new { driver.LicenseNumber, driver.LicenseClass, driver.LicenseExpiryDate, driver.Department, driver.IsActive }
             );
 
-            _logger.LogInformation("Şoför bilgileri güncellendi. DriverId: {Id}", driver.Id);
+            _logger.LogInformation("Şoför güncellendi. DriverId: {Id}, FullName: {FullName}", driver.Id, driver.User.FullName);
+
             return (true, $"'{driver.User.FullName}' adlı şoförün bilgileri başarıyla güncellendi.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Şoför güncellenirken hata oluştu. DriverId: {Id}", model.Id);
-            return (false, "Şoför bilgileri güncellenirken bir veritabanı hatası oluştu.");
+            _logger.LogError(ex, "Şoför güncellenirken hata oluştu.");
+            return (false, "Şoför bilgileri güncellenirken bir sistem hatası oluştu.");
         }
+    }
+
+    public async Task<ExpiringLicenseSummaryViewModel> GetExpiringLicensesSummaryAsync(int daysThreshold = 30)
+    {
+        var today = DateTime.Today;
+        var threshold = today.AddDays(daysThreshold);
+
+        var items = await _context.DriverLicenses
+            .Include(l => l.Driver)
+            .ThenInclude(d => d.User)
+            .Where(l => !l.IsDeleted && !l.Driver.IsDeleted && l.Driver.IsActive && l.LicenseExpiryDate.Date <= threshold)
+            .OrderBy(l => l.LicenseExpiryDate)
+            .Select(l => new ExpiringLicenseItemViewModel
+            {
+                DriverId = l.DriverId,
+                DriverFullName = l.Driver.User.FullName,
+                Department = l.Driver.Department,
+                LicenseClass = l.LicenseClass,
+                LicenseExpiryDate = l.LicenseExpiryDate,
+                DaysRemaining = (int)(l.LicenseExpiryDate.Date - today).TotalDays
+            })
+            .ToListAsync();
+
+        return new ExpiringLicenseSummaryViewModel
+        {
+            TotalCount = items.Count,
+            ExpiringLicenses = items
+        };
     }
 
     public async Task<(bool Success, string Message)> ToggleDriverStatusAsync(int id, string adminUserId)
@@ -1028,6 +1342,27 @@ public class DriverService : IDriverService
         driver.User.IsActive = driver.IsActive;
         driver.UpdatedAt = DateTime.UtcNow;
         driver.UpdatedBy = adminUserId;
+
+        // DÜZELTME 7b: Şoför pasife alınırsa vekâletleri otomatik iptal edilsin
+        if (!driver.IsActive && !string.IsNullOrEmpty(driver.UserId))
+        {
+            var nowUtc = DateTime.UtcNow;
+            var activeDels = await _context.RoleDelegations
+                .Where(d => (d.DelegatorUserId == driver.UserId || d.DelegateeUserId == driver.UserId) &&
+                            d.ActualRevokedAt == null &&
+                            !d.IsDeleted &&
+                            d.EndDate >= nowUtc)
+                .ToListAsync();
+
+            foreach (var del in activeDels)
+            {
+                del.ActualRevokedAt = nowUtc;
+                del.RevokedByUserId = adminUserId;
+                del.RevokeReason = "Şoför hesabı pasife alındığı için vekâlet otomatik sonlandırıldı.";
+                del.UpdatedAt = nowUtc;
+                del.UpdatedBy = adminUserId;
+            }
+        }
 
         try
         {
@@ -1084,6 +1419,27 @@ public class DriverService : IDriverService
             driver.UpdatedBy = adminUserId;
 
             driver.User.IsActive = false;
+
+            // DÜZELTME 7b: Şoför silindiğinde vekâletleri otomatik iptal edilsin
+            if (!string.IsNullOrEmpty(driver.UserId))
+            {
+                var nowUtc = DateTime.UtcNow;
+                var activeDels = await _context.RoleDelegations
+                    .Where(d => (d.DelegatorUserId == driver.UserId || d.DelegateeUserId == driver.UserId) &&
+                                d.ActualRevokedAt == null &&
+                                !d.IsDeleted &&
+                                d.EndDate >= nowUtc)
+                    .ToListAsync();
+
+                foreach (var del in activeDels)
+                {
+                    del.ActualRevokedAt = nowUtc;
+                    del.RevokedByUserId = adminUserId;
+                    del.RevokeReason = "Şoför hesabı silindiği için vekâlet otomatik sonlandırıldı.";
+                    del.UpdatedAt = nowUtc;
+                    del.UpdatedBy = adminUserId;
+                }
+            }
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();

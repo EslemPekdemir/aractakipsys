@@ -8,9 +8,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using QuestPDF.Fluent;
 
+using aractakipsys.Common;
+
 namespace aractakipsys.Controllers;
 
-[Authorize(Roles = "Admin,Kullanici")]
+[Authorize(Roles = AppRoles.AllStaffAndManagers)]
 public class ReportController : Controller
 {
     private readonly IReportService _reportService;
@@ -54,7 +56,7 @@ public class ReportController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportPdf([FromQuery] ReportFilterViewModel filter)
+    public async Task<IActionResult> ExportPdf([FromQuery] ReportFilterViewModel filter, [FromQuery] bool preview = false)
     {
         // En az bir araç veya şoför kontrolü
         if (!filter.VehicleId.HasValue && !filter.DriverId.HasValue)
@@ -81,6 +83,13 @@ public class ReportController : Controller
         var pdfBytes = document.GeneratePdf();
 
         var fileName = $"Kullanim_Raporu_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(pdfBytes, "application/pdf");
+        }
+
         return File(pdfBytes, "application/pdf", fileName);
     }
 
@@ -108,7 +117,7 @@ public class ReportController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportMaintenancePdf([FromQuery] MaintenanceReportFilterViewModel filter)
+    public async Task<IActionResult> ExportMaintenancePdf([FromQuery] MaintenanceReportFilterViewModel filter, [FromQuery] bool preview = false)
     {
         filter.HasSearched = true;
         var report = await _reportService.GetMaintenanceReportAsync(filter);
@@ -126,6 +135,13 @@ public class ReportController : Controller
         var pdfBytes = document.GeneratePdf();
 
         var fileName = $"Arac_Bakim_Raporu_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(pdfBytes, "application/pdf");
+        }
+
         return File(pdfBytes, "application/pdf", fileName);
     }
 
@@ -145,7 +161,7 @@ public class ReportController : Controller
     /// GET: /Report/ExportInsuranceInspectionPdf
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> ExportInsuranceInspectionPdf([FromQuery] InsuranceInspectionReportFilterViewModel filter)
+    public async Task<IActionResult> ExportInsuranceInspectionPdf([FromQuery] InsuranceInspectionReportFilterViewModel filter, [FromQuery] bool preview = false)
     {
         var report = await _reportService.GetInsuranceInspectionReportAsync(filter, paged: false);
 
@@ -169,6 +185,62 @@ public class ReportController : Controller
         };
 
         var fileName = $"{scopePrefix}_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(pdfBytes, "application/pdf");
+        }
+
+        return File(pdfBytes, "application/pdf", fileName);
+    }
+
+    /// <summary>
+    /// Talep Eden Birimler Bazında Araç Talep İstatistiği Raporu (Faz 7-B)
+    /// GET: /Report/VehicleRequests
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> VehicleRequests([FromQuery] VehicleRequestReportFilterViewModel filter)
+    {
+        // Tarih Aralığı Mantık Kontrolü
+        if (filter.StartDate.HasValue && filter.EndDate.HasValue && filter.StartDate.Value > filter.EndDate.Value)
+        {
+            ModelState.AddModelError("", "Başlangıç tarihi bitiş tarihinden daha ileri bir tarih olamaz.");
+        }
+
+        var report = await _reportService.GetVehicleRequestReportAsync(filter);
+        return View(report);
+    }
+
+    /// <summary>
+    /// Araç Talepleri İstatistiği PDF İndirme & Önizleme (QuestPDF)
+    /// GET: /Report/ExportVehicleRequestsPdf
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> ExportVehicleRequestsPdf([FromQuery] VehicleRequestReportFilterViewModel filter, [FromQuery] bool preview = false)
+    {
+        var report = await _reportService.GetVehicleRequestReportAsync(filter);
+
+        if (report.Items.Count == 0)
+        {
+            TempData["ErrorMessage"] = "Seçilen tarih kriterine uygun araç talebi bulunamadığı için PDF oluşturulamadı.";
+            return RedirectToAction(nameof(VehicleRequests), filter);
+        }
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        var creatorName = currentUser?.FullName ?? User.Identity?.Name ?? "Sistem Yetkilisi";
+
+        var document = new VehicleRequestReportPdfDocument(report, creatorName);
+        var pdfBytes = document.GeneratePdf();
+
+        var fileName = $"Arac_Talepleri_Raporu_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(pdfBytes, "application/pdf");
+        }
+
         return File(pdfBytes, "application/pdf", fileName);
     }
 }

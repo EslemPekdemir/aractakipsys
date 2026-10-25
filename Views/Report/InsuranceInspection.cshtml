@@ -171,9 +171,14 @@
                         <i class="fa fa-wrench mr-1"></i> Araç Bakım & Tamir Dökümü
                     </a>
                 </li>
-                <li class="nav-item mb-1">
+                <li class="nav-item mr-2 mb-1">
                     <a class="nav-link active bg-primary text-white py-2 px-3 shadow-sm" href="/Report/InsuranceInspection">
                         <i class="fa fa-shield mr-1"></i> Sigorta & Muayene Durum Raporu
+                    </a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report/VehicleRequests">
+                        <i class="fa fa-envelope-open-text mr-1"></i> Araç Talepleri Raporu
                     </a>
                 </li>
             </ul>
@@ -364,9 +369,14 @@
                 </div>
                 @if (Model.TotalCount > 0)
                 {
-                    <div class="flex-shrink-0" style="margin-top: 2px;">
+                    <div class="flex-shrink-0 btn-group" style="margin-top: 2px;">
+                        <button type="button" class="btn btn-sm btn-outline-info font-weight-bold shadow-sm d-inline-flex align-items-center"
+                                data-pdf-preview data-pdf-url="@exportPdfUrl" title="Sigorta & Muayene Raporunu Önizle"
+                                style="height: 31px; padding: 4px 10px; font-size: 0.8rem; white-space: nowrap;">
+                            <i class="fa fa-eye mr-1"></i> Önizle
+                        </button>
                         <a href="@exportPdfUrl" target="_blank" class="btn btn-sm btn-danger font-weight-bold shadow-sm d-inline-flex align-items-center" style="height: 31px; padding: 4px 10px; font-size: 0.8rem; white-space: nowrap;">
-                            <i class="fa fa-file-pdf-o mr-1"></i> PDF İndir
+                            <i class="fa fa-file-pdf-o mr-1"></i> İndir
                         </a>
                     </div>
                 }
@@ -390,13 +400,15 @@
                     <table class="table table-hover table-striped mb-0">
                         <thead class="bg-light text-secondary">
                             <tr>
-                                <th style="width: 45px;">#</th>
-                                <th style="width: 130px;">Plaka</th>
+                                <th style="width: 40px;">#</th>
+                                <th style="width: 120px;">Plaka</th>
                                 <th>Marka / Model</th>
-                                <th>Trafik Sigortası Tarihleri</th>
-                                <th>Fenni Muayene Tarihleri</th>
+                                <th>Trafik Sigortası</th>
+                                <th>Fenni Muayene</th>
+                                <th>Kasko</th>
+                                <th class="text-right">Ödenen Tutar</th>
                                 <th>Güncel Durum</th>
-                                <th class="text-right" style="width: 110px;">İşlemler</th>
+                                <th class="text-right" style="width: 90px;">İşlemler</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -423,63 +435,73 @@
                                     </td>
 
                                     <!-- Trafik Sigortası Sütunu -->
-                                    <td class="align-middle">
-                                        <div class="small text-muted mb-1">
-                                            <i class="fa fa-calendar-check-o mr-1 text-info"></i> Başlangıç: <strong>@item.InsuranceStartDate.ToString("dd.MM.yyyy")</strong>
-                                        </div>
-                                        <div class="font-weight-bold text-dark font-13">
-                                            <i class="fa fa-calendar-times-o mr-1 text-danger"></i> Bitiş: @item.InsuranceExpiryDate.ToString("dd.MM.yyyy")
-                                        </div>
+                                    <td class="align-middle font-12">
+                                        <div>Bitiş: <strong>@item.InsuranceExpiryDate.ToString("dd.MM.yyyy")</strong></div>
+                                        <small class="text-muted d-block">Tutar: @(item.InsuranceCost.HasValue && item.InsuranceCost.Value > 0 ? $"{item.InsuranceCost.Value:N2} ₺" : "-")</small>
                                         @if (item.IsInsuranceExpired)
                                         {
-                                            <span class="badge badge-danger text-white px-2 py-1 font-11 mt-1">
-                                                <i class="fa fa-times-circle mr-1"></i> @(Math.Abs(item.InsuranceDaysRemaining)) gün geçti
+                                            <span class="badge badge-danger text-white px-2 py-0 font-11 mt-1">
+                                                @(Math.Abs(item.InsuranceDaysRemaining)) gün geçti
                                             </span>
                                         }
                                         else if (item.IsInsuranceExpiringSoon)
                                         {
-                                            <span class="badge badge-warning text-dark px-2 py-1 font-11 mt-1">
-                                                <i class="fa fa-clock-o mr-1"></i> @(item.InsuranceDaysRemaining == 0 ? "Bugün doluyor" : $"{item.InsuranceDaysRemaining} gün kaldı")
+                                            <span class="badge badge-warning text-dark px-2 py-0 font-11 mt-1">
+                                                @(item.InsuranceDaysRemaining == 0 ? "Bugün doluyor" : $"{item.InsuranceDaysRemaining} gün kaldı")
                                             </span>
-                                        }
-                                        else
-                                        {
-                                            <small class="text-muted font-11 d-block mt-1">
-                                                <i class="fa fa-check text-success mr-1"></i> @item.InsuranceDaysRemaining gün var
-                                            </small>
                                         }
                                     </td>
 
                                     <!-- Fenni Muayene Sütunu -->
-                                    <td class="align-middle">
-                                        <div class="small text-muted mb-1">
-                                            <i class="fa fa-calendar-check-o mr-1 text-info"></i> Başlangıç: <strong>@item.InspectionStartDate.ToString("dd.MM.yyyy")</strong>
-                                        </div>
-                                        <div class="font-weight-bold text-dark font-13">
-                                            <i class="fa fa-calendar-times-o mr-1 text-danger"></i> Bitiş: @item.InspectionExpiryDate.ToString("dd.MM.yyyy")
-                                        </div>
+                                    <td class="align-middle font-12">
+                                        <div>Bitiş: <strong>@item.InspectionExpiryDate.ToString("dd.MM.yyyy")</strong></div>
+                                        <small class="text-muted d-block">Tutar: @(item.InspectionCost.HasValue && item.InspectionCost.Value > 0 ? $"{item.InspectionCost.Value:N2} ₺" : "-")</small>
                                         @if (item.IsInspectionExpired)
                                         {
-                                            <span class="badge badge-danger text-white px-2 py-1 font-11 mt-1">
-                                                <i class="fa fa-times-circle mr-1"></i> @(Math.Abs(item.InspectionDaysRemaining)) gün geçti
+                                            <span class="badge badge-danger text-white px-2 py-0 font-11 mt-1">
+                                                @(Math.Abs(item.InspectionDaysRemaining)) gün geçti
                                             </span>
                                         }
                                         else if (item.IsInspectionExpiringSoon)
                                         {
-                                            <span class="badge badge-warning text-dark px-2 py-1 font-11 mt-1">
-                                                <i class="fa fa-clock-o mr-1"></i> @(item.InspectionDaysRemaining == 0 ? "Bugün doluyor" : $"{item.InspectionDaysRemaining} gün kaldı")
+                                            <span class="badge badge-warning text-dark px-2 py-0 font-11 mt-1">
+                                                @(item.InspectionDaysRemaining == 0 ? "Bugün doluyor" : $"{item.InspectionDaysRemaining} gün kaldı")
                                             </span>
-                                        }
-                                        else
-                                        {
-                                            <small class="text-muted font-11 d-block mt-1">
-                                                <i class="fa fa-check text-success mr-1"></i> @item.InspectionDaysRemaining gün var
-                                            </small>
                                         }
                                     </td>
 
+                                    <!-- Kasko Sütunu (Faz 5-A / 7-A) -->
+                                    <td class="align-middle font-12">
+                                        @if (item.KaskoExpiryDate.HasValue)
+                                        {
+                                            <div>Bitiş: <strong>@item.KaskoExpiryDate.Value.ToString("dd.MM.yyyy")</strong></div>
+                                            <small class="text-muted d-block">Tutar: @(item.KaskoCost.HasValue && item.KaskoCost.Value > 0 ? $"{item.KaskoCost.Value:N2} ₺" : "-")</small>
+                                            @if (item.IsKaskoExpired)
+                                            {
+                                                <span class="badge badge-danger text-white px-2 py-0 font-11 mt-1">
+                                                    @(Math.Abs(item.KaskoDaysRemaining!.Value)) gün geçti
+                                                </span>
+                                            }
+                                            else if (item.IsKaskoExpiringSoon)
+                                            {
+                                                <span class="badge badge-warning text-dark px-2 py-0 font-11 mt-1">
+                                                    @(item.KaskoDaysRemaining!.Value == 0 ? "Bugün doluyor" : $"{item.KaskoDaysRemaining.Value} gün kaldı")
+                                                </span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Kasko Yok</span>
+                                        }
+                                    </td>
+
+                                    <!-- Toplam Belge Maliyeti Sütunu -->
+                                    <td class="align-middle text-right font-weight-bold font-13 text-success">
+                                        @(item.TotalDocumentCost > 0 ? $"{item.TotalDocumentCost:N2} ₺" : "-")
+                                    </td>
+
                                     <td class="align-middle">
-                                        <span class="badge @item.StatusBadgeClass px-2 py-1 font-12" style="border-radius: 8px;">
+                                        <span class="badge @item.StatusBadgeClass px-2 py-1 font-11" style="border-radius: 8px;">
                                             @item.StatusDisplayName
                                         </span>
                                     </td>
@@ -488,8 +510,8 @@
                                             <a href="/Vehicle/Details/@item.VehicleId" class="btn btn-outline-info" title="Araç Detayı">
                                                 <i class="fa fa-eye"></i>
                                             </a>
-                                            <a href="/Vehicle/Edit/@item.VehicleId" class="btn btn-outline-warning" title="Belgeleri Güncelle">
-                                                <i class="fa fa-pencil"></i>
+                                            <a href="/Vehicle/Documents?vehicleId=@item.VehicleId" class="btn btn-outline-primary" title="Belgeleri Yönet">
+                                                <i class="fa fa-files-o"></i>
                                             </a>
                                         </div>
                                     </td>
@@ -497,6 +519,16 @@
                                 rowIdx++;
                             }
                         </tbody>
+                        <tfoot class="bg-light font-weight-bold border-top">
+                            <tr>
+                                <td colspan="3" class="text-right py-2">Sayfa Toplam Belge Maliyetleri:</td>
+                                <td class="py-2 text-info small">Sigorta: @($"{Model.TotalInsuranceCost:N2} ₺")</td>
+                                <td class="py-2 text-info small">Muayene: @($"{Model.TotalInspectionCost:N2} ₺")</td>
+                                <td class="py-2 text-info small">Kasko: @($"{Model.TotalKaskoCost:N2} ₺")</td>
+                                <td class="text-right py-2 text-success font-14">@($"{Model.TotalCost:N2} ₺")</td>
+                                <td colspan="2" class="text-muted small align-middle">(Toplam Ödenen Belge Tutarları)</td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
 

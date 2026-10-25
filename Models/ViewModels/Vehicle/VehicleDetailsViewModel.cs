@@ -27,6 +27,9 @@ public class VehicleDetailsViewModel
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
+    // Güncel Lastik Bilgisi (Faz 5-B)
+    public VehicleTireItemViewModel? CurrentTire { get; set; }
+
     public string StatusBadgeClass => Status switch
     {
         VehicleStatus.Idle => "bg-success",

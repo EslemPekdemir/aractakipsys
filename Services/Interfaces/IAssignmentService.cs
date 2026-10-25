@@ -46,4 +46,7 @@ public interface IAssignmentService
 
     // Acil Güzergah Dışı Sevk Kaydı (Faz 3)
     Task<(bool Success, string Message)> SaveOffRouteDispatchAsync(OffRouteDispatchViewModel model, string userId);
+
+    // Üst Navbar Bildirim Çanı İçin Seferdeki Güzergah Değişiklikleri Özeti (Faz 2B)
+    Task<(int PendingCount, List<AssignmentRouteChangeItemViewModel> LatestChanges)> GetPendingRouteChangeNotificationSummaryAsync();
 }

@@ -12,4 +12,7 @@ public class SefListItemViewModel
     public DateTime CreatedAt { get; set; }
     public string? ProfilePictureUrl { get; set; }
     public int ManagedAssignmentsCount { get; set; }
+    public string RoleName { get; set; } = "Kullanici";
+    public string Role { get => RoleName; set => RoleName = value; }
+    public string RoleDisplayName { get; set; } = "Ulaşım Şefi";
 }

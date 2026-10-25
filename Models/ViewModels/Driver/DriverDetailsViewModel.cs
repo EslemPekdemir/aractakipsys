@@ -18,6 +18,9 @@ public class DriverDetailsViewModel
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
+    // Çoklu Ehliyet Listesi (Faz 4)
+    public List<DriverLicenseItemViewModel> Licenses { get; set; } = new();
+
     public bool HasExpiredLicense => LicenseExpiryDate.Date < DateTime.UtcNow.Date;
     public int DaysUntilLicenseExpiry => (LicenseExpiryDate.Date - DateTime.UtcNow.Date).Days;
 

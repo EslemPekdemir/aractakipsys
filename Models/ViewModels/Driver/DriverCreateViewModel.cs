@@ -32,15 +32,16 @@ public class DriverCreateViewModel
     [Display(Name = "Ehliyet Numarası")]
     public string LicenseNumber { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Ehliyet sınıfı zorunludur.")]
     [StringLength(10, ErrorMessage = "Ehliyet sınıfı en fazla 10 karakter olabilir.")]
     [Display(Name = "Ehliyet Sınıfı")]
-    public string LicenseClass { get; set; } = "B";
+    public string? LicenseClass { get; set; } = "B";
 
-    [Required(ErrorMessage = "Ehliyet son geçerlilik tarihi zorunludur.")]
     [DataType(DataType.Date)]
     [Display(Name = "Ehliyet Geçerlilik Tarihi")]
-    public DateTime LicenseExpiryDate { get; set; } = DateTime.Today.AddYears(5);
+    public DateTime? LicenseExpiryDate { get; set; } = DateTime.Today.AddYears(5);
+
+    // Çoklu Ehliyet Listesi (Faz 4)
+    public List<DriverLicenseItemViewModel> Licenses { get; set; } = new();
 
     [Required(ErrorMessage = "Bağlı olunan birim / departman zorunludur.")]
     [StringLength(100, ErrorMessage = "Birim adı en fazla 100 karakter olabilir.")]

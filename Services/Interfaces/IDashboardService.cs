@@ -7,4 +7,5 @@ public interface IDashboardService
 {
     Task<DashboardViewModel> GetDashboardMetricsAsync();
     Task<DashboardPlateSearchResultViewModel?> SearchPlateAsync(string plate);
+    Task<DashboardCalendarMonthResponseDto> GetCalendarMonthDataAsync(int year, int month);
 }

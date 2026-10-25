@@ -49,6 +49,27 @@
                             </div>
                         }
 
+                        <!-- ROL SEÇİMİ (Saf Admin için görünür, Daire Başkanı için otomatik Şef) -->
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <div class="form-group mb-3">
+                                <label asp-for="Role" class="font-weight-bold text-dark small mb-1">
+                                    Kullanıcı Rolü <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="Role" class="form-control" required>
+                                    <option value="Kullanici">Ulaşım / Birim Şefi (Kullanici)</option>
+                                    <option value="DaireBaskani">Daire Başkanı (DaireBaskani)</option>
+                                    <option value="GenelSekreter">Genel Sekreter (GenelSekreter)</option>
+                                </select>
+                                <span asp-validation-for="Role" class="text-danger small font-weight-bold"></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="Role" value="Kullanici" />
+                            <span asp-validation-for="Role" class="text-danger small font-weight-bold d-block mb-3"></span>
+                        }
+
                         <!-- AD SOYAD -->
                         <div class="form-group mb-3">
                             <label asp-for="FullName" class="font-weight-bold text-dark small mb-1">

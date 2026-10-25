@@ -1,4 +1,5 @@
 // File: Controllers/SefController.cs
+using aractakipsys.Common;
 using aractakipsys.Data;
 using aractakipsys.Models.Entities;
 using aractakipsys.Models.Enums;
@@ -11,53 +12,67 @@ using Microsoft.EntityFrameworkCore;
 
 namespace aractakipsys.Controllers;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
 public class SefController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly IRoleDelegationService _roleDelegationService;
     private readonly ILogger<SefController> _logger;
 
     public SefController(
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext context,
         IAuditLogService auditLogService,
+        IRoleDelegationService roleDelegationService,
         ILogger<SefController> logger)
     {
         _userManager = userManager;
         _context = context;
         _auditLogService = auditLogService;
+        _roleDelegationService = roleDelegationService;
         _logger = logger;
     }
 
     /// <summary>
     /// GET: /Sef
-    /// Tüm Ulaşım Şeflerini (Kullanici rolündeki kullanıcıları) listeler.
+    /// Ulaşım Şefleri ve diğer yetkili kullanıcıları listeler.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var sefUsers = await _userManager.GetUsersInRoleAsync("Kullanici");
+        var sefUsers = await _userManager.GetUsersInRoleAsync(AppRoles.Kullanici);
+        var daireBaskaniUsers = await _userManager.GetUsersInRoleAsync(AppRoles.DaireBaskani);
+        var genelSekreterUsers = await _userManager.GetUsersInRoleAsync(AppRoles.GenelSekreter);
 
         var list = new List<SefListItemViewModel>();
 
-        foreach (var u in sefUsers.OrderByDescending(x => x.CreatedAt))
+        void AddUsers(IEnumerable<ApplicationUser> users, string roleName, string roleDisplayName)
         {
-            list.Add(new SefListItemViewModel
+            foreach (var u in users)
             {
-                Id = u.Id,
-                FullName = u.FullName,
-                UserName = u.UserName ?? string.Empty,
-                Email = u.Email ?? string.Empty,
-                PhoneNumber = u.PhoneNumber,
-                IsActive = u.IsActive,
-                CreatedAt = u.CreatedAt,
-                ProfilePictureUrl = u.ProfilePictureUrl
-            });
+                list.Add(new SefListItemViewModel
+                {
+                    Id = u.Id,
+                    FullName = u.FullName,
+                    UserName = u.UserName ?? string.Empty,
+                    Email = u.Email ?? string.Empty,
+                    PhoneNumber = u.PhoneNumber,
+                    IsActive = u.IsActive,
+                    CreatedAt = u.CreatedAt,
+                    ProfilePictureUrl = u.ProfilePictureUrl,
+                    RoleName = roleName,
+                    RoleDisplayName = roleDisplayName
+                });
+            }
         }
 
-        return View(list);
+        AddUsers(sefUsers, AppRoles.Kullanici, "Ulaşım Şefi");
+        AddUsers(daireBaskaniUsers, AppRoles.DaireBaskani, "Daire Başkanı");
+        AddUsers(genelSekreterUsers, AppRoles.GenelSekreter, "Genel Sekreter");
+
+        return View(list.OrderByDescending(x => x.CreatedAt).ToList());
     }
 
     /// <summary>
@@ -76,6 +91,18 @@ public class SefController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(SefCreateViewModel model)
     {
+        // 0. Güvenlik Kuralı: DaireBaskani ve GenelSekreter hesaplarını YALNIZCA saf Admin oluşturabilir
+        var isRealAdmin = User.IsAdmin();
+        var targetRole = string.IsNullOrWhiteSpace(model.Role) ? AppRoles.Kullanici : model.Role.Trim();
+
+        if ((targetRole == AppRoles.DaireBaskani || targetRole == AppRoles.GenelSekreter || targetRole == AppRoles.Admin) && !isRealAdmin)
+        {
+            _logger.LogWarning("Yetkisiz rol oluşturma teşebbüsü! Kullanıcı: {User}, Hedef Rol: {TargetRole}", User.Identity?.Name, targetRole);
+            ModelState.AddModelError("Role", "Daire Başkanı veya Genel Sekreter hesabı oluşturma yetkiniz bulunmamaktadır. Bu işlem yalnızca Sistem Yöneticisi (Admin) tarafından yapılabilir.");
+            ModelState.AddModelError(string.Empty, "Daire Başkanı veya Genel Sekreter hesabı oluşturma yetkiniz bulunmamaktadır. Bu işlem yalnızca Sistem Yöneticisi (Admin) tarafından yapılabilir.");
+            return View(model);
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -122,8 +149,8 @@ public class SefController : Controller
             return View(model);
         }
 
-        // 4. 'Kullanici' (Şef) Rolü Ata
-        await _userManager.AddToRoleAsync(user, "Kullanici");
+        // 4. Belirlenen Rolü Ata
+        await _userManager.AddToRoleAsync(user, targetRole);
 
         // 5. Audit Log
         var currentAdmin = await _userManager.GetUserAsync(User);
@@ -139,13 +166,13 @@ public class SefController : Controller
                 user.FullName,
                 user.UserName,
                 user.Email,
-                Role = "Kullanici (Şef)"
+                Role = targetRole
             });
 
-        _logger.LogInformation("Yeni Ulaşım Şefi oluşturuldu: {UserName} ({Email}) - Oluşturan: {Admin}", 
-            user.UserName, user.Email, User.Identity?.Name);
+        _logger.LogInformation("Yeni yetkili kullanıcı oluşturuldu: {UserName} ({Email}) - Rol: {Role} - Oluşturan: {Creator}", 
+            user.UserName, user.Email, targetRole, User.Identity?.Name);
 
-        TempData["SuccessMessage"] = $"'{user.FullName}' başarıyla yeni Ulaşım Şefi olarak tanımlandı.";
+        TempData["SuccessMessage"] = $"'{user.FullName}' başarıyla '{targetRole}' olarak tanımlandı.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -161,11 +188,25 @@ public class SefController : Controller
         }
 
         var user = await _userManager.FindByIdAsync(id);
-        if (user == null || !await _userManager.IsInRoleAsync(user, "Kullanici"))
+        if (user == null)
         {
-            TempData["ErrorMessage"] = "Belirtilen Ulaşım Şefi bulunamadı.";
+            TempData["ErrorMessage"] = "Belirtilen kullanıcı bulunamadı.";
             return RedirectToAction(nameof(Index));
         }
+
+        // Güvenlik: Daire Başkanı yalnızca Şef (Kullanici) hesaplarını düzenleyebilir
+        var isTargetProtected = await _userManager.IsInRoleAsync(user, AppRoles.Admin) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.DaireBaskani) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.GenelSekreter);
+
+        if (isTargetProtected && !User.IsAdmin())
+        {
+            TempData["ErrorMessage"] = "Yönetici (Admin, Daire Başkanı, Genel Sekreter) hesapları üzerinde işlem yapma yetkiniz yoktur.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var primaryRole = roles.FirstOrDefault() ?? AppRoles.Kullanici;
 
         var model = new SefEditViewModel
         {
@@ -174,7 +215,15 @@ public class SefController : Controller
             UserName = user.UserName ?? string.Empty,
             Email = user.Email ?? string.Empty,
             PhoneNumber = user.PhoneNumber,
-            IsActive = user.IsActive
+            IsActive = user.IsActive,
+            RoleName = primaryRole,
+            RoleDisplayName = primaryRole switch
+            {
+                AppRoles.Admin => "Sistem Yöneticisi",
+                AppRoles.DaireBaskani => "Daire Başkanı",
+                AppRoles.GenelSekreter => "Genel Sekreter",
+                _ => "Ulaşım Şefi"
+            }
         };
 
         return View(model);
@@ -193,10 +242,53 @@ public class SefController : Controller
         }
 
         var user = await _userManager.FindByIdAsync(model.Id);
-        if (user == null || !await _userManager.IsInRoleAsync(user, "Kullanici"))
+        if (user == null)
         {
-            TempData["ErrorMessage"] = "Güncellenecek Ulaşım Şefi bulunamadı.";
+            TempData["ErrorMessage"] = "Güncellenecek kullanıcı bulunamadı.";
             return RedirectToAction(nameof(Index));
+        }
+
+        var currentAdmin = await _userManager.GetUserAsync(User);
+
+        // Güvenlik Kontrolü 1: Kimse kendi hesabını düzenleyemez / rolünü değiştiremez
+        if (currentAdmin?.Id == user.Id)
+        {
+            TempData["ErrorMessage"] = "Kendi hesabınızı bu ekrandan düzenleyemezsiniz. Lütfen Profilim sayfasını kullanınız.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Güvenlik Kontrolü 2: Daire Başkanı Admin/Daire Başkanı/Genel Sekreter'i düzenleyemez
+        var isTargetProtected = await _userManager.IsInRoleAsync(user, AppRoles.Admin) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.DaireBaskani) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.GenelSekreter);
+
+        if (isTargetProtected && !User.IsAdmin())
+        {
+            TempData["ErrorMessage"] = "Yönetici (Admin, Daire Başkanı, Genel Sekreter) hesaplarını düzenleme yetkiniz yoktur.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Güvenlik Kontrolü 3: Yetki Yükseltme Koruması (Role Elevation Protection)
+        // Yalnızca saf Admin üst düzey rolleri (Admin, DaireBaskani, GenelSekreter) atayabilir.
+        if (!string.IsNullOrWhiteSpace(model.Role) && (model.Role == AppRoles.Admin || model.Role == AppRoles.DaireBaskani || model.Role == AppRoles.GenelSekreter))
+        {
+            if (!User.IsAdmin())
+            {
+                _logger.LogWarning("Yetkisiz rol yükseltme teşebbüsü engellendi! Kullanıcı: {Actor}, Hedef Rol: {Role}", User.Identity?.Name, model.Role);
+                TempData["ErrorMessage"] = "Yönetici rollerine (Admin, Daire Başkanı, Genel Sekreter) kullanıcı atama yetkiniz yoktur.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        // Eğer saf Admin rol değiştirmek istediyse rolü güncelle
+        if (User.IsAdmin() && !string.IsNullOrWhiteSpace(model.Role))
+        {
+            var userRoles = await _userManager.GetRolesAsync(user);
+            if (!userRoles.Contains(model.Role))
+            {
+                await _userManager.RemoveFromRolesAsync(user, userRoles);
+                await _userManager.AddToRoleAsync(user, model.Role);
+            }
         }
 
         user.FullName = model.FullName.Trim();
@@ -213,7 +305,6 @@ public class SefController : Controller
             return View(model);
         }
 
-        var currentAdmin = await _userManager.GetUserAsync(User);
         await _auditLogService.LogAsync(
             nameof(ApplicationUser),
             0,
@@ -234,23 +325,49 @@ public class SefController : Controller
 
     /// <summary>
     /// POST: /Sef/ToggleStatus/{id}
-    /// Şefin durumunu dondurur (pasif yapar) veya tekrar aktif eder.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStatus(string id)
     {
         var user = await _userManager.FindByIdAsync(id);
-        if (user == null || !await _userManager.IsInRoleAsync(user, "Kullanici"))
+        if (user == null)
         {
-            TempData["ErrorMessage"] = "Ulaşım Şefi bulunamadı.";
+            TempData["ErrorMessage"] = "Kullanıcı bulunamadı.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Güvenlik Kontrolü: Daire Başkanı Admin/Daire Başkanı/Genel Sekreter'i donduramaz
+        var isTargetProtected = await _userManager.IsInRoleAsync(user, AppRoles.Admin) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.DaireBaskani) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.GenelSekreter);
+
+        if (isTargetProtected && !User.IsAdmin())
+        {
+            TempData["ErrorMessage"] = "Yönetici (Admin, Daire Başkanı, Genel Sekreter) hesaplarını pasifleştirme yetkiniz yoktur.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Kendi kendini donduramaz
+        var currentAdmin = await _userManager.GetUserAsync(User);
+        if (currentAdmin?.Id == user.Id)
+        {
+            TempData["ErrorMessage"] = "Kendi hesabınızı donduramazsınız.";
             return RedirectToAction(nameof(Index));
         }
 
         user.IsActive = !user.IsActive;
         await _userManager.UpdateAsync(user);
 
-        var currentAdmin = await _userManager.GetUserAsync(User);
+        if (!user.IsActive)
+        {
+            // DÜZELTME 7b: Hesap pasifleştirilirse aktif vekâletler otomatik iptal edilsin
+            await _roleDelegationService.AutoRevokeDelegationsForUserAsync(
+                user.Id, 
+                currentAdmin?.Id ?? "System", 
+                "Kullanıcı hesabı pasifleştirildiği için vekâlet otomatik sonlandırıldı.");
+        }
+
         await _auditLogService.LogAsync(
             nameof(ApplicationUser),
             0,
@@ -271,7 +388,6 @@ public class SefController : Controller
 
     /// <summary>
     /// POST: /Sef/ResetPassword
-    /// Admin'in unutan şef için doğrudan yeni şifre belirlemesini sağlar.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -284,9 +400,21 @@ public class SefController : Controller
         }
 
         var user = await _userManager.FindByIdAsync(model.Id);
-        if (user == null || !await _userManager.IsInRoleAsync(user, "Kullanici"))
+        if (user == null)
         {
-            TempData["ErrorMessage"] = "Şifresi sıfırlanacak şef bulunamadı.";
+            TempData["ErrorMessage"] = "Şifresi sıfırlanacak kullanıcı bulunamadı.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Güvenlik Kontrolü: Daire Başkanı Admin/Daire Başkanı/Genel Sekreter şifresini sıfırlayamaz!
+        var isTargetProtected = await _userManager.IsInRoleAsync(user, AppRoles.Admin) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.DaireBaskani) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.GenelSekreter);
+
+        if (isTargetProtected && !User.IsAdmin())
+        {
+            _logger.LogWarning("Yetkisiz şifre sıfırlama teşebbüsü engellendi! Kullanıcı: {Actor}, Hedef: {Target}", User.Identity?.Name, user.UserName);
+            TempData["ErrorMessage"] = "Yönetici (Admin, Daire Başkanı, Genel Sekreter) hesaplarının şifresini sıfırlama yetkiniz bulunmamaktadır.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -319,17 +447,26 @@ public class SefController : Controller
 
     /// <summary>
     /// POST: /Sef/Delete/{id}
-    /// Ulaşım Şefini pasife alır (Soft Delete / Hesap Dondurma).
-    /// Sistem genelinde denetim izleri (AuditLog) ve veri bütünlüğünün korunması amacıyla kalıcı silme yerine soft-delete uygulanır.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string id)
     {
         var user = await _userManager.FindByIdAsync(id);
-        if (user == null || !await _userManager.IsInRoleAsync(user, "Kullanici"))
+        if (user == null)
         {
-            TempData["ErrorMessage"] = "İşlem yapılacak Ulaşım Şefi bulunamadı.";
+            TempData["ErrorMessage"] = "İşlem yapılacak kullanıcı bulunamadı.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Güvenlik Kontrolü: Daire Başkanı Admin/Daire Başkanı/Genel Sekreter'i silemez!
+        var isTargetProtected = await _userManager.IsInRoleAsync(user, AppRoles.Admin) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.DaireBaskani) ||
+                                await _userManager.IsInRoleAsync(user, AppRoles.GenelSekreter);
+
+        if (isTargetProtected && !User.IsAdmin())
+        {
+            TempData["ErrorMessage"] = "Yönetici (Admin, Daire Başkanı, Genel Sekreter) hesaplarını silme veya pasife alma yetkiniz yoktur.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -355,6 +492,12 @@ public class SefController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        // DÜZELTME 7b: Hesap silindiğinde/pasife alındığında aktif vekâletler otomatik iptal edilsin
+        await _roleDelegationService.AutoRevokeDelegationsForUserAsync(
+            user.Id, 
+            currentAdmin?.Id ?? "System", 
+            "Kullanıcı hesabı silindiği/pasife alındığı için vekâlet otomatik sonlandırıldı.");
+
         await _auditLogService.LogAsync(
             nameof(ApplicationUser),
             0,
@@ -370,7 +513,7 @@ public class SefController : Controller
                 ActionType = "SoftDelete"
             });
 
-        _logger.LogInformation("Ulaşım Şefi hesabı pasife alındı (Soft-Delete): {UserName} ({FullName}) - İşlemi Yapan Admin: {Admin}",
+        _logger.LogInformation("Kullanıcı hesabı pasife alındı (Soft-Delete): {UserName} ({FullName}) - İşlemi Yapan: {Actor}",
             user.UserName, user.FullName, User.Identity?.Name);
 
         TempData["SuccessMessage"] = $"'{user.FullName}' ({user.UserName}) hesabı başarıyla pasife alındı (donduruldu). Geçmiş işlem ve denetim kayıtları korundu.";

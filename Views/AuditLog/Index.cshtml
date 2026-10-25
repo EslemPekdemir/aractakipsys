@@ -156,6 +156,14 @@
                                 </td>
                                 <td class="align-middle">
                                     <span class="font-weight-bold text-primary font-14">@log.ChangedByUserName</span>
+                                    @if (!string.IsNullOrWhiteSpace(log.OnBehalfOfUserName))
+                                    {
+                                        <div class="mt-1">
+                                            <span class="badge badge-info text-white font-11 px-2 py-1" style="border-radius: 4px;">
+                                                <i class="fa fa-handshake-o mr-1"></i> @log.OnBehalfOfUserName adına vekâleten
+                                            </span>
+                                        </div>
+                                    }
                                     @if (!string.IsNullOrWhiteSpace(log.ChangedByUserEmail))
                                     {
                                         <small class="text-muted d-block font-12">@log.ChangedByUserEmail</small>
