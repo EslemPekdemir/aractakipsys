@@ -21,6 +21,8 @@ public class InsuranceInspectionReportItemViewModel
     public DateTime InsuranceExpiryDate { get; set; }
     public int InsuranceDaysRemaining { get; set; }
     public decimal? InsuranceCost { get; set; }
+    public string? InsuranceCompanyName { get; set; }
+    public string? InsurancePolicyNumber { get; set; }
     public bool IsInsuranceExpired => InsuranceDaysRemaining < 0;
     public bool IsInsuranceExpiringSoon => InsuranceDaysRemaining >= 0 && InsuranceDaysRemaining <= 30;
 
@@ -29,6 +31,8 @@ public class InsuranceInspectionReportItemViewModel
     public DateTime InspectionExpiryDate { get; set; }
     public int InspectionDaysRemaining { get; set; }
     public decimal? InspectionCost { get; set; }
+    public string? InspectionStationName { get; set; }
+    public string? InspectionPolicyNumber { get; set; }
     public bool IsInspectionExpired => InspectionDaysRemaining < 0;
     public bool IsInspectionExpiringSoon => InspectionDaysRemaining >= 0 && InspectionDaysRemaining <= 30;
 
@@ -37,6 +41,8 @@ public class InsuranceInspectionReportItemViewModel
     public DateTime? KaskoExpiryDate { get; set; }
     public int? KaskoDaysRemaining { get; set; }
     public decimal? KaskoCost { get; set; }
+    public string? KaskoCompanyName { get; set; }
+    public string? KaskoPolicyNumber { get; set; }
     public bool IsKaskoExpired => KaskoDaysRemaining.HasValue && KaskoDaysRemaining.Value < 0;
     public bool IsKaskoExpiringSoon => KaskoDaysRemaining.HasValue && KaskoDaysRemaining.Value >= 0 && KaskoDaysRemaining.Value <= 30;
 

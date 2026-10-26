@@ -1,0 +1,419 @@
+<!-- File: Views/Report/Tires.cshtml -->
+@model aractakipsys.Models.ViewModels.Report.TireReportViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Araç Lastik Raporu";
+
+    var exportPdfUrl = Url.Action("ExportTiresPdf", new { 
+        vehicleId = Model.Filter.VehicleId,
+        filterOption = Model.Filter.FilterOption,
+        searchTerm = Model.Filter.SearchTerm,
+        startDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"),
+        endDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd")
+    });
+}
+
+@section Styles {
+    <link href="~/css/plugins/select2/select2.min.css" rel="stylesheet">
+    <style>
+        .select2-container--default .select2-selection--single {
+            height: 35px;
+            border: 1px solid #e5e6e7;
+            border-radius: 4px;
+            padding: 3px 6px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 27px;
+            color: #495057;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 33px;
+        }
+        .select2-dropdown {
+            border: 1px solid #1ab394;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2050;
+        }
+        /* Responsive 2x2 Grid KPI Kartları */
+        .report-kpi-row .ibox {
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            transition: transform 0.15s ease;
+        }
+        .report-kpi-row .ibox-title {
+            padding: 8px 12px 2px 12px !important;
+            min-height: auto !important;
+        }
+        .report-kpi-row .ibox-title h5 {
+            font-size: 0.72rem !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+        .report-kpi-row .ibox-title .label {
+            font-size: 0.65rem !important;
+            padding: 2px 5px !important;
+        }
+        .report-kpi-row .ibox-content {
+            padding: 4px 12px 10px 12px !important;
+        }
+        .report-kpi-row .kpi-num {
+            font-size: 1.5rem !important;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 2px !important;
+        }
+        .report-kpi-row .ibox-content small {
+            font-size: 0.68rem !important;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+        .preset-btn {
+            font-size: 0.78rem;
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+        .preset-btn-container {
+            gap: 4px;
+        }
+        @@media (max-width: 576px) {
+            .filter-action-buttons {
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 8px !important;
+            }
+            .filter-action-buttons .btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+    </style>
+}
+
+<div class="row wrapper border-bottom white-bg page-heading mb-4">
+    <div class="col-12">
+        <h2 class="font-weight-bold">Araç Lastik Durum ve Kullanım Raporu</h2>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="/Report">Raporlar</a></li>
+            <li class="breadcrumb-item active"><strong>Araç Lastik Raporu</strong></li>
+        </ol>
+    </div>
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight p-0">
+    <!-- RAPOR TÜRÜ SEKMELERİ -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <ul class="nav nav-pills p-2 bg-white rounded shadow-sm font-weight-bold d-flex flex-wrap" style="border: 1px solid #e7eaec; gap: 4px;">
+                <li class="nav-item mr-2 mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report">
+                        <i class="fa fa-road mr-1"></i> Sefer & Kullanım Raporu
+                    </a>
+                </li>
+                <li class="nav-item mr-2 mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report/Maintenance">
+                        <i class="fa fa-wrench mr-1"></i> Araç Bakım & Tamir Dökümü
+                    </a>
+                </li>
+                <li class="nav-item mr-2 mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report/InsuranceInspection">
+                        <i class="fa fa-shield mr-1"></i> Araç Belge Durum Raporu
+                    </a>
+                </li>
+                <li class="nav-item mr-2 mb-1">
+                    <a class="nav-link active bg-primary text-white py-2 px-3 shadow-sm" href="/Report/Tires">
+                        <i class="fa fa-circle-o-notch mr-1"></i> Araç Lastik Raporu
+                    </a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report/VehicleRequests">
+                        <i class="fa fa-envelope-open-text mr-1"></i> Araç Talepleri Raporu
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fa fa-exclamation-circle mr-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="close" data-dismiss="alert" aria-label="Kapat">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    }
+
+    <!-- FİLTRELEME FORMU -->
+    <div class="ibox float-e-margins mb-4 shadow-sm">
+        <div class="ibox-title bg-light py-2" style="height: auto; min-height: auto;">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center w-100">
+                <h5 class="font-weight-bold text-dark mb-1 mb-sm-0" style="float: none;">
+                    <i class="fa fa-filter mr-1 text-primary"></i> Lastik Filtreleme Kriterleri
+                </h5>
+                <div style="float: none;">
+                    <small class="text-muted">Araç seçimi, aşınma ve değişim kriterlerine göre filtreleyin</small>
+                </div>
+            </div>
+        </div>
+        <div class="ibox-content p-3 border-left border-primary" style="border-left-width: 4px !important;">
+            <form method="get" action="/Report/Tires" id="filterForm">
+                <div class="row">
+                    <!-- Araç Filtresi -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Araç Seçimi</label>
+                        <select name="VehicleId" class="form-control select2" id="selectVehicle">
+                            <option value="">-- Tüm Araçlar --</option>
+                            @foreach (var v in Model.Filter.VehicleList)
+                            {
+                                <option value="@v.Value" selected="@(Model.Filter.VehicleId?.ToString() == v.Value)">@v.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Durum Kriteri -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Durum Kriteri</label>
+                        <select name="FilterOption" class="form-control select2" id="selectFilterOption">
+                            <option value="All" selected="@(Model.Filter.FilterOption == "All")">-- Tümü (Tüm Lastikler) --</option>
+                            <option value="Expired" selected="@(Model.Filter.FilterOption == "Expired")">Süresi / KM'si Geçenler (Kritik)</option>
+                            <option value="ExpiringSoon" selected="@(Model.Filter.FilterOption == "ExpiringSoon")">Değişimi Yaklaşanlar (30 Gün / KM Eşiği)</option>
+                            <option value="Valid" selected="@(Model.Filter.FilterOption == "Valid")">Sorunsuz / Geçerli Lastikler</option>
+                        </select>
+                    </div>
+
+                    <!-- Plaka / Model Ara -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Plaka / Marka / Model Ara</label>
+                        <div class="input-group">
+                            <input type="text" name="SearchTerm" class="form-control" placeholder="Örn: 81 DU 001, Ford..." value="@Model.Filter.SearchTerm" />
+                            <div class="input-group-append">
+                                <span class="input-group-text"><i class="fa fa-search text-muted"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Başlangıç Tarihi -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Takılma Başlangıç Tarihi</label>
+                        <input type="date" name="StartDate" class="form-control" value="@(Model.Filter.StartDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+
+                    <!-- Bitiş Tarihi -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Takılma Bitiş Tarihi</label>
+                        <input type="date" name="EndDate" class="form-control" value="@(Model.Filter.EndDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+
+                    <!-- Aksiyon Butonları -->
+                    <div class="col-lg-9 col-md-6 mb-3 d-flex align-items-end justify-content-end">
+                        <div class="d-flex align-items-center filter-action-buttons">
+                            <a href="/Report/Tires" class="btn btn-sm btn-outline-secondary mr-2">
+                                <i class="fa fa-refresh mr-1"></i> Temizle
+                            </a>
+                            <button type="submit" class="btn btn-sm btn-primary font-weight-bold px-3">
+                                <i class="fa fa-search mr-1"></i> Raporu Getir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4 ÖZET KPI KARTI -->
+    <div class="row mb-3 report-kpi-row">
+        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-primary" style="border-left-width: 4px !important;">
+                <div class="ibox-title border-0">
+                    <span class="label label-primary float-right font-weight-bold">Toplam</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Lastik Kaydı</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="kpi-num text-dark">@Model.TotalCount</div>
+                    <small class="text-muted">Toplam @Model.TotalVehiclesCount farklı araçta</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-danger" style="border-left-width: 4px !important;">
+                <div class="ibox-title border-0">
+                    <span class="label label-danger float-right font-weight-bold">Kritik</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Değişimi Geçenler</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="kpi-num text-danger">@Model.ExpiredCount</div>
+                    <small class="text-muted">KM veya tarihi aşılmış lastikler</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-warning" style="border-left-width: 4px !important;">
+                <div class="ibox-title border-0">
+                    <span class="label label-warning text-dark float-right font-weight-bold">Yaklaşan</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Değişim Eşiğinde</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="kpi-num text-warning">@Model.ExpiringSoonCount</div>
+                    <small class="text-muted">30 gün veya KM eşiği kalmış</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-success" style="border-left-width: 4px !important;">
+                <div class="ibox-title border-0">
+                    <span class="label label-success float-right font-weight-bold">Sorunsuz</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Geçerli Lastikler</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="kpi-num text-success">@Model.ValidCount</div>
+                    <small class="text-muted">Aşınma ve süre problemi yok</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SONUÇ TABLOSU -->
+    <div class="ibox shadow-sm mb-4">
+        <div class="ibox-title bg-light py-2 px-3" style="min-height: auto; height: auto;">
+            <div class="d-flex justify-content-between align-items-center w-100" style="gap: 10px;">
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                        <h5 class="font-weight-bold text-dark mb-0 d-inline-flex align-items-center" style="float: none; font-size: 0.95rem; line-height: 1.4;">
+                            <i class="fa fa-circle-o-notch mr-1 text-primary"></i> Lastik Kullanım ve Durum Listesi
+                        </h5>
+                        <span class="badge badge-primary px-2 py-1 font-weight-bold" style="font-size: 0.8rem;">
+                            Toplam @Model.TotalCount Kayıt
+                        </span>
+                    </div>
+                    <small class="text-muted d-block mt-1" style="font-size: 0.78rem; line-height: 1.3;">
+                        (@Model.FilterOptionDisplayName)
+                    </small>
+                </div>
+                @if (Model.TotalCount > 0)
+                {
+                    <div class="flex-shrink-0 btn-group" style="margin-top: 2px;">
+                        <button type="button" class="btn btn-sm btn-outline-info font-weight-bold shadow-sm d-inline-flex align-items-center"
+                                data-pdf-preview data-pdf-url="@exportPdfUrl" title="Lastik Raporunu Önizle"
+                                style="height: 31px; padding: 4px 10px; font-size: 0.8rem; white-space: nowrap;">
+                            <i class="fa fa-eye mr-1"></i> Önizle
+                        </button>
+                        <a href="@exportPdfUrl" target="_blank" class="btn btn-sm btn-danger font-weight-bold shadow-sm d-inline-flex align-items-center" style="height: 31px; padding: 4px 10px; font-size: 0.8rem; white-space: nowrap;">
+                            <i class="fa fa-file-pdf-o mr-1"></i> İndir
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="ibox-content p-0">
+            @if (Model.TotalCount == 0)
+            {
+                <div class="text-center p-5 text-muted">
+                    <i class="fa fa-check-circle-o fa-4x text-success mb-3"></i>
+                    <h4 class="font-weight-bold text-dark">Sonuç Bulunamadı</h4>
+                    <p class="mb-3">Seçilen filtre kriterine uygun lastik kaydı bulunmamaktadır.</p>
+                    <a href="/Report/Tires" class="btn btn-sm btn-primary">
+                        <i class="fa fa-list mr-1"></i> Tüm Lastikleri Göster
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="bg-light text-secondary">
+                            <tr>
+                                <th style="width: 40px;">#</th>
+                                <th style="width: 120px;">Plaka</th>
+                                <th>Araç (Marka/Model)</th>
+                                <th>Lastik Marka / Ebat</th>
+                                <th>Mevsim</th>
+                                <th>DOT / Yıl</th>
+                                <th>Takılma Tarihi / KM</th>
+                                <th>Hedef Değişim</th>
+                                <th>Kullanım KM</th>
+                                <th>Durum</th>
+                                <th style="width: 90px;" class="text-center">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ var rowIdx = 1; }
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td class="align-middle text-muted small">@rowIdx</td>
+                                    <td class="align-middle font-weight-bold text-dark">@item.PlateNumber</td>
+                                    <td class="align-middle font-12">
+                                        @(string.IsNullOrWhiteSpace(item.VehicleBrand) && string.IsNullOrWhiteSpace(item.VehicleModel) ? "-" : $"{item.VehicleBrand} {item.VehicleModel}".Trim())
+                                    </td>
+                                    <td class="align-middle">
+                                        <div class="font-weight-bold text-dark">@item.Brand</div>
+                                        <small class="text-muted">@(item.Size ?? "-")</small>
+                                    </td>
+                                    <td class="align-middle">
+                                        <span class="badge badge-secondary px-2 py-1">@item.SeasonDisplay</span>
+                                    </td>
+                                    <td class="align-middle font-12 text-muted">
+                                        @item.DotDateDisplay
+                                    </td>
+                                    <td class="align-middle font-12">
+                                        <div>@(item.InstalledDate.HasValue ? item.InstalledDate.Value.ToString("dd.MM.yyyy") : "-")</div>
+                                        <small class="text-muted">@(item.InstalledKm.HasValue ? $"{item.InstalledKm.Value:N0} KM" : "-")</small>
+                                    </td>
+                                    <td class="align-middle font-12">
+                                        <div>@(item.RecommendedReplaceDate.HasValue ? item.RecommendedReplaceDate.Value.ToString("dd.MM.yyyy") : "-")</div>
+                                        <small class="text-muted">@(item.RecommendedReplaceKm.HasValue ? $"{item.RecommendedReplaceKm.Value:N0} KM" : "-")</small>
+                                    </td>
+                                    <td class="align-middle font-weight-bold font-12 text-info">
+                                        @item.UsedKmDisplay
+                                    </td>
+                                    <td class="align-middle">
+                                        @if (item.IsAlert)
+                                        {
+                                            <span class="badge badge-danger text-white px-2 py-1 font-11">
+                                                <i class="fa fa-exclamation-triangle mr-1"></i> @item.AlertReason
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-success text-white px-2 py-1 font-11">
+                                                <i class="fa fa-check mr-1"></i> Normal
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <a href="/Vehicle/Documents?vehicleId=@item.VehicleId&activeTab=Tire" class="btn btn-outline-primary btn-sm" title="Lastik Yönetimi">
+                                            <i class="fa fa-external-link"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                rowIdx++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<partial name="_PdfPreviewModal" />
+
+@section Scripts {
+    <script src="~/js/plugins/select2/select2.full.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.select2').select2({ width: '100%' });
+        });
+    </script>
+}

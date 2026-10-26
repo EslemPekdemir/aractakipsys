@@ -18,7 +18,7 @@
 
 ## 1. ADMIN/KULLANICI — VehicleController (`/Vehicle`)
 
-> **Rol güncellemesi (Faz 1-A):** Sistemde 5 rol (`Admin`, `DaireBaskani`, `GenelSekreter`, `Kullanici`, `Driver`) tanımlıdır. Operasyonel yönetim ekranlarında rol `AllStaffAndManagers` (`Admin,DaireBaskani,GenelSekreter,Kullanici`). `GenelSekreter` salt okunurdur ve `ReadOnlyRoleFilter` filtresi ile korunur. `AuditLogController` `Admin,DaireBaskani,GenelSekreter` rollerine açıktır. `SefController` ise yalnızca `Admin,DaireBaskani` rollerine açıktır (GenelSekreter giremez). Talep Seçenekleri (`/VehicleRequest/Options`) `Admin,DaireBaskani` rollerine açıktır.
+> **Rol güncellemesi (Faz 1-A):** Sistemde 5 rol (`Admin`, `DaireBaskani`, `GenelSekreter`, `Kullanici`, `Driver`) tanımlıdır. Operasyonel yönetim ekranlarında rol `AllStaffAndManagers` (`Admin,DaireBaskani,GenelSekreter,Kullanici`). `GenelSekreter` salt okunurdur ve `ReadOnlyRoleFilter` filtresi ile korunur. `AuditLogController` `Admin,DaireBaskani,GenelSekreter` rollerine açıktır. `SefController` ise `Admin,DaireBaskani` rollerine tam yetkili, `GenelSekreter` rolüne salt okunur (izleme) olarak açıktır. Talep Seçenekleri (`/VehicleRequest/Options`) `Admin,DaireBaskani` rollerine açıktır.
 
 | Action | HTTP | Route | Rol | Açıklama |
 |---|---|---|---|---|
@@ -205,16 +205,17 @@
 
 # EK GÜNCELLEME SETİ (v2) — Yeni Controller ve Endpoint'ler
 
-## 14. ADMIN ÖZEL — SefController (`/Sef`)
+## 14. ADMIN / DENETİM — SefController (`/Sef`)
+> **Erişim:** `Admin` ve `DaireBaskani` operasyonel yönetici (CRUD yetkili; Daire Başkanı yalnızca Şef/Şoför yönetebilir), `GenelSekreter` ise salt okunur (read-only denetim).
 
 | Action | HTTP | Rol | Açıklama |
 |---|---|---|---|
-| Index | GET | **Admin (sadece)** | Şef listesi, aktif/pasif filtre. |
-| Create | GET/POST | Admin | Yeni Şef hesabı (`@duzce.edu.tr` zorunlu). |
-| Edit | GET/POST | Admin | Bilgi güncelleme. |
-| ToggleStatus | POST | Admin | Hızlı aktif/pasif. |
-| ResetPassword | POST | Admin | Şef'in şifresini sıfırlar. |
-| Delete | POST | Admin | **Soft-delete** (`IsActive = false`) — kalıcı silme YOK, AuditLog FK çakışması riski nedeniyle bilerek bu şekilde tasarlandı. Kendi hesabını pasife alma engellenir. |
+| Index | GET | Admin, DaireBaskani, GenelSekreter (Salt Okunur) | Yetkili kullanıcı listesi (Şefler, Daire Başkanı, Genel Sekreter). |
+| Create | GET/POST | Admin, DaireBaskani | Yeni yetkili hesabı. Daire Başkanı sadece Şef açabilir; Admin/DaireBaskani/GenelSekreter sadece Admin açabilir. |
+| Edit | GET/POST | Admin, DaireBaskani | Bilgi güncelleme. Daire Başkanı yalnızca Şefleri düzenleyebilir. |
+| ToggleStatus | POST | Admin, DaireBaskani | Hızlı aktif/pasif (dondurma). |
+| ResetPassword | POST | Admin, DaireBaskani | Şifre sıfırlama. |
+| Delete | POST | Admin, DaireBaskani | **Soft-delete** (pasif, kilitli ve rollerden çıkarma) — kalıcı silme YOK. Daire Başkanı üst düzey yöneticileri silemez. |
 
 ## 15. ADMIN/KULLANICI — VehicleController Ek Endpoint
 
@@ -422,3 +423,33 @@ Tüm PDF uç noktaları aynı URL ve yetki kurallarıyla çalışır; `preview=t
 | `RoleDelegationController` | `Revoke` | POST | `[FromBody] RoleDelegationRevokeInputModel` | Admin, DaireBaskani, Kullanici | Aktif bir yetki devrini erken sonlandırır (`ActualRevokedAt = DateTime.UtcNow`). Yetkiyi devreden Şef veya Admin/Daire Başkanı sonlandırabilir. Önbellek derhal temizlenir. |
 | `RoleDelegationController` | `Print/{id}` | GET | `id` (int), `preview` (bool) | Admin, DaireBaskani, GenelSekreter, Kullanici | Yetki Devri (Vekâlet) Belgesi PDF dökümü. `preview=true` ile `inline` önizleme, parametresiz veya false ile doğrudan dosya indirme (`attachment`) sağlar. |
 
+---
+
+## 36. SİSTEM TANIMLARI (DİNAMİK SEÇENEK LİSTELERİ) ENDPOINT'LERİ
+
+| Controller | Action | HTTP | Parametreler | İzinli Roller | Açıklama |
+|---|---|---|---|---|---|
+| `SystemDefinitionController` | `Index` | GET | `category` (string?), `categoryKey` (string?) | Admin, DaireBaskani, GenelSekreter | Sistem Tanımları ana ekranı (sol kategori menüsü, sağ seçenekler tablosu). Genel Sekreter salt okunur modda görüntüler (ekle/düzenle/pasife al form ve butonları gizlenir). Şef ve Şoför erişemez (`[Authorize(Roles = "Admin,DaireBaskani,GenelSekreter")]`). |
+| `SystemDefinitionController` | `Create` | POST | `[FromForm] SystemDefinitionCreateViewModel` (`CategoryKey`, `Name`, `DisplayOrder`) | Admin, DaireBaskani | Seçilen kategoriye yeni seçenek ekler (`[ValidateAntiForgeryToken]`). Kategori beyaz listede olmalı; ad tekil olmalıdır (`ToUpper(tr-TR)` normalizasyonu). Başarılı olursa vekâlet bilgileriyle AuditLog'a kaydedilir ve Index'e yönlenir. |
+| `SystemDefinitionController` | `EditName` | POST | `[FromForm] SystemDefinitionEditNameViewModel` (`Id`, `CategoryKey`, `NewName`) | Admin, DaireBaskani | Seçenek adını günceller (`[ValidateAntiForgeryToken]`). **Kural:** Sistem varsayılanı olan (`IsSystemDefault = true`) veya veritabanında en az 1 kayıtta kullanımda olan seçeneklerin adı değiştirilemez, sunucu işlemi reddeder. Yalnızca kullanımda olmayan ve varsayılan olmayan seçeneklerin adı güncellenebilir. AuditLog'a kaydedilir. |
+| `SystemDefinitionController` | `ToggleStatus` | POST | `id` (int), `categoryKey` (string?), `category` (string?) | Admin, DaireBaskani | Seçeneği aktif/pasife alır (`[ValidateAntiForgeryToken]`). **Kural:** İlgili kategorideki son aktif seçenek pasife alınamaz (aktif seçenek sayısı > 1 olmalıdır). Pasife alınan seçenek yeni formlarda gösterilmez ve servis katmanında serbest metin olarak gönderilmesi engellenir. AuditLog'a kaydedilir. |
+| `SystemDefinitionController` | `Delete` | POST | `id` (int), `categoryKey` (string?), `category` (string?) | Admin, DaireBaskani | Seçeneği yumuşak siler (`IsDeleted = true`). **Kural:** Yalnızca kullanımda olmayan (`UsageCount == 0`) ve sistem varsayılanı olmayan (`IsSystemDefault == false`) seçenekler silinebilir. Kategorideki son aktif seçenek silinemez. AuditLog'a kaydedilir (`[ValidateAntiForgeryToken]`). |
+| `SystemDefinitionController` | `GetActiveOptions` | GET | `category` (string?), `categoryKey` (string?) | Giriş Yapmış Tüm Kullanıcılar | Belirtilen kategorideki aktif seçenek isimlerini sıralı (`DisplayOrder ASC, Name ASC`) JSON dizisi olarak döndürür. Form ve filtre sayfalarındaki dinamik dropdown/select2 yüklemelerinde kullanılır. |
+
+---
+
+## 37. FAZ 10 ENDPOINT GÜNCELLEMELERİ — ARAÇ BELGE RAPORLARI VE LASTİK RAPORU (BİRLEŞİK PDF ÜRETECİ)
+
+| Controller | Action | HTTP | Parametreler | İzinli Roller | Açıklama |
+|---|---|---|---|---|---|
+| `ReportController` | `InsuranceInspection` | GET | `InsuranceInspectionReportFilterViewModel` (`Scope`, `VehicleId`, `StartDate`, `EndDate`) | Admin, DaireBaskani, GenelSekreter, Kullanici | Birleşik Araç Belge Raporu HTML ekranı. Muayene, Trafik Sigortası ve Kasko belgelerini tek listede toplar. Araç dropdown'ı ile tek araç veya tüm araçlar filtrelenebilir. |
+| `ReportController` | `ExportInsuranceInspectionPdf` | GET | `scope` (All/Inspection/Insurance/Kasko), `vehicleId` (int?), `startDate` (DateTime?), `endDate` (DateTime?), `preview` (bool) | Admin, DaireBaskani, GenelSekreter, Kullanici | Birleşik Araç Belge Raporu (Muayene, Trafik Sigortası, Kasko) QuestPDF çıktısı. `preview=true` ile `inline` (ortak modalda önizleme), `preview=false` ile doğrudan indirme (`attachment`). Seçili araç verildiğinde yalnızca o aracın belgeleri basılır. 9 sütun + dip toplam tutar içerir. |
+| `VehicleController` | `ExportTiresPdf` | GET | `vehicleId` (int?), `preview` (bool) | Admin, DaireBaskani, GenelSekreter, Kullanici | Araç Filosu Lastik Raporu QuestPDF çıktısı. `vehicleId` verilirse yalnızca o aracın tüm lastik geçmişi basılır; boşsa tüm filonun güncel lastikleri basılır. Araç marka/model bilgisi eksiksiz doldurulur, boşsa `"-"` basılır. `preview=true` ile inline önizleme sağlar. |
+
+---
+
+## 38. KULLANICI YÖNETİMİ (SEF) SİLME VE YETKİ KORUMA ENDPOINT'LERİ
+
+| Controller | Action | HTTP | Parametreler | İzinli Roller | Açıklama |
+|---|---|---|---|---|---|
+| `SefController` | `Delete` | POST | `id` (string?), `userId` (string?) | Admin, DaireBaskani | Kullanıcı hesabını yumuşak siler (Soft-Delete). Hesap pasife alınır (`IsActive = false`), kilitlenir (`LockoutEnabled = true`, `LockoutEnd = DateTimeOffset.MaxValue`), yetkili rollerden çıkarılır (`AspNetUserRoles` temizlenir). Kullanıcı listeden kalkar ve oturum açamaz; ancak Identity Id'si, denetim kayıtları ve geçmiş görev/vekâlet ilişkileri korunur.<br>**Yetki Kısıtları:**<br>1. Kimse kendi hesabını silemez (`currentAdmin.Id == targetUser.Id` engellenir).<br>2. Daire Başkanı yalnızca `Kullanici` (Şef) ve `Driver` (Şoför) hesaplarını silebilir; `Admin`, `DaireBaskani` veya `GenelSekreter` hesaplarını silemez (`User.IsAdmin()` kontrolü).<br>3. Aktif vekâleti olan hesap silinirse vekâlet otomatik iptal edilir.<br>4. AuditLog'a silme kaydı işlenir (`[ValidateAntiForgeryToken]`). |

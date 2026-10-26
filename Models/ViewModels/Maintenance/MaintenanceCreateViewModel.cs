@@ -36,4 +36,5 @@ public class MaintenanceCreateViewModel
 
     // Dropdown listesi
     public List<SelectListItem> AvailableVehicles { get; set; } = new();
+    public List<SelectListItem> AvailableMaintenanceTypes { get; set; } = new();
 }

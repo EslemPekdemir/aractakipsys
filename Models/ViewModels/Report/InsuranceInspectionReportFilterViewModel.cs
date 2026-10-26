@@ -11,9 +11,10 @@ public enum DocumentExpiryFilterOption
 
 public enum ReportScopeType
 {
-    All = 0,            // Tümü (Sigorta ve Muayene)
+    All = 0,            // Tümü (Muayene, Sigorta, Kasko)
     Insurance = 1,      // Sadece Trafik Sigortası
-    Inspection = 2      // Sadece Fenni Muayene
+    Inspection = 2,     // Sadece Fenni Muayene
+    Kasko = 3           // Sadece Kasko
 }
 
 public class InsuranceInspectionReportFilterViewModel
@@ -21,6 +22,16 @@ public class InsuranceInspectionReportFilterViewModel
     public DocumentExpiryFilterOption FilterOption { get; set; } = DocumentExpiryFilterOption.All;
     public ReportScopeType Scope { get; set; } = ReportScopeType.All;
     public string? SearchTerm { get; set; }
+
+    /// <summary>
+    /// Tek araç filtresi (null ise tüm araçlar)
+    /// </summary>
+    public int? VehicleId { get; set; }
+
+    /// <summary>
+    /// Filtre ekranında araç seçimi için dropdown listesi
+    /// </summary>
+    public List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> VehicleList { get; set; } = new();
 
     /// <summary>
     /// Özel tarih aralığı başlangıç

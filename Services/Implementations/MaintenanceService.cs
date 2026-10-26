@@ -13,15 +13,18 @@ public class MaintenanceService : IMaintenanceService
 {
     private readonly ApplicationDbContext _context;
     private readonly IAuditLogService _auditLogService;
+    private readonly ISystemDefinitionService _systemDefinitionService;
     private readonly ILogger<MaintenanceService> _logger;
 
     public MaintenanceService(
         ApplicationDbContext context,
         IAuditLogService auditLogService,
+        ISystemDefinitionService systemDefinitionService,
         ILogger<MaintenanceService> logger)
     {
         _context = context;
         _auditLogService = auditLogService;
+        _systemDefinitionService = systemDefinitionService;
         _logger = logger;
     }
 
@@ -191,10 +194,14 @@ public class MaintenanceService : IMaintenanceService
             Text = $"{v.PlateNumber} - {v.Brand} {v.Model} (Durum: {v.Status.ToTurkishString()})"
         }).ToList();
 
+        var activeTypes = await _systemDefinitionService.GetActiveOptionNamesAsync(aractakipsys.Common.SystemDefinitionCategories.MaintenanceType);
+        var typeItems = activeTypes.Select(t => new SelectListItem { Value = t, Text = t }).ToList();
+
         return new MaintenanceCreateViewModel
         {
             StartDate = DateTime.Today,
-            AvailableVehicles = vehicles
+            AvailableVehicles = vehicles,
+            AvailableMaintenanceTypes = typeItems
         };
     }
 
@@ -227,6 +234,13 @@ public class MaintenanceService : IMaintenanceService
             Text = $"{v.PlateNumber} - {v.Brand} {v.Model} (Durum: {v.Status.ToTurkishString()})"
         }).ToList();
 
+        var editTypes = await _systemDefinitionService.GetActiveOptionNamesAsync(aractakipsys.Common.SystemDefinitionCategories.MaintenanceType);
+        var editTypeItems = editTypes.Select(t => new SelectListItem { Value = t, Text = t, Selected = (t == m.MaintenanceType) }).ToList();
+        if (!string.IsNullOrWhiteSpace(m.MaintenanceType) && !editTypes.Contains(m.MaintenanceType, StringComparer.OrdinalIgnoreCase))
+        {
+            editTypeItems.Insert(0, new SelectListItem { Value = m.MaintenanceType, Text = $"{m.MaintenanceType} (Pasif)", Selected = true });
+        }
+
         return new MaintenanceEditViewModel
         {
             Id = m.Id,
@@ -239,7 +253,8 @@ public class MaintenanceService : IMaintenanceService
             EndDate = m.EndDate,
             PerformedBy = m.PerformedBy,
             Cost = m.Cost,
-            AvailableVehicles = vehicles
+            AvailableVehicles = vehicles,
+            AvailableMaintenanceTypes = editTypeItems
         };
     }
 
@@ -250,6 +265,13 @@ public class MaintenanceService : IMaintenanceService
         if (vehicle == null)
         {
             return (false, "Seçilen araç sistemde bulunamadı.", 0);
+        }
+
+        // Sunucu Doğrulaması (Madde 2): Bakım Türü Sistem Tanımlarında aktif bir seçenek olmalı
+        var (typeValid, typeErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, model.MaintenanceType);
+        if (!typeValid)
+        {
+            return (false, typeErr!, 0);
         }
 
         if (model.EndDate.HasValue && model.EndDate.Value < model.StartDate)
@@ -361,6 +383,13 @@ public class MaintenanceService : IMaintenanceService
         if (model.EndDate.HasValue && model.EndDate.Value < model.StartDate)
         {
             return (false, "Bakım bitiş tarihi, başlangıç tarihinden önce olamaz.");
+        }
+
+        // Sunucu Doğrulaması (Madde 2): Bakım Türü Sistem Tanımlarında aktif bir seçenek olmalı (düzenlemede mevcut değer hariç)
+        var (typeValid, typeErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, model.MaintenanceType, maintenance.MaintenanceType);
+        if (!typeValid)
+        {
+            return (false, typeErr!);
         }
 
         var oldMaintenanceState = new

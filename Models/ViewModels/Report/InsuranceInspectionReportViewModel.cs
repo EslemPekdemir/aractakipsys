@@ -37,7 +37,8 @@ public class InsuranceInspectionReportViewModel
     {
         ReportScopeType.Insurance => "Sadece Trafik Sigortası",
         ReportScopeType.Inspection => "Sadece Fenni Muayene",
-        _ => "Tümü (Sigorta ve Muayene)"
+        ReportScopeType.Kasko => "Sadece Kasko",
+        _ => "Tümü (Muayene, Sigorta, Kasko)"
     };
 
     private string GetCustomDateDisplayName()

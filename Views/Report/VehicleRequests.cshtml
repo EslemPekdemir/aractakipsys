@@ -38,7 +38,12 @@
                 </li>
                 <li class="nav-item mr-2 mb-1">
                     <a class="nav-link text-secondary py-2 px-3" href="/Report/InsuranceInspection">
-                        <i class="fa fa-shield mr-1"></i> Sigorta & Muayene Durum Raporu
+                        <i class="fa fa-shield mr-1"></i> Araç Belge Durum Raporu
+                    </a>
+                </li>
+                <li class="nav-item mr-2 mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report/Tires">
+                        <i class="fa fa-circle-o-notch mr-1"></i> Araç Lastik Raporu
                     </a>
                 </li>
                 <li class="nav-item mb-1">
@@ -70,6 +75,7 @@
         <div class="ibox-content p-3">
             <form method="get" action="/Report/VehicleRequests" id="requestReportFilterForm">
                 <input type="hidden" name="hasSearched" value="true" />
+                <input type="hidden" name="PageSize" value="@Model.PageSize" />
                 <div class="form-row align-items-end">
                     <div class="col-md-4 mb-2">
                         <label class="font-weight-bold small text-muted">Başlangıç Tarihi</label>
@@ -135,7 +141,7 @@
                 </h5>
                 <small class="text-muted">Dönem: <strong>@Model.DateRangeText</strong></small>
             </div>
-            @if (Model.Items.Count > 0)
+            @if (Model.TotalCount > 0)
             {
                 <div class="btn-group">
                     <button type="button" class="btn btn-sm btn-outline-info font-weight-bold shadow-sm d-inline-flex align-items-center"
@@ -149,7 +155,7 @@
             }
         </div>
         <div class="ibox-content p-0">
-            @if (Model.Items.Count == 0)
+            @if (Model.TotalCount == 0)
             {
                 <div class="text-center py-5 text-muted">
                     <i class="fa fa-info-circle fa-2x mb-2 text-info"></i>
@@ -172,7 +178,7 @@
                         </thead>
                         <tbody>
                             @{
-                                int no = 1;
+                                int no = ((Model.PageNumber - 1) * Model.PageSize) + 1;
                             }
                             @foreach (var item in Model.Items)
                             {
@@ -221,6 +227,83 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <!-- SAYFALAMA (PAGINATION) BARI -->
+                <div class="p-3 border-top d-flex flex-wrap justify-content-between align-items-center" style="gap: 10px;">
+                    <span class="text-muted small">
+                        Toplam <strong>@Model.TotalCount</strong> birimden 
+                        <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)</strong> arası gösteriliyor.
+                    </span>
+
+                    @if (Model.TotalPages > 1)
+                    {
+                        <ul class="pagination pagination-sm m-0">
+                            @* Önceki Butonu *@
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("VehicleRequests", new { 
+                                    PageNumber = Model.PageNumber - 1, 
+                                    PageSize = Model.PageSize, 
+                                    StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), 
+                                    EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), 
+                                    HasSearched = Model.Filter.HasSearched 
+                                })">&laquo; Önceki</a>
+                            </li>
+
+                            @{
+                                int curPage = Model.PageNumber;
+                                int totPages = Model.TotalPages;
+                                int maxButtons = 10;
+                                
+                                int startP = Math.Max(1, curPage - (maxButtons / 2));
+                                int endP = Math.Min(totPages, startP + maxButtons - 1);
+                                if (endP - startP + 1 < maxButtons)
+                                {
+                                    startP = Math.Max(1, endP - maxButtons + 1);
+                                }
+                            }
+
+                            @if (startP > 1)
+                            {
+                                <li class="page-item @(curPage == 1 ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("VehicleRequests", new { PageNumber = 1, PageSize = Model.PageSize, StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), HasSearched = Model.Filter.HasSearched })">1</a>
+                                </li>
+                                if (startP > 2)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                }
+                            }
+
+                            @for (int p = startP; p <= endP; p++)
+                            {
+                                <li class="page-item @(p == curPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("VehicleRequests", new { PageNumber = p, PageSize = Model.PageSize, StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), HasSearched = Model.Filter.HasSearched })">@p</a>
+                                </li>
+                            }
+
+                            @if (endP < totPages)
+                            {
+                                if (endP < totPages - 1)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                }
+                                <li class="page-item @(curPage == totPages ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("VehicleRequests", new { PageNumber = totPages, PageSize = Model.PageSize, StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), HasSearched = Model.Filter.HasSearched })">@totPages</a>
+                                </li>
+                            }
+
+                            @* Sonraki Butonu *@
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("VehicleRequests", new { 
+                                    PageNumber = Model.PageNumber + 1, 
+                                    PageSize = Model.PageSize, 
+                                    StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), 
+                                    EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), 
+                                    HasSearched = Model.Filter.HasSearched 
+                                })">Sonraki &raquo;</a>
+                            </li>
+                        </ul>
+                    }
                 </div>
 
                 <!-- Durum Eşleşmesi Bilgilendirme Notu -->

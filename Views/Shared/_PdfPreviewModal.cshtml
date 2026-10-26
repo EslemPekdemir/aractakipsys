@@ -25,7 +25,7 @@
             </div>
             <div class="modal-body p-0 position-relative bg-light" style="flex: 1 1 auto; overflow: hidden;">
                 <!-- Yükleniyor Göstergesi -->
-                <div id="globalPdfLoadingSpinner" class="d-flex flex-column align-items-center justify-content-center position-absolute w-100 h-100" style="top:0; left:0; background: rgba(255,255,255,0.9); z-index: 5;">
+                <div id="globalPdfLoadingSpinner" class="d-flex flex-column align-items-center justify-content-center position-absolute w-100 h-100" style="top:0; left:0; background: rgba(255,255,255,0.92); z-index: 5;">
                     <div class="spinner-border text-danger mb-2" role="status" style="width: 3rem; height: 3rem;">
                         <span class="sr-only">Yükleniyor...</span>
                     </div>
@@ -47,17 +47,38 @@
     </div>
 </div>
 
+<style>
+    #globalPdfLoadingSpinner.is-hidden {
+        display: none !important;
+    }
+</style>
+
 <script>
     (function () {
-        function getCleanUrl(url) {
-            if (!url) return '';
-            return url;
+        var hideSpinnerTimer = null;
+
+        function hideSpinner() {
+            if (hideSpinnerTimer) {
+                clearTimeout(hideSpinnerTimer);
+                hideSpinnerTimer = null;
+            }
+            $('#globalPdfLoadingSpinner').addClass('is-hidden');
+        }
+
+        function showSpinner() {
+            if (hideSpinnerTimer) {
+                clearTimeout(hideSpinnerTimer);
+            }
+            $('#globalPdfLoadingSpinner').removeClass('is-hidden');
+            // En geç 3 saniye sonra katmanı otomatik kapat (iframe load tetiklenmeme koruması)
+            hideSpinnerTimer = setTimeout(function () {
+                hideSpinner();
+            }, 3000);
         }
 
         function buildPreviewUrl(rawUrl) {
             if (!rawUrl) return '';
             var separator = rawUrl.indexOf('?') !== -1 ? '&' : '?';
-            // Eğer zaten preview parametresi yoksa ekle
             if (rawUrl.indexOf('preview=') === -1) {
                 return rawUrl + separator + 'preview=true';
             }
@@ -66,7 +87,6 @@
 
         function buildDownloadUrl(rawUrl) {
             if (!rawUrl) return '';
-            // preview parametresi varsa temizle
             return rawUrl.replace(/[?&]preview=true/g, '').replace(/[?&]preview=false/g, '');
         }
 
@@ -80,22 +100,25 @@
             $('#globalPdfDownloadBtn').attr('href', downloadUrl);
             $('#globalPdfNewTabBtn').attr('href', previewUrl);
 
-            var $spinner = $('#globalPdfLoadingSpinner');
             var $iframe = $('#globalPdfPreviewIframe');
 
-            $spinner.show();
+            showSpinner();
             $iframe.off('load').on('load', function () {
-                $spinner.fadeOut(200);
+                hideSpinner();
             });
 
             $iframe.attr('src', previewUrl);
             $('#globalPdfPreviewModal').modal('show');
         };
 
-        // Modal kapandığında iframe'i temizle (bellek tasarrufu)
+        // Modal kapandığında iframe'i temizle ve spinner'ı gizle
         $(document).on('hidden.bs.modal', '#globalPdfPreviewModal', function () {
-            $('#globalPdfPreviewIframe').attr('src', 'about:blank');
-            $('#globalPdfLoadingSpinner').show();
+            if (hideSpinnerTimer) {
+                clearTimeout(hideSpinnerTimer);
+                hideSpinnerTimer = null;
+            }
+            $('#globalPdfPreviewIframe').off('load').attr('src', 'about:blank');
+            hideSpinner();
         });
 
         // data-pdf-preview attribute'una sahip tüm buton/linkler için tekil click delegasyonu

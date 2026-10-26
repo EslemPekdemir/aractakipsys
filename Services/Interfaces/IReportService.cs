@@ -33,5 +33,5 @@ public interface IReportService
     /// <summary>
     /// Talep eden birimler bazında araç talep istatistiği raporunu üretir (Faz 7-B).
     /// </summary>
-    Task<VehicleRequestReportViewModel> GetVehicleRequestReportAsync(VehicleRequestReportFilterViewModel filter);
+    Task<VehicleRequestReportViewModel> GetVehicleRequestReportAsync(VehicleRequestReportFilterViewModel filter, bool paged = true);
 }

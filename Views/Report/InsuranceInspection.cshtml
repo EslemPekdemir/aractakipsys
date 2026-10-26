@@ -2,11 +2,12 @@
 @model aractakipsys.Models.ViewModels.Report.InsuranceInspectionReportViewModel
 @{
     Layout = "_AdminLayout";
-    ViewData["Title"] = "Sigorta ve Muayene Durum Raporu";
+    ViewData["Title"] = "Araç Belge Durum Raporu";
 
     var exportPdfUrl = Url.Action("ExportInsuranceInspectionPdf", new { 
         scope = Model.Filter.Scope, 
         filterOption = Model.Filter.FilterOption, 
+        vehicleId = Model.Filter.VehicleId,
         startDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"),
         endDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"),
         dateTarget = Model.Filter.DateTarget,
@@ -16,7 +17,8 @@
     var pdfLabel = Model.Filter.Scope switch {
         aractakipsys.Models.ViewModels.Report.ReportScopeType.Insurance => "Sigorta PDF Raporu",
         aractakipsys.Models.ViewModels.Report.ReportScopeType.Inspection => "Muayene PDF Raporu",
-        _ => "Sigorta & Muayene PDF Raporu"
+        aractakipsys.Models.ViewModels.Report.ReportScopeType.Kasko => "Kasko PDF Raporu",
+        _ => "Araç Belge PDF Raporu"
     };
 
     if (Model.Filter.FilterOption == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.Expired)
@@ -173,7 +175,12 @@
                 </li>
                 <li class="nav-item mr-2 mb-1">
                     <a class="nav-link active bg-primary text-white py-2 px-3 shadow-sm" href="/Report/InsuranceInspection">
-                        <i class="fa fa-shield mr-1"></i> Sigorta & Muayene Durum Raporu
+                        <i class="fa fa-shield mr-1"></i> Araç Belge Durum Raporu
+                    </a>
+                </li>
+                <li class="nav-item mr-2 mb-1">
+                    <a class="nav-link text-secondary py-2 px-3" href="/Report/Tires">
+                        <i class="fa fa-circle-o-notch mr-1"></i> Araç Lastik Raporu
                     </a>
                 </li>
                 <li class="nav-item mb-1">
@@ -216,14 +223,27 @@
                     <div class="col-lg-3 col-md-6 mb-3">
                         <label class="small font-weight-bold text-muted mb-1">Belge Kapsamı</label>
                         <select name="Scope" class="form-control select2" id="selectScope">
-                            <option value="All" selected="@(Model.Filter.Scope == aractakipsys.Models.ViewModels.Report.ReportScopeType.All)">-- Tüm Belgeler (Sigorta + Muayene) --</option>
+                            <option value="All" selected="@(Model.Filter.Scope == aractakipsys.Models.ViewModels.Report.ReportScopeType.All)">-- Tüm Belgeler (Muayene + Sigorta + Kasko) --</option>
                             <option value="Insurance" selected="@(Model.Filter.Scope == aractakipsys.Models.ViewModels.Report.ReportScopeType.Insurance)">Sadece Trafik Sigortası</option>
                             <option value="Inspection" selected="@(Model.Filter.Scope == aractakipsys.Models.ViewModels.Report.ReportScopeType.Inspection)">Sadece Fenni Muayene</option>
+                            <option value="Kasko" selected="@(Model.Filter.Scope == aractakipsys.Models.ViewModels.Report.ReportScopeType.Kasko)">Sadece Kasko</option>
+                        </select>
+                    </div>
+
+                    <!-- Araç Filtresi -->
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="small font-weight-bold text-muted mb-1">Araç Seçimi</label>
+                        <select name="VehicleId" class="form-control select2" id="selectVehicle">
+                            <option value="">-- Tüm Araçlar --</option>
+                            @foreach (var v in Model.Filter.VehicleList)
+                            {
+                                <option value="@v.Value" selected="@(Model.Filter.VehicleId?.ToString() == v.Value)">@v.Text</option>
+                            }
                         </select>
                     </div>
 
                     <!-- Durum Kriteri -->
-                    <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="col-lg-2 col-md-6 mb-3">
                         <label class="small font-weight-bold text-muted mb-1">Durum Kriteri</label>
                         <select name="FilterOption" class="form-control select2" id="selectFilterOption">
                             <option value="All" selected="@(Model.Filter.FilterOption == aractakipsys.Models.ViewModels.Report.DocumentExpiryFilterOption.All)">-- Tümü (Tüm Filo) --</option>

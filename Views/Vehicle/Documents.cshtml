@@ -1,8 +1,10 @@
 @model aractakipsys.Models.ViewModels.Vehicle.VehicleDocumentsPageViewModel
+@inject aractakipsys.Services.Interfaces.ISystemDefinitionService SystemDefinitionService
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Araç Belgeleri (Muayene, Trafik Sigortası, Kasko)";
     var activeTab = Model.ActiveTab;
+    var activeSeasons = await SystemDefinitionService.GetActiveOptionNamesAsync(aractakipsys.Common.SystemDefinitionCategories.TireSeason);
 }
 
 <div class="row wrapper border-bottom white-bg page-heading mb-4">
@@ -215,13 +217,23 @@ else
 
                 <!-- 1. SEKME: FENNİ MUAYENE -->
                 <div class="tab-pane fade @(activeTab == "Inspection" ? "show active" : "")" id="inspectionTabPane" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap" style="gap: 10px;">
                         <h5 class="font-weight-bold text-dark m-0">
                             <i class="fa fa-history mr-1 text-primary"></i> Muayene Geçmişi (Tüm Yıllar)
                         </h5>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#addDocumentModal" onclick="$('#modalDocumentType').val('Inspection');">
-                            <i class="fa fa-plus mr-1"></i> Yeni Muayene Kaydı Ekle
-                        </button>
+                        <div class="d-flex" style="gap: 8px;">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-info" data-pdf-preview data-pdf-url="/Report/ExportInsuranceInspectionPdf?scope=Inspection&vehicleId=@(Model.SelectedVehicle?.Id)" title="Muayene Raporunu Önizle">
+                                    <i class="fa fa-eye mr-1"></i> Önizle
+                                </button>
+                                <a href="/Report/ExportInsuranceInspectionPdf?scope=Inspection&vehicleId=@(Model.SelectedVehicle?.Id)" class="btn btn-sm btn-outline-danger" title="Muayene Raporunu İndir">
+                                    <i class="fa fa-file-pdf-o mr-1"></i> İndir
+                                </a>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#addDocumentModal" onclick="$('#modalDocumentType').val('Inspection');">
+                                <i class="fa fa-plus mr-1"></i> Yeni Muayene Kaydı Ekle
+                            </button>
+                        </div>
                     </div>
 
                     @if (Model.InspectionDocuments.Count == 0)
@@ -305,13 +317,23 @@ else
 
                 <!-- 2. SEKME: TRAFİK SİGORTASI -->
                 <div class="tab-pane fade @(activeTab == "Insurance" ? "show active" : "")" id="insuranceTabPane" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap" style="gap: 10px;">
                         <h5 class="font-weight-bold text-dark m-0">
                             <i class="fa fa-history mr-1 text-primary"></i> Trafik Sigortası Geçmişi (Tüm Yıllar)
                         </h5>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#addDocumentModal" onclick="$('#modalDocumentType').val('Insurance');">
-                            <i class="fa fa-plus mr-1"></i> Yeni Sigorta Kaydı Ekle
-                        </button>
+                        <div class="d-flex" style="gap: 8px;">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-info" data-pdf-preview data-pdf-url="/Report/ExportInsuranceInspectionPdf?scope=Insurance&vehicleId=@(Model.SelectedVehicle?.Id)" title="Trafik Sigortası Raporunu Önizle">
+                                    <i class="fa fa-eye mr-1"></i> Önizle
+                                </button>
+                                <a href="/Report/ExportInsuranceInspectionPdf?scope=Insurance&vehicleId=@(Model.SelectedVehicle?.Id)" class="btn btn-sm btn-outline-danger" title="Trafik Sigortası Raporunu İndir">
+                                    <i class="fa fa-file-pdf-o mr-1"></i> İndir
+                                </a>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#addDocumentModal" onclick="$('#modalDocumentType').val('Insurance');">
+                                <i class="fa fa-plus mr-1"></i> Yeni Sigorta Kaydı Ekle
+                            </button>
+                        </div>
                     </div>
 
                     @if (Model.InsuranceDocuments.Count == 0)
@@ -395,13 +417,23 @@ else
 
                 <!-- 3. SEKME: KASKO -->
                 <div class="tab-pane fade @(activeTab == "Kasko" ? "show active" : "")" id="kaskoTabPane" role="tabpanel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap" style="gap: 10px;">
                         <h5 class="font-weight-bold text-dark m-0">
                             <i class="fa fa-history mr-1 text-primary"></i> Kasko Poliçeleri Geçmişi (Tüm Yıllar)
                         </h5>
-                        <button type="button" class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#addDocumentModal" onclick="$('#modalDocumentType').val('Kasko');">
-                            <i class="fa fa-plus mr-1"></i> Yeni Kasko Kaydı Ekle
-                        </button>
+                        <div class="d-flex" style="gap: 8px;">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-info" data-pdf-preview data-pdf-url="/Report/ExportInsuranceInspectionPdf?scope=Kasko&vehicleId=@(Model.SelectedVehicle?.Id)" title="Kasko Raporunu Önizle">
+                                    <i class="fa fa-eye mr-1"></i> Önizle
+                                </button>
+                                <a href="/Report/ExportInsuranceInspectionPdf?scope=Kasko&vehicleId=@(Model.SelectedVehicle?.Id)" class="btn btn-sm btn-outline-danger" title="Kasko Raporunu İndir">
+                                    <i class="fa fa-file-pdf-o mr-1"></i> İndir
+                                </a>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-toggle="modal" data-target="#addDocumentModal" onclick="$('#modalDocumentType').val('Kasko');">
+                                <i class="fa fa-plus mr-1"></i> Yeni Kasko Kaydı Ekle
+                            </button>
+                        </div>
                     </div>
 
                     @if (Model.KaskoDocuments.Count == 0)
@@ -490,14 +522,17 @@ else
                             <h5 class="font-weight-bold text-dark m-0">
                                 <i class="fa fa-circle-o-notch mr-1 text-primary"></i> Lastik Geçmişi ve Değişim Takibi
                             </h5>
-                            <small class="text-muted">Kullanım KM'si aracın güncel KM'sine (@Model.SelectedVehicle.CurrentKm.ToString("N0") km) göre anlık hesaplanmaktadır.</small>
+                            <small class="text-muted">Kullanım KM'si aracın güncel KM'sine (@(Model.SelectedVehicle?.CurrentKm.ToString("N0") ?? "0") km) göre anlık hesaplanmaktadır.</small>
                         </div>
                         <div class="d-flex" style="gap: 8px;">
                             <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-outline-info" data-pdf-preview data-pdf-url="/Vehicle/ExportTiresPdf" title="Lastik Kullanım Raporunu Önizle">
+                                <a href="/Report/Tires?vehicleId=@(Model.SelectedVehicle?.Id)" class="btn btn-sm btn-outline-secondary" title="Detaylı Lastik Raporuna Git">
+                                    <i class="fa fa-bar-chart mr-1"></i> Rapor
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-info" data-pdf-preview data-pdf-url="/Report/ExportTiresPdf?vehicleId=@(Model.SelectedVehicle?.Id)" title="Lastik Kullanım Raporunu Önizle">
                                     <i class="fa fa-eye mr-1"></i> Önizle
                                 </button>
-                                <a href="/Vehicle/ExportTiresPdf" class="btn btn-sm btn-outline-danger">
+                                <a href="/Report/ExportTiresPdf?vehicleId=@(Model.SelectedVehicle?.Id)" class="btn btn-sm btn-outline-danger" title="Lastik Raporunu İndir">
                                     <i class="fa fa-file-pdf-o mr-1"></i> İndir
                                 </a>
                             </div>
@@ -797,9 +832,11 @@ else
                         <div class="col-md-6 mb-3">
                             <label class="font-weight-bold text-dark">Mevsim <span class="text-danger">*</span></label>
                             <select name="Season" class="form-control" required>
-                                <option value="Yaz">Yaz</option>
-                                <option value="Kış">Kış</option>
-                                <option value="Dört Mevsim">Dört Mevsim</option>
+                                <option value="">-- Lastik Mevsimi Seçiniz --</option>
+                                @foreach (var s in activeSeasons)
+                                {
+                                    <option value="@s">@s</option>
+                                }
                             </select>
                         </div>
                     </div>
@@ -885,9 +922,11 @@ else
                         <div class="col-md-6 mb-3">
                             <label class="font-weight-bold text-dark">Mevsim <span class="text-danger">*</span></label>
                             <select name="Season" id="editTireSeason" class="form-control" required>
-                                <option value="Yaz">Yaz</option>
-                                <option value="Kış">Kış</option>
-                                <option value="Dört Mevsim">Dört Mevsim</option>
+                                <option value="">-- Lastik Mevsimi Seçiniz --</option>
+                                @foreach (var s in activeSeasons)
+                                {
+                                    <option value="@s">@s</option>
+                                }
                             </select>
                         </div>
                     </div>
@@ -974,7 +1013,10 @@ else
         $('#editTireBrand').val(brand || '');
         $('#editTireSize').val(size || '');
         $('#editTireDotDate').val(dot || '');
-        $('#editTireSeason').val(season || 'Yaz');
+        if (season && $('#editTireSeason option[value="' + season + '"]').length === 0) {
+            $('#editTireSeason').append(new Option(season + ' (Pasif)', season, true, true));
+        }
+        $('#editTireSeason').val(season || '');
         $('#editTireInstalledDate').val(installedDate || '');
         $('#editTireInstalledKm').val(installedKm || '');
         $('#editTireRecommendedReplaceKm').val(recKm || '');

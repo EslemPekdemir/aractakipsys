@@ -394,9 +394,27 @@ public class ReportService : IReportService
         var today = DateTime.Today;
         var threshold = today.AddDays(30);
 
+        // Araç listesini filtre dropdown'ı için hazırla
+        filter.VehicleList = await _context.Vehicles
+            .AsNoTracking()
+            .Where(v => !v.IsDeleted)
+            .OrderBy(v => v.PlateNumber)
+            .Select(v => new SelectListItem
+            {
+                Value = v.Id.ToString(),
+                Text = $"{v.PlateNumber} - {v.Brand} {v.Model}"
+            })
+            .ToListAsync();
+
         var query = _context.Vehicles
             .AsNoTracking()
             .Where(v => !v.IsDeleted);
+
+        // Tek Araç Filtresi
+        if (filter.VehicleId.HasValue && filter.VehicleId.Value > 0)
+        {
+            query = query.Where(v => v.Id == filter.VehicleId.Value);
+        }
 
         // Plaka / Marka / Model arama filtresi
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
@@ -425,11 +443,16 @@ public class ReportService : IReportService
                 {
                     query = query.Where(v => v.InspectionExpiryDate.Date < today);
                 }
+                else if (filter.Scope == ReportScopeType.Kasko)
+                {
+                    query = query.Where(v => v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate.Date < today));
+                }
                 else
                 {
                     query = query.Where(v => v.Status == VehicleStatus.DocumentExpired ||
                                              v.InsuranceExpiryDate.Date < today ||
-                                             v.InspectionExpiryDate.Date < today);
+                                             v.InspectionExpiryDate.Date < today ||
+                                             v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate.Date < today));
                 }
                 break;
 
@@ -442,11 +465,16 @@ public class ReportService : IReportService
                 {
                     query = query.Where(v => v.InspectionExpiryDate.Date >= today && v.InspectionExpiryDate.Date <= threshold);
                 }
+                else if (filter.Scope == ReportScopeType.Kasko)
+                {
+                    query = query.Where(v => v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate.Date >= today && d.EndDate.Date <= threshold));
+                }
                 else
                 {
                     query = query.Where(v => v.Status != VehicleStatus.DocumentExpired &&
                                              ((v.InsuranceExpiryDate.Date >= today && v.InsuranceExpiryDate.Date <= threshold) ||
-                                              (v.InspectionExpiryDate.Date >= today && v.InspectionExpiryDate.Date <= threshold)));
+                                              (v.InspectionExpiryDate.Date >= today && v.InspectionExpiryDate.Date <= threshold) ||
+                                              v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate.Date >= today && d.EndDate.Date <= threshold)));
                 }
                 break;
 
@@ -481,6 +509,21 @@ public class ReportService : IReportService
                         if (end.HasValue) query = query.Where(v => v.InspectionExpiryDate <= end.Value);
                     }
                 }
+                else if (filter.Scope == ReportScopeType.Kasko)
+                {
+                    if (isStartDateTarget)
+                    {
+                        if (start.HasValue && end.HasValue) query = query.Where(v => v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.StartDate >= start.Value && d.StartDate <= end.Value));
+                        else if (start.HasValue) query = query.Where(v => v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.StartDate >= start.Value));
+                        else if (end.HasValue) query = query.Where(v => v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.StartDate <= end.Value));
+                    }
+                    else
+                    {
+                        if (start.HasValue && end.HasValue) query = query.Where(v => v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate >= start.Value && d.EndDate <= end.Value));
+                        else if (start.HasValue) query = query.Where(v => v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate >= start.Value));
+                        else if (end.HasValue) query = query.Where(v => v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate <= end.Value));
+                    }
+                }
                 else // Scope == All
                 {
                     if (isStartDateTarget)
@@ -488,15 +531,18 @@ public class ReportService : IReportService
                         if (start.HasValue && end.HasValue)
                         {
                             query = query.Where(v => (v.InsuranceStartDate >= start.Value && v.InsuranceStartDate <= end.Value) ||
-                                                     (v.InspectionStartDate >= start.Value && v.InspectionStartDate <= end.Value));
+                                                     (v.InspectionStartDate >= start.Value && v.InspectionStartDate <= end.Value) ||
+                                                     v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.StartDate >= start.Value && d.StartDate <= end.Value));
                         }
                         else if (start.HasValue)
                         {
-                            query = query.Where(v => v.InsuranceStartDate >= start.Value || v.InspectionStartDate >= start.Value);
+                            query = query.Where(v => v.InsuranceStartDate >= start.Value || v.InspectionStartDate >= start.Value ||
+                                                     v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.StartDate >= start.Value));
                         }
                         else if (end.HasValue)
                         {
-                            query = query.Where(v => v.InsuranceStartDate <= end.Value || v.InspectionStartDate <= end.Value);
+                            query = query.Where(v => v.InsuranceStartDate <= end.Value || v.InspectionStartDate <= end.Value ||
+                                                     v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.StartDate <= end.Value));
                         }
                     }
                     else // ExpiryDate
@@ -504,15 +550,18 @@ public class ReportService : IReportService
                         if (start.HasValue && end.HasValue)
                         {
                             query = query.Where(v => (v.InsuranceExpiryDate >= start.Value && v.InsuranceExpiryDate <= end.Value) ||
-                                                     (v.InspectionExpiryDate >= start.Value && v.InspectionExpiryDate <= end.Value));
+                                                     (v.InspectionExpiryDate >= start.Value && v.InspectionExpiryDate <= end.Value) ||
+                                                     v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate >= start.Value && d.EndDate <= end.Value));
                         }
                         else if (start.HasValue)
                         {
-                            query = query.Where(v => v.InsuranceExpiryDate >= start.Value || v.InspectionExpiryDate >= start.Value);
+                            query = query.Where(v => v.InsuranceExpiryDate >= start.Value || v.InspectionExpiryDate >= start.Value ||
+                                                     v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate >= start.Value));
                         }
                         else if (end.HasValue)
                         {
-                            query = query.Where(v => v.InsuranceExpiryDate <= end.Value || v.InspectionExpiryDate <= end.Value);
+                            query = query.Where(v => v.InsuranceExpiryDate <= end.Value || v.InspectionExpiryDate <= end.Value ||
+                                                     v.Documents.Any(d => !d.IsDeleted && d.DocumentType == VehicleDocumentType.Kasko && d.EndDate <= end.Value));
                         }
                     }
                 }
@@ -590,14 +639,20 @@ public class ReportService : IReportService
                 InsuranceExpiryDate = latestInsuranceDoc != null ? latestInsuranceDoc.EndDate : v.InsuranceExpiryDate,
                 InsuranceDaysRemaining = (int)((latestInsuranceDoc != null ? latestInsuranceDoc.EndDate.Date : v.InsuranceExpiryDate.Date) - today).TotalDays,
                 InsuranceCost = insCost,
+                InsuranceCompanyName = latestInsuranceDoc?.CompanyName,
+                InsurancePolicyNumber = latestInsuranceDoc?.PolicyOrStationNumber,
                 InspectionStartDate = latestInspectionDoc != null ? latestInspectionDoc.StartDate : v.InspectionStartDate,
                 InspectionExpiryDate = latestInspectionDoc != null ? latestInspectionDoc.EndDate : v.InspectionExpiryDate,
                 InspectionDaysRemaining = (int)((latestInspectionDoc != null ? latestInspectionDoc.EndDate.Date : v.InspectionExpiryDate.Date) - today).TotalDays,
                 InspectionCost = inspCost,
+                InspectionStationName = latestInspectionDoc?.CompanyName,
+                InspectionPolicyNumber = latestInspectionDoc?.PolicyOrStationNumber,
                 KaskoStartDate = kaskoStart,
                 KaskoExpiryDate = kaskoEnd,
                 KaskoDaysRemaining = kaskoDaysRemaining,
-                KaskoCost = kaskoCost
+                KaskoCost = kaskoCost,
+                KaskoCompanyName = latestKaskoDoc?.CompanyName,
+                KaskoPolicyNumber = latestKaskoDoc?.PolicyOrStationNumber
             };
         })
         .OrderBy(v => Math.Min(v.InspectionDaysRemaining, v.InsuranceDaysRemaining))
@@ -609,12 +664,14 @@ public class ReportService : IReportService
         {
             ReportScopeType.Insurance => items.Count(x => x.IsInsuranceExpired),
             ReportScopeType.Inspection => items.Count(x => x.IsInspectionExpired),
+            ReportScopeType.Kasko => items.Count(x => x.IsKaskoExpired),
             _ => items.Count(x => x.HasAnyExpired)
         };
         int expiringSoonCount = filter.Scope switch
         {
             ReportScopeType.Insurance => items.Count(x => x.IsInsuranceExpiringSoon),
             ReportScopeType.Inspection => items.Count(x => x.IsInspectionExpiringSoon),
+            ReportScopeType.Kasko => items.Count(x => x.IsKaskoExpiringSoon),
             _ => items.Count(x => x.HasAnyExpiringSoon)
         };
         int validCount = totalVehiclesCount - expiredCount - expiringSoonCount;
@@ -640,7 +697,7 @@ public class ReportService : IReportService
         };
     }
 
-    public async Task<VehicleRequestReportViewModel> GetVehicleRequestReportAsync(VehicleRequestReportFilterViewModel filter)
+    public async Task<VehicleRequestReportViewModel> GetVehicleRequestReportAsync(VehicleRequestReportFilterViewModel filter, bool paged = true)
     {
         var query = _context.VehicleRequests.AsNoTracking().Where(r => !r.IsDeleted);
 
@@ -703,10 +760,21 @@ public class ReportService : IReportService
             dateRangeText = $"{filter.EndDate.Value:dd.MM.yyyy} Tarihine Kadar";
         }
 
+        var totalCount = grouped.Count;
+        var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;
+        var pageSize = filter.PageSize < 1 ? 7 : filter.PageSize;
+
+        var displayItems = paged
+            ? grouped.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList()
+            : grouped;
+
         return new VehicleRequestReportViewModel
         {
             Filter = filter,
-            Items = grouped,
+            Items = displayItems,
+            TotalCount = totalCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
             GrandTotalRequests = grouped.Sum(x => x.TotalRequests),
             GrandTotalFulfilled = grouped.Sum(x => x.FulfilledCount),
             GrandTotalRejected = grouped.Sum(x => x.RejectedCount),

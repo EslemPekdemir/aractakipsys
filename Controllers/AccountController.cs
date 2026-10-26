@@ -136,6 +136,7 @@ public class AccountController : Controller
         if (result.Succeeded)
         {
             _logger.LogInformation("Kullanıcı giriş yaptı: {Username}", user.UserName);
+            TempData["JustLoggedIn"] = true;
 
             var roles = await _userManager.GetRolesAsync(user);
             var isDriver = roles.Contains("Driver");

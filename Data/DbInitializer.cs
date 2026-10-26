@@ -1101,6 +1101,279 @@ public static class DbInitializer
         {
             await context.SaveChangesAsync();
         }
+
+        // 7. SİSTEM TANIMLARI SEED VE MEVCUT VERİ İÇE AKTARMA (Madde 3 & 6)
+        await SeedSystemDefinitionsAsync(context, logger);
+    }
+
+    /// <summary>
+    /// Sistem Tanımları (Dinamik Seçenek Listeleri) varsayılan değerlerini ve veritabanında gerçekten kullanılan tüm değerleri içe aktarır.
+    /// </summary>
+    private static async Task SeedSystemDefinitionsAsync(ApplicationDbContext context, ILogger logger)
+    {
+        var defaults = new List<(string Category, string Name, int Order)>
+        {
+            // Lastik Mevsimi
+            (aractakipsys.Common.SystemDefinitionCategories.TireSeason, "Yazlık", 1),
+            (aractakipsys.Common.SystemDefinitionCategories.TireSeason, "Kışlık", 2),
+            (aractakipsys.Common.SystemDefinitionCategories.TireSeason, "4 Mevsim", 3),
+
+            // Yakıt Tipi
+            (aractakipsys.Common.SystemDefinitionCategories.FuelType, "Dizel", 1),
+            (aractakipsys.Common.SystemDefinitionCategories.FuelType, "Benzin", 2),
+            (aractakipsys.Common.SystemDefinitionCategories.FuelType, "LPG", 3),
+            (aractakipsys.Common.SystemDefinitionCategories.FuelType, "Elektrik", 4),
+            (aractakipsys.Common.SystemDefinitionCategories.FuelType, "Hibrit", 5),
+
+            // Araç Türü (Filo)
+            (aractakipsys.Common.SystemDefinitionCategories.VehicleType, "Sedan", 1),
+            (aractakipsys.Common.SystemDefinitionCategories.VehicleType, "Minibüs", 2),
+            (aractakipsys.Common.SystemDefinitionCategories.VehicleType, "Panelvan", 3),
+            (aractakipsys.Common.SystemDefinitionCategories.VehicleType, "Kamyonet", 4),
+            (aractakipsys.Common.SystemDefinitionCategories.VehicleType, "Otobüs", 5),
+            (aractakipsys.Common.SystemDefinitionCategories.VehicleType, "Diğer", 6),
+
+            // Bakım / Servis Türü
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Periyodik Bakım", 1),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Ağır Bakım / Triger", 2),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Yağ ve Filtre Değişimi", 3),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Fren Sistemi ve Balata Değişimi", 4),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Lastik Değişimi / Rot-Balans", 5),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Akü ve Elektrik Aksamı", 6),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Kaporta / Boya Onarımı", 7),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "TÜVTÜRK Muayene Hazırlık", 8),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Klima ve Kalorifer Bakımı", 9),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Şanzıman ve Debriyaj", 10),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Süspansiyon ve Ön Takım", 11),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Egzoz ve Emisyon", 12),
+            (aractakipsys.Common.SystemDefinitionCategories.MaintenanceType, "Genel Arıza Tespiti", 13),
+
+            // Ehliyet Sınıfı
+            (aractakipsys.Common.SystemDefinitionCategories.LicenseClass, "B", 1),
+            (aractakipsys.Common.SystemDefinitionCategories.LicenseClass, "C", 2),
+            (aractakipsys.Common.SystemDefinitionCategories.LicenseClass, "D", 3),
+            (aractakipsys.Common.SystemDefinitionCategories.LicenseClass, "E", 4),
+            (aractakipsys.Common.SystemDefinitionCategories.LicenseClass, "CE", 5),
+            (aractakipsys.Common.SystemDefinitionCategories.LicenseClass, "D1", 6),
+            (aractakipsys.Common.SystemDefinitionCategories.LicenseClass, "B1", 7),
+            (aractakipsys.Common.SystemDefinitionCategories.LicenseClass, "A2", 8)
+        };
+
+        var existingDefs = await context.SystemDefinitions
+            .Where(x => !x.IsDeleted)
+            .ToListAsync();
+
+        bool hasChanges = false;
+        int defaultAddedCount = 0;
+        int importedFromDataCount = 0;
+
+        // A) Varsayılan değerleri "yoksa ekle" mantığıyla tanımla
+        foreach (var (cat, name, order) in defaults)
+        {
+            var normalized = aractakipsys.Common.SystemDefinitionCategories.NormalizeName(name);
+            var exists = existingDefs.Any(x => x.CategoryKey == cat && x.NormalizedName == normalized);
+            if (!exists)
+            {
+                var def = new aractakipsys.Models.Entities.SystemDefinition
+                {
+                    CategoryKey = cat,
+                    Name = name,
+                    NormalizedName = normalized,
+                    DisplayOrder = order,
+                    IsActive = true,
+                    IsSystemDefault = true,
+                    CreatedBy = "SystemSeed",
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.SystemDefinitions.Add(def);
+                existingDefs.Add(def);
+                hasChanges = true;
+                defaultAddedCount++;
+            }
+        }
+
+        // B) Mevcut tablolarda gerçekten kullanılan farklı değerleri içe aktar (Madde 3)
+        // 1. Lastik Mevsimi (VehicleTires.Season ve Vehicles.TireSeason)
+        var usedSeasons = await context.VehicleTires
+            .Where(t => !t.IsDeleted && !string.IsNullOrWhiteSpace(t.Season))
+            .Select(t => t.Season.Trim())
+            .Distinct()
+            .ToListAsync();
+
+        var usedVehSeasons = await context.Vehicles
+            .Where(v => !v.IsDeleted && !string.IsNullOrWhiteSpace(v.TireSeason))
+            .Select(v => v.TireSeason!.Trim())
+            .Distinct()
+            .ToListAsync();
+
+        usedSeasons.AddRange(usedVehSeasons);
+
+        foreach (var s in usedSeasons.Distinct())
+        {
+            var norm = aractakipsys.Common.SystemDefinitionCategories.NormalizeName(s);
+            if (!existingDefs.Any(x => x.CategoryKey == aractakipsys.Common.SystemDefinitionCategories.TireSeason && x.NormalizedName == norm))
+            {
+                var def = new aractakipsys.Models.Entities.SystemDefinition
+                {
+                    CategoryKey = aractakipsys.Common.SystemDefinitionCategories.TireSeason,
+                    Name = s,
+                    NormalizedName = norm,
+                    DisplayOrder = 99,
+                    IsActive = true,
+                    IsSystemDefault = false,
+                    CreatedBy = "DataImport",
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.SystemDefinitions.Add(def);
+                existingDefs.Add(def);
+                hasChanges = true;
+                importedFromDataCount++;
+            }
+        }
+
+        // 2. Yakıt Tipi (Vehicles.FuelType)
+        var usedFuels = await context.Vehicles
+            .Where(v => !v.IsDeleted && !string.IsNullOrWhiteSpace(v.FuelType))
+            .Select(v => v.FuelType.Trim())
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var f in usedFuels)
+        {
+            var norm = aractakipsys.Common.SystemDefinitionCategories.NormalizeName(f);
+            if (!existingDefs.Any(x => x.CategoryKey == aractakipsys.Common.SystemDefinitionCategories.FuelType && x.NormalizedName == norm))
+            {
+                var def = new aractakipsys.Models.Entities.SystemDefinition
+                {
+                    CategoryKey = aractakipsys.Common.SystemDefinitionCategories.FuelType,
+                    Name = f,
+                    NormalizedName = norm,
+                    DisplayOrder = 99,
+                    IsActive = true,
+                    IsSystemDefault = false,
+                    CreatedBy = "DataImport",
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.SystemDefinitions.Add(def);
+                existingDefs.Add(def);
+                hasChanges = true;
+                importedFromDataCount++;
+            }
+        }
+
+        // 3. Araç Türü (Vehicles.VehicleType)
+        var usedVehTypes = await context.Vehicles
+            .Where(v => !v.IsDeleted && !string.IsNullOrWhiteSpace(v.VehicleType))
+            .Select(v => v.VehicleType.Trim())
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var vt in usedVehTypes)
+        {
+            var norm = aractakipsys.Common.SystemDefinitionCategories.NormalizeName(vt);
+            if (!existingDefs.Any(x => x.CategoryKey == aractakipsys.Common.SystemDefinitionCategories.VehicleType && x.NormalizedName == norm))
+            {
+                var def = new aractakipsys.Models.Entities.SystemDefinition
+                {
+                    CategoryKey = aractakipsys.Common.SystemDefinitionCategories.VehicleType,
+                    Name = vt,
+                    NormalizedName = norm,
+                    DisplayOrder = 99,
+                    IsActive = true,
+                    IsSystemDefault = false,
+                    CreatedBy = "DataImport",
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.SystemDefinitions.Add(def);
+                existingDefs.Add(def);
+                hasChanges = true;
+                importedFromDataCount++;
+            }
+        }
+
+        // 4. Bakım Türü (Maintenances.MaintenanceType)
+        var usedMaintTypes = await context.Maintenances
+            .Where(m => !m.IsDeleted && !string.IsNullOrWhiteSpace(m.MaintenanceType))
+            .Select(m => m.MaintenanceType.Trim())
+            .Distinct()
+            .ToListAsync();
+
+        foreach (var mt in usedMaintTypes)
+        {
+            var norm = aractakipsys.Common.SystemDefinitionCategories.NormalizeName(mt);
+            if (!existingDefs.Any(x => x.CategoryKey == aractakipsys.Common.SystemDefinitionCategories.MaintenanceType && x.NormalizedName == norm))
+            {
+                var def = new aractakipsys.Models.Entities.SystemDefinition
+                {
+                    CategoryKey = aractakipsys.Common.SystemDefinitionCategories.MaintenanceType,
+                    Name = mt,
+                    NormalizedName = norm,
+                    DisplayOrder = 99,
+                    IsActive = true,
+                    IsSystemDefault = false,
+                    CreatedBy = "DataImport",
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.SystemDefinitions.Add(def);
+                existingDefs.Add(def);
+                hasChanges = true;
+                importedFromDataCount++;
+            }
+        }
+
+        // 5. Ehliyet Sınıfı (DriverLicenses.LicenseClass ve Drivers.LicenseClass)
+        var usedLicenses = await context.DriverLicenses
+            .Where(l => !l.IsDeleted && !string.IsNullOrWhiteSpace(l.LicenseClass))
+            .Select(l => l.LicenseClass.Trim())
+            .Distinct()
+            .ToListAsync();
+
+        var driverClasses = await context.Drivers
+            .Where(d => !d.IsDeleted && !string.IsNullOrWhiteSpace(d.LicenseClass))
+            .Select(d => d.LicenseClass!)
+            .ToListAsync();
+
+        foreach (var dc in driverClasses)
+        {
+            var parts = dc.Split(new[] { ',', ';', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var p in parts)
+            {
+                if (!string.IsNullOrWhiteSpace(p))
+                {
+                    usedLicenses.Add(p.Trim());
+                }
+            }
+        }
+
+        foreach (var lic in usedLicenses.Distinct())
+        {
+            var norm = aractakipsys.Common.SystemDefinitionCategories.NormalizeName(lic);
+            if (!existingDefs.Any(x => x.CategoryKey == aractakipsys.Common.SystemDefinitionCategories.LicenseClass && x.NormalizedName == norm))
+            {
+                var def = new aractakipsys.Models.Entities.SystemDefinition
+                {
+                    CategoryKey = aractakipsys.Common.SystemDefinitionCategories.LicenseClass,
+                    Name = lic,
+                    NormalizedName = norm,
+                    DisplayOrder = 99,
+                    IsActive = true,
+                    IsSystemDefault = false,
+                    CreatedBy = "DataImport",
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.SystemDefinitions.Add(def);
+                existingDefs.Add(def);
+                hasChanges = true;
+                importedFromDataCount++;
+            }
+        }
+
+        if (hasChanges)
+        {
+            await context.SaveChangesAsync();
+            logger.LogInformation("Sistem Tanımları Başarıyla İçe Aktarıldı! Eklenen Varsayılan: {DefaultCount}, Gerçek Veriden İçe Aktarılan: {ImportedCount}",
+                defaultAddedCount, importedFromDataCount);
+        }
     }
 
     /// <summary>

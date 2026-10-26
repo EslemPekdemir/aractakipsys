@@ -26,5 +26,5 @@ public interface IVehicleService
     Task<(bool Success, string Message)> AddVehicleTireAsync(VehicleTireCreateViewModel model, string userId);
     Task<(bool Success, string Message)> UpdateVehicleTireAsync(int id, VehicleTireCreateViewModel model, string userId);
     Task<(bool Success, string Message)> DeleteVehicleTireAsync(int id, string userId);
-    Task<List<VehicleTireItemViewModel>> GetAllCurrentTiresReportAsync();
+    Task<List<VehicleTireItemViewModel>> GetAllCurrentTiresReportAsync(int? vehicleId = null);
 }

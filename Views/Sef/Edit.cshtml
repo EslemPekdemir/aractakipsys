@@ -114,7 +114,7 @@
                             <span asp-validation-for="PhoneNumber" class="text-danger small font-weight-bold"></span>
                         </div>
 
-                        <!-- HESAP DURUMU -->
+                        <!-- HESAP DURUMU (Pasife Alma / Aktifleştirme) -->
                         <div class="form-group mb-4">
                             <div class="custom-control custom-checkbox">
                                 <input type="checkbox" asp-for="IsActive" class="custom-control-input" id="checkIsActive" />
@@ -122,27 +122,30 @@
                                     Hesap Aktif (Şef sisteme giriş yapabilir ve işlem yürütebilir)
                                 </label>
                             </div>
-                            <small class="text-muted d-block mt-1">İşareti kaldırırsanız hesap dondurulur ve şef oturum açamaz.</small>
+                            <small class="text-muted d-block mt-1">İşareti kaldırırsanız hesap dondurulur/pasife alınır ve şef oturum açamaz. Hesabı tamamen kaldırmak için "Hesabı Sil" butonunu kullanınız.</small>
                         </div>
 
-                        <!-- SUBMIT -->
+                        <!-- SUBMIT & AKSİYON BUTONLARI -->
+                        @{
+                            var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                            var isSelf = !string.IsNullOrWhiteSpace(currentUserId) && Model.Id == currentUserId;
+                        }
                         <div class="d-flex justify-content-between align-items-center pt-3 border-top">
                             <div>
                                 <a href="/Sef" class="btn btn-outline-secondary font-weight-bold px-3">
                                     İptal
                                 </a>
-                                <button type="submit" form="deleteSefForm" class="btn btn-outline-danger font-weight-bold px-3 ml-2" onclick="return confirm('@Model.FullName hesabını pasife almak (dondurmak) istediğinize emin misiniz? Sistem denetim ve görev geçmişi korunacaktır.');">
-                                    <i class="fa fa-trash mr-1"></i> Hesabı Pasife Al (Sil)
-                                </button>
+                                @if (!isSelf)
+                                {
+                                    <button type="button" class="btn btn-outline-danger font-weight-bold px-3 ml-2" data-toggle="modal" data-target="#deleteSefModal">
+                                        <i class="fa fa-trash mr-1"></i> Hesabı Sil
+                                    </button>
+                                }
                             </div>
                             <button type="submit" class="btn btn-primary font-weight-bold px-4 shadow-sm">
                                 <i class="fa fa-check mr-1"></i> Değişiklikleri Kaydet
                             </button>
                         </div>
-                    </form>
-
-                    <form id="deleteSefForm" method="post" action="/Sef/Delete/@Model.Id" class="d-none">
-                        @Html.AntiForgeryToken()
                     </form>
                 </div>
             </div>
@@ -152,4 +155,45 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <!-- SİLME ONAY MODALI (layout'ta </body> öncesine render edilir, backdrop kilitlenmesi kesinlikle yaşanmaz) -->
+    <div class="modal fade" id="deleteSefModal" tabindex="-1" role="dialog" aria-labelledby="deleteSefModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title font-weight-bold" id="deleteSefModalLabel">
+                        <i class="fa fa-exclamation-triangle mr-2"></i> Hesabı Silme Onayı
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="font-weight-bold text-dark font-15 mb-2">
+                        Bu hesabı silmek istediğinize emin misiniz?
+                    </p>
+                    <div class="alert alert-warning py-2 px-3 small mb-0">
+                        <i class="fa fa-info-circle mr-1"></i>
+                        <strong>@Model.FullName</strong> (<code>@Model.UserName</code>) hesabı sistemden kaldırılacaktır. Kullanıcı artık sisteme giriş yapamaz. Geçmiş görev, denetim (AuditLog) ve vekâlet kayıtları korunacaktır.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary font-weight-bold" data-dismiss="modal">Vazgeç</button>
+                    <form method="post" action="/Sef/Delete/@Model.Id" class="d-inline m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger font-weight-bold shadow-sm">
+                            <i class="fa fa-trash mr-1"></i> Evet, Hesabı Sil
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            // Modal'ın doğrudan body altına taşınması (iç içe backdrop ve CSS transform kilitlenmelerini kesinlikle önler)
+            $('#deleteSefModal').appendTo('body');
+        });
+    </script>
 }

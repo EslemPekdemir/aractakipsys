@@ -83,6 +83,7 @@ builder.Services.AddScoped<ICaptchaService, CaptchaService>();
 builder.Services.AddScoped<IFaultReportService, FaultReportService>();
 builder.Services.AddScoped<IKmValidationService, KmValidationService>();
 builder.Services.AddScoped<IRoleDelegationService, RoleDelegationService>();
+builder.Services.AddScoped<ISystemDefinitionService, SystemDefinitionService>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, aractakipsys.Common.DelegationClaimsTransformation>();
 
 // 3.2 Arka Plan Servisleri (Background / Hosted Services)

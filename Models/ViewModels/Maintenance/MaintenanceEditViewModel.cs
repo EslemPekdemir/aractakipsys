@@ -40,4 +40,5 @@ public class MaintenanceEditViewModel
     public decimal? Cost { get; set; }
 
     public List<SelectListItem> AvailableVehicles { get; set; } = new();
+    public List<SelectListItem> AvailableMaintenanceTypes { get; set; } = new();
 }

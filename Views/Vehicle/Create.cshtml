@@ -1,8 +1,12 @@
 <!-- File: Views/Vehicle/Create.cshtml -->
 @model aractakipsys.Models.ViewModels.Vehicle.VehicleCreateViewModel
+@inject aractakipsys.Services.Interfaces.ISystemDefinitionService SystemDefinitionService
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Yeni Araç Ekle";
+    var activeVehicleTypes = await SystemDefinitionService.GetActiveOptionNamesAsync(aractakipsys.Common.SystemDefinitionCategories.VehicleType);
+    var activeFuelTypes = await SystemDefinitionService.GetActiveOptionNamesAsync(aractakipsys.Common.SystemDefinitionCategories.FuelType);
+    var activeTireSeasons = await SystemDefinitionService.GetActiveOptionNamesAsync(aractakipsys.Common.SystemDefinitionCategories.TireSeason);
 }
 
 <div class="row wrapper border-bottom white-bg page-heading mb-4">
@@ -180,40 +184,24 @@
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
                                     <label asp-for="VehicleType" class="font-weight-bold">Araç Tipi <span class="text-danger">*</span></label>
-                                    <input asp-for="VehicleType" list="vehicleTypeSuggestions" class="form-control" placeholder="Seçiniz veya yazınız (Örn: Sedan, SUV, Minibüs...)" autocomplete="off" />
-                                    <datalist id="vehicleTypeSuggestions">
-                                        <option value="Sedan" />
-                                        <option value="Hatchback" />
-                                        <option value="SUV" />
-                                        <option value="Crossover" />
-                                        <option value="Station Wagon" />
-                                        <option value="Minibüs" />
-                                        <option value="Midibüs" />
-                                        <option value="Otobüs" />
-                                        <option value="Panelvan" />
-                                        <option value="Kamyonet" />
-                                        <option value="Pikap" />
-                                        <option value="Kamyon" />
-                                        <option value="Makam Aracı" />
-                                        <option value="Hizmet Aracı" />
-                                        <option value="Diğer" />
-                                    </datalist>
+                                    <select asp-for="VehicleType" class="form-control">
+                                        <option value="">-- Araç Tipi Seçiniz --</option>
+                                        @foreach (var vt in activeVehicleTypes)
+                                        {
+                                            <option value="@vt">@vt</option>
+                                        }
+                                    </select>
                                     <span asp-validation-for="VehicleType" class="text-danger small font-weight-bold"></span>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <label asp-for="FuelType" class="font-weight-bold">Yakıt Tipi <span class="text-danger">*</span></label>
-                                    <input asp-for="FuelType" list="fuelTypeSuggestions" class="form-control" placeholder="Seçiniz veya yazınız (Örn: Dizel, Benzin...)" autocomplete="off" />
-                                    <datalist id="fuelTypeSuggestions">
-                                        <option value="Dizel" />
-                                        <option value="Benzin" />
-                                        <option value="LPG" />
-                                        <option value="Benzin & LPG" />
-                                        <option value="Hibrit" />
-                                        <option value="Plug-in Hibrit (PHEV)" />
-                                        <option value="Elektrik" />
-                                        <option value="CNG (Doğalgaz)" />
-                                        <option value="Diğer" />
-                                    </datalist>
+                                    <select asp-for="FuelType" class="form-control">
+                                        <option value="">-- Yakıt Tipi Seçiniz --</option>
+                                        @foreach (var ft in activeFuelTypes)
+                                        {
+                                            <option value="@ft">@ft</option>
+                                        }
+                                    </select>
                                     <span asp-validation-for="FuelType" class="text-danger small font-weight-bold"></span>
                                 </div>
                             </div>
@@ -237,15 +225,13 @@
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <label asp-for="TireSeason" class="font-weight-bold">Lastik Mevsimi</label>
-                                    <input asp-for="TireSeason" list="tireSeasonSuggestions" class="form-control" placeholder="Seçiniz veya yazınız (Örn: 4 Mevsim...)" autocomplete="off" />
-                                    <datalist id="tireSeasonSuggestions">
-                                        <option value="Yazlık" />
-                                        <option value="Kışlık" />
-                                        <option value="4 Mevsim" />
-                                        <option value="Dört Mevsim (M+S)" />
-                                        <option value="Çivili Kışlık" />
-                                        <option value="Arazi / All-Terrain (A/T)" />
-                                    </datalist>
+                                    <select asp-for="TireSeason" class="form-control">
+                                        <option value="">-- Lastik Mevsimi Seçiniz (Opsiyonel) --</option>
+                                        @foreach (var ts in activeTireSeasons)
+                                        {
+                                            <option value="@ts">@ts</option>
+                                        }
+                                    </select>
                                     <span asp-validation-for="TireSeason" class="text-danger small font-weight-bold"></span>
                                 </div>
                             </div>

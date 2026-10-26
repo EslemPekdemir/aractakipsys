@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace aractakipsys.Controllers;
 
-[Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
+[Authorize(Roles = AppRoles.ManagementAndAudit)]
 public class SefController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -79,6 +79,7 @@ public class SefController : Controller
     /// GET: /Sef/Create
     /// </summary>
     [HttpGet]
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
     public IActionResult Create()
     {
         return View(new SefCreateViewModel());
@@ -88,6 +89,7 @@ public class SefController : Controller
     /// POST: /Sef/Create
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(SefCreateViewModel model)
     {
@@ -180,6 +182,7 @@ public class SefController : Controller
     /// GET: /Sef/Edit/{id}
     /// </summary>
     [HttpGet]
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
     public async Task<IActionResult> Edit(string id)
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -233,6 +236,7 @@ public class SefController : Controller
     /// POST: /Sef/Edit
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(SefEditViewModel model)
     {
@@ -305,6 +309,15 @@ public class SefController : Controller
             return View(model);
         }
 
+        if (!user.IsActive)
+        {
+            // DÜZELTME 7b: Hesap pasifleştirilirse aktif vekâletler otomatik iptal edilsin
+            await _roleDelegationService.AutoRevokeDelegationsForUserAsync(
+                user.Id, 
+                currentAdmin?.Id ?? "System", 
+                "Kullanıcı hesabı düzenleme ekranında pasifleştirildiği için vekâlet otomatik sonlandırıldı.");
+        }
+
         await _auditLogService.LogAsync(
             nameof(ApplicationUser),
             0,
@@ -327,6 +340,7 @@ public class SefController : Controller
     /// POST: /Sef/ToggleStatus/{id}
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStatus(string id)
     {
@@ -390,6 +404,7 @@ public class SefController : Controller
     /// POST: /Sef/ResetPassword
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetPassword(SefResetPasswordViewModel model)
     {
@@ -447,44 +462,51 @@ public class SefController : Controller
 
     /// <summary>
     /// POST: /Sef/Delete/{id}
+    /// Yumuşak Silme (Soft-Delete): Hesap pasife alınır, kilitlenir ve yetkili rollerden çıkarılır.
+    /// Böylece listeden kalkar ve giriş yapamaz; ancak AspNetUsers kaydı, Id ve ilişkili tüm geçmiş kayıtlar (AuditLog, Görevler, Vekâletler) korunur.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = AppRoles.AdminOrDaireBaskani)]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(string id)
+    public async Task<IActionResult> Delete(string? id, [FromForm] string? userId)
     {
-        var user = await _userManager.FindByIdAsync(id);
+        var targetId = !string.IsNullOrWhiteSpace(id) ? id : userId;
+        if (string.IsNullOrWhiteSpace(targetId))
+        {
+            TempData["ErrorMessage"] = "İşlem yapılacak kullanıcı bulunamadı.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var user = await _userManager.FindByIdAsync(targetId);
         if (user == null)
         {
             TempData["ErrorMessage"] = "İşlem yapılacak kullanıcı bulunamadı.";
             return RedirectToAction(nameof(Index));
         }
 
-        // Güvenlik Kontrolü: Daire Başkanı Admin/Daire Başkanı/Genel Sekreter'i silemez!
+        // Güvenlik Kontrolü 1: Kendi hesabını silme engeli
+        var currentAdmin = await _userManager.GetUserAsync(User);
+        if (currentAdmin?.Id == user.Id)
+        {
+            TempData["ErrorMessage"] = "Kendi hesabınızı silemezsiniz.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Güvenlik Kontrolü 2: Daire Başkanı yalnızca Şef ve Şoför hesaplarını silebilir; Admin/DaireBaskani/GenelSekreter silemez!
         var isTargetProtected = await _userManager.IsInRoleAsync(user, AppRoles.Admin) ||
                                 await _userManager.IsInRoleAsync(user, AppRoles.DaireBaskani) ||
                                 await _userManager.IsInRoleAsync(user, AppRoles.GenelSekreter);
 
         if (isTargetProtected && !User.IsAdmin())
         {
-            TempData["ErrorMessage"] = "Yönetici (Admin, Daire Başkanı, Genel Sekreter) hesaplarını silme veya pasife alma yetkiniz yoktur.";
+            TempData["ErrorMessage"] = "Yönetici (Admin, Daire Başkanı, Genel Sekreter) hesaplarını silme yetkiniz yoktur.";
             return RedirectToAction(nameof(Index));
         }
 
-        // Kendi hesabını pasife alma engeli
-        var currentAdmin = await _userManager.GetUserAsync(User);
-        if (currentAdmin?.Id == user.Id)
-        {
-            TempData["ErrorMessage"] = "Kendi hesabınızı silemez veya pasife alamazsınız.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        if (!user.IsActive)
-        {
-            TempData["ErrorMessage"] = $"'{user.FullName}' hesabı zaten dondurulmuş (pasif) durumdadır.";
-            return RedirectToAction(nameof(Index));
-        }
-
+        // 1. Hesap pasife alınır ve kilitlenir (giriş yapamaz)
         user.IsActive = false;
+        user.LockoutEnabled = true;
+        user.LockoutEnd = DateTimeOffset.MaxValue;
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
         {
@@ -492,12 +514,24 @@ public class SefController : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        // DÜZELTME 7b: Hesap silindiğinde/pasife alındığında aktif vekâletler otomatik iptal edilsin
+        // 2. Yetkili rollerden çıkarılır (Sef/Yetkili listesinden kalkması için)
+        var userRoles = await _userManager.GetRolesAsync(user);
+        if (userRoles.Any())
+        {
+            var removeRolesResult = await _userManager.RemoveFromRolesAsync(user, userRoles);
+            if (!removeRolesResult.Succeeded)
+            {
+                _logger.LogWarning("Kullanıcı rollerden çıkarılırken uyarı: {Errors}", string.Join(", ", removeRolesResult.Errors.Select(e => e.Description)));
+            }
+        }
+
+        // 3. Aktif vekâletler otomatik iptal edilsin (DÜZELTME 7b)
         await _roleDelegationService.AutoRevokeDelegationsForUserAsync(
             user.Id, 
             currentAdmin?.Id ?? "System", 
-            "Kullanıcı hesabı silindiği/pasife alındığı için vekâlet otomatik sonlandırıldı.");
+            "Kullanıcı hesabı silindiği için vekâlet otomatik sonlandırıldı.");
 
+        // 4. Audit Log kaydı
         await _auditLogService.LogAsync(
             nameof(ApplicationUser),
             0,
@@ -506,17 +540,18 @@ public class SefController : Controller
             currentAdmin?.FullName,
             new
             {
-                DeactivatedUserId = user.Id,
+                DeletedUserId = user.Id,
                 user.UserName,
                 user.FullName,
                 user.Email,
+                PreviousRoles = userRoles,
                 ActionType = "SoftDelete"
             });
 
-        _logger.LogInformation("Kullanıcı hesabı pasife alındı (Soft-Delete): {UserName} ({FullName}) - İşlemi Yapan: {Actor}",
+        _logger.LogInformation("Kullanıcı hesabı silindi (Soft-Delete): {UserName} ({FullName}) - İşlemi Yapan: {Actor}",
             user.UserName, user.FullName, User.Identity?.Name);
 
-        TempData["SuccessMessage"] = $"'{user.FullName}' ({user.UserName}) hesabı başarıyla pasife alındı (donduruldu). Geçmiş işlem ve denetim kayıtları korundu.";
+        TempData["SuccessMessage"] = $"'{user.FullName}' ({user.UserName}) hesabı başarıyla silindi. Geçmiş görev ve denetim kayıtları korundu.";
         return RedirectToAction(nameof(Index));
     }
 }

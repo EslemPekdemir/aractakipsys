@@ -685,3 +685,97 @@ Vekil bir kullanıcı işlem yaptığında "Ahmet Şef adına Ali Demir tarafın
 |---|---|---|
 | `OnBehalfOfUserId` | `nvarchar(450)` (NULL) | Adına işlem yapılan asıl yetkili kullanıcı ID'si. `FK -> AspNetUsers.Id` (`DeleteBehavior.Restrict`). |
 | `DelegationId` | `int` (NULL) | İşlemin yapıldığı esnada yürürlükte olan yetki devri kaydı ID'si. `FK -> RoleDelegations.Id` (`DeleteBehavior.Restrict`). |
+
+---
+
+## 23. SİSTEM TANIMLARI (DİNAMİK SEÇENEK LİSTELERİ) — `SystemDefinitions` TABLOSU
+
+Admin ve Daire Başkanı tarafından formlardaki seçenek listelerine yeni seçenek eklenmesini, adlarının düzenlenmesini (kullanımda olmayanlar için) ve aktif/pasif durumlarının yönetilmesini sağlayan merkezi dinamik seçenek tablosudur. `BaseAuditableEntity` taban sınıfından türer (`Id`, `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`, `IsDeleted`).
+
+### 23.1 `SystemDefinitions` Tablo Şeması
+
+| Kolon Adı | Veri Tipi | Kısıtlamalar & Açıklama |
+|---|---|---|
+| `Id` | `int` | Primary Key, Identity. |
+| `CategoryKey` | `nvarchar(50)` | Seçenek kategorisi (beyaz liste: `TireSeason`, `FuelType`, `MaintenanceType`, `VehicleType`, `LicenseClass`). Zorunlu. |
+| `Name` | `nvarchar(150)` | Ekranda ve form dropdown'larında gösterilen orijinal seçenek adı. Zorunlu. |
+| `NormalizedName` | `nvarchar(150)` | Büyük/küçük harf ve Türkçe karakter duyarsız arama ve tekillik kontrolü için `ToUpper(tr-TR)` normalizasyonu. Zorunlu. |
+| `DisplayOrder` | `int` | Dropdown ve tablolardaki sıralama önceliği (küçükten büyüğe). Default 0. |
+| `IsActive` | `bit` | Seçeneğin aktif/pasif durumu. Pasif seçenekler yeni kayıtlarda seçilemez. Default true (1). |
+| `IsSystemDefault` | `bit` | Sistemin çekirdek/varsayılan seçeneği olup olmadığı. Sistem varsayılanlarının adı değiştirilemez. Default false (0). |
+| `CreatedAt` | `datetime2` | Kaydın oluşturulma zamanı (UTC). |
+| `CreatedBy` | `nvarchar(450)` | Kaydı oluşturan kullanıcı ID'si. |
+| `UpdatedAt` | `datetime2` (NULL) | Son güncelleme zamanı (UTC). |
+| `UpdatedBy` | `nvarchar(450)` (NULL) | Son güncelleyen kullanıcı ID'si. |
+| `IsDeleted` | `bit` | Soft delete bayrağı. Default false (0). |
+
+### 23.2 İndeksler ve Kısıtlamalar
+
+- **Filtreli Benzersiz İndeks (Unique Filtered Index):**
+  - Ad: `IX_SystemDefinitions_CategoryKey_NormalizedName`
+  - Kolonlar: `(CategoryKey, NormalizedName)`
+  - Filtre: `[IsDeleted] = 0`
+  - Amaç: Aynı kategoride aynı ada sahip (boşluklar kırpılmış ve Türkçe harfler normalize edilmiş) iki seçeneğin eklenmesini veritabanı seviyesinde kesin olarak engeller.
+- **Kategori ve Sıralama İndeksi:**
+  - Ad: `IX_SystemDefinitions_CategoryKey_DisplayOrder`
+  - Kolonlar: `(CategoryKey, DisplayOrder)`
+
+### 23.3 Beyaz Liste Kategorileri ve İlişkili Varlıklar
+
+| Kategori Anahtarı (`CategoryKey`) | Görünen Ad | Hedef Tablo / Alan | Açıklama |
+|---|---|---|---|
+| `TireSeason` | Lastik Mevsimi | `VehicleTires.Season`, `Vehicles.TireSeason` | Yazlık, Kışlık, Dört Mevsim vb. |
+| `FuelType` | Yakıt Tipi | `Vehicles.FuelType` | Dizel, Benzin, Hibrit, Elektrik vb. |
+| `MaintenanceType` | Bakım / Servis Türü | `Maintenances.MaintenanceType` | Periyodik Bakım, Ağır Bakım, vb. |
+| `VehicleType` | Araç Türü (Filo) | `Vehicles.VehicleType` | Binek, Sedan, Minibüs, Otobüs vb. |
+| `LicenseClass` | Ehliyet Sınıfı | `DriverLicenses.LicenseClass`, `Drivers.LicenseClass` | B, C, D, E vb. ehliyet sınıfları. |
+
+### 23.4 İş Kuralları ve Doğrulama Matrisi
+
+1. **Rename Kuralı (Rename Cascade Yasak):**
+   - Herhangi bir tabloda kullanımda olan (sayım > 0) seçeneklerin adı değiştirilemez, yalnızca pasife alınabilir.
+   - `IsSystemDefault = true` olan seçeneklerin adı her zaman kilitlidir.
+   - Yalnızca kullanımda olmayan ve sistem varsayılanı olmayan seçeneklerin adı serbestçe değiştirilebilir.
+2. **Sunucu Doğrulaması (Server-Side Validation):**
+   - Araç ekleme/düzenleme (`FuelType`, `VehicleType`), lastik ekleme/düzenleme (`Season`), bakım ekleme/düzenleme (`MaintenanceType`), şoför/ehliyet ekleme/düzenleme (`LicenseClass`) işlemlerinde gönderilen değer ilgili kategoride **aktif** bir seçenek olmalıdır.
+   - Düzenleme formlarında kaydın mevcut eski değeri pasif olsa dahi korunur ve geçerli kabul edilir.
+3. **Son Aktif Seçenek Koruması:**
+   - Bir kategorideki aktif seçenek sayısı 1 olduğunda son seçenek pasife alınamaz. Sistemde daima en az bir aktif seçenek bulunmalıdır.
+4. **Seçenek Silme Kuralı (Soft-Delete):**
+   - Yalnızca veritabanında kullanımda olmayan (`UsageCount == 0`) ve sistem varsayılanı olmayan (`IsSystemDefault == false`) seçenekler silinebilir.
+   - Silinen seçenek `IsDeleted = true` olarak işaretlenir ve Global Query Filter ile gizlenir.
+   - Kategorideki son aktif seçenek silinemez.
+   - Silme işlemi öncesinde ve sonrasında denetim izi için `AuditLog` tablosuna `Action = 'Delete'`, `OldValues` ve `NewValues` ile kayıt atılır.
+
+---
+
+## 24. RAPORLAMA VE BİRLEŞİK ARAÇ BELGE MODELİ
+
+### 24.1 Araç Belge Raporu Veri Yapısı (`InsuranceInspectionReportItemViewModel`)
+Muayene, Trafik Sigortası ve Kasko belgelerini tek bir rapor modelinde birleştiren 9 temel sütun:
+- `PlateNumber`: Araç Plakası
+- `VehicleBrand` & `VehicleModel`: Araç Marka ve Modeli
+- `DocumentType`: Belge Türü (`Muayene`, `Trafik Sigortası`, `Kasko Poliçesi`)
+- `StartDate`: Belge Başlangıç Tarihi
+- `ExpiryDate`: Belge Bitiş / Geçerlilik Tarihi
+- `RemainingDays` & `Status`: Kalan gün sayısı ve geçerlilik durumu (`Süresi Doldu`, `Kritik`, `Geçerli`)
+- `CompanyName`: Sigorta Şirketi veya Muayene İstasyonu
+- `PolicyOrStationNumber`: Poliçe No veya Muayene İstasyon Kodu
+- `PaidAmount`: Ödenen Tutar / Prim (TL) ve Rapor Sonu Dip Toplam Tutar
+
+### 24.2 Lastik Kullanım Raporu Veri Yapısı (`VehicleTiresReportViewModel`)
+- `VehicleId`, `PlateNumber`, `VehicleBrand`, `VehicleModel` (Marka/model boşsa `"-"` gösterilir)
+- `TireBrand`, `Size`, `Season`, `DotCode`
+- `InstalledKm`, `CurrentKm`, `TargetKm`, `UsageKm` (Kullanım mesafesi)
+- Seçili araç filtrelemesinde aracın geçmiş tüm lastik kayıtları kronolojik olarak dökülür.
+
+---
+
+## 25. KULLANICI YÖNETİMİ YUMUŞAK SİLME (SOFT-DELETE) VE GÜVENLİK MODELİ
+
+- `AspNetUsers` tablosunda kullanıcılar fiziksel olarak `DELETE` edilmez; üniversite denetimi ve veri bütünlüğü için şu adımlarla yumuşak silme (Soft-Delete) uygulanır:
+  1. `IsActive = false`: Hesap anında pasife alınır.
+  2. `LockoutEnabled = true` ve `LockoutEnd = DateTimeOffset.MaxValue`: Identity kilit mekanizmasıyla kullanıcının hiçbir şekilde giriş yapamaması garanti altına alınır.
+  3. `AspNetUserRoles` tablosundaki tüm roller kaldırılır: Kullanıcı yetkili listelerinden (Şef/Yönetici) tamamen düşer.
+  4. Aktif yetki devirleri (`RoleDelegations`) otomatik olarak `ActualRevokedAt = DateTime.UtcNow` ile iptal edilir.
+  5. `AuditLogs` tablosuna silme işlemi, silen yetkili ve hedef kullanıcı ID'si ile kaydedilir.

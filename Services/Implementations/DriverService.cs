@@ -19,19 +19,22 @@ public class DriverService : IDriverService
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<DriverService> _logger;
     private readonly IKmValidationService _kmValidationService;
+    private readonly ISystemDefinitionService _systemDefinitionService;
 
     public DriverService(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         IAuditLogService auditLogService,
         ILogger<DriverService> logger,
-        IKmValidationService kmValidationService)
+        IKmValidationService kmValidationService,
+        ISystemDefinitionService systemDefinitionService)
     {
         _context = context;
         _userManager = userManager;
         _auditLogService = auditLogService;
         _logger = logger;
         _kmValidationService = kmValidationService;
+        _systemDefinitionService = systemDefinitionService;
     }
 
     // =========================================================================
@@ -1031,6 +1034,16 @@ public class DriverService : IDriverService
             return (false, "Lütfen şoför için en az bir geçerli ehliyet sınıfı ve geçerlilik tarihi giriniz.", 0);
         }
 
+        // Sunucu Doğrulaması (Madde 2): Ehliyet sınıfları Sistem Tanımlarında aktif bir seçenek olmalı
+        foreach (var lic in validLicenses)
+        {
+            var (licValid, licErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.LicenseClass, lic.Class);
+            if (!licValid)
+            {
+                return (false, licErr!, 0);
+            }
+        }
+
         // 4. Atomik Transaction (AGENTS.md kuralı)
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
@@ -1186,6 +1199,18 @@ public class DriverService : IDriverService
         var existingLicenses = await _context.DriverLicenses
             .Where(l => l.DriverId == driver.Id && !l.IsDeleted)
             .ToListAsync();
+
+        // Sunucu Doğrulaması (Madde 2): Ehliyet sınıfları Sistem Tanımlarında aktif bir seçenek olmalı (düzenlemede mevcut değer hariç)
+        foreach (var item in validLicenses)
+        {
+            var cleanClass = item.LicenseClass.Trim().ToUpper();
+            var existing = item.Id > 0 ? existingLicenses.FirstOrDefault(l => l.Id == item.Id) : null;
+            var (licValid, licErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.LicenseClass, cleanClass, existing?.LicenseClass);
+            if (!licValid)
+            {
+                return (false, licErr!);
+            }
+        }
 
         // Çıkarılan ehliyetleri soft delete yap
         var validLicenseIds = validLicenses.Where(l => l.Id > 0).Select(l => l.Id).ToHashSet();

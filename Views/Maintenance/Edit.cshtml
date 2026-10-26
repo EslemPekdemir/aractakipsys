@@ -83,27 +83,14 @@
                             <div class="form-group mb-3">
                                 <label asp-for="MaintenanceType" class="font-weight-bold">Bakım Türü <span class="text-danger">*</span></label>
                                 <select asp-for="MaintenanceType" class="form-control" id="maintenanceTypeSelect">
-                                    <option value=""></option>
-                                    <option value="Periyodik Bakım">Periyodik Bakım</option>
-                                    <option value="Ağır Bakım / Triger">Ağır Bakım / Triger</option>
-                                    <option value="Yağ ve Filtre Değişimi">Yağ ve Filtre Değişimi</option>
-                                    <option value="Fren Sistemi ve Balata Değişimi">Fren Sistemi ve Balata Değişimi</option>
-                                    <option value="Lastik Değişimi / Rot-Balans">Lastik Değişimi / Rot-Balans</option>
-                                    <option value="Akü ve Elektrik Aksamı">Akü ve Elektrik Aksamı</option>
-                                    <option value="Kaporta / Boya Onarımı">Kaporta / Boya Onarımı</option>
-                                    <option value="TÜVTÜRK Muayene Hazırlık">TÜVTÜRK Muayene Hazırlık</option>
-                                    <option value="Klima ve Kalorifer Bakımı">Klima ve Kalorifer Bakımı</option>
-                                    <option value="Şanzıman ve Debriyaj">Şanzıman ve Debriyaj</option>
-                                    <option value="Süspansiyon ve Ön Takım">Süspansiyon ve Ön Takım</option>
-                                    <option value="Egzoz ve Emisyon">Egzoz ve Emisyon</option>
-                                    <option value="Genel Arıza Tespiti">Genel Arıza Tespiti</option>
-                                    @if (!string.IsNullOrEmpty(Model.MaintenanceType) && !new[] { "Periyodik Bakım", "Ağır Bakım / Triger", "Yağ ve Filtre Değişimi", "Fren Sistemi ve Balata Değişimi", "Lastik Değişimi / Rot-Balans", "Akü ve Elektrik Aksamı", "Kaporta / Boya Onarımı", "TÜVTÜRK Muayene Hazırlık", "Klima ve Kalorifer Bakımı", "Şanzıman ve Debriyaj", "Süspansiyon ve Ön Takım", "Egzoz ve Emisyon", "Genel Arıza Tespiti" }.Contains(Model.MaintenanceType))
+                                    <option value="">-- Bakım Türü Seçiniz --</option>
+                                    @foreach (var t in Model.AvailableMaintenanceTypes)
                                     {
-                                        <option value="@Model.MaintenanceType" selected="selected">@Model.MaintenanceType</option>
+                                        <option value="@t.Value" selected="@(t.Selected || Model.MaintenanceType == t.Value ? "selected" : null)">@t.Text</option>
                                     }
                                 </select>
                                 <span asp-validation-for="MaintenanceType" class="text-danger small font-weight-bold"></span>
-                                <small class="form-text text-muted">Listeden kaydırarak seçebilir veya kutuya yazarak yeni tür ekleyebilirsiniz.</small>
+                                <small class="form-text text-muted">Sistem Tanımlarında aktif olan veya bu kaydın mevcut bakım türü.</small>
                             </div>
 
                             <div class="form-group mb-3">

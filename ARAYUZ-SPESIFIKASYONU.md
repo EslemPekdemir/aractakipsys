@@ -443,3 +443,63 @@ Kullanıcı deneyimini kurumsallaştırmak ve genel stok resim (`profile_small.j
 - **25.4 Yetki Devri Belgesi (QuestPDF):**
   - T.C. DÜZCE ÜNİVERSİTESİ resmi anteti, "YETKİ DEVRİ (VEKÂLET) BELGESİ" başlığı, Belge No, Düzenleme Tarihi, "Dayanak: ........", tarafların bilgileri, vekâlet aralığı ve gerekçesi ile iki imza kutusu (Görevi Devreden, Görevi Devralan) içerir.
 
+---
+
+## 26. SİSTEM TANIMLARI (DİNAMİK SEÇENEK LİSTELERİ) ARAYÜZÜ
+
+- **26.1 Sayfa Erişimi ve Navigasyon:**
+  - Sol ana menüde "Sistem Tanımları" bağlantısı (`/SystemDefinition`).
+  - Yalnızca `Admin` ve `DaireBaskani` tam yönetim yetkisiyle düzenleyebilir.
+  - `GenelSekreter` yalnızca izleyebilir (salt okunur mod: ekle, adı düzenle ve durum değiştirme butonları gizlenir).
+  - `Kullanici` (Şef) ve `Driver` (Şoför) bu sayfaya erişemez (`[Authorize(Roles = "Admin,DaireBaskani,GenelSekreter")]`).
+- **26.2 İki Sütunlu Sayfa Düzeni:**
+  - **Sol Panel (Kategoriler):** 5 sabit kategori listelenir (`TireSeason`, `FuelType`, `MaintenanceType`, `VehicleType`, `LicenseClass`). Her kategorinin simgesi, adı ve aktif seçenek sayısı rozeti gösterilir. Altında "Talep Seçenekleri" (`/VehicleRequest/Options`) modülüne doğrudan bağlantı butonu yer alır.
+  - **Sağ Panel (Seçenek Yönetimi):** Seçili kategorinin seçenek tablosu, toplam/aktif sayaçları ve "Yeni Seçenek Ekle" butonu yer alır.
+- **26.3 Seçenekler Tablosu ve Kilit Mekanizması:**
+  - **Sıra No:** Küçükten büyüğe sıralama (`DisplayOrder`).
+  - **Seçenek Adı:** Orijinal seçenek ismi. Sistem varsayılanı ise yanında mavi `Sistem Varsayılanı` rozeti gösterilir.
+  - **Kullanım Bilgisi:** "N kayıtta kullanılıyor" rozeti (ilgili veritabanı tablolarındaki gerçek zamanlı kullanım sayısı).
+  - **Durum:** Aktif (yeşil rozet) veya Pasif (gri rozet).
+  - **İşlemler:**
+    - **Adı Düzenle:** Yalnızca kullanımda olmayan (`UsageCount == 0`) ve sistem varsayılanı olmayan (`IsSystemDefault == false`) seçeneklerde tıklanabilir. Kullanımda veya sistem varsayılanı ise buton devre dışı kalır ve kilit simgesiyle açıklayıcı tooltip gösterilir.
+    - **Pasife Al / Aktifleştir:** Toggle butonu. Bir kategorideki son aktif seçenekte buton kilitlenir (`disabled`), son aktif seçeneğin pasife alınması engellenir.
+    - **Seçeneği Sil:** Yalnızca kullanımda olmayan (`UsageCount == 0`) ve sistem varsayılanı olmayan (`IsSystemDefault == false`) seçeneklerde aktif kırmızı sil butonu gösterilir. Tıklandığında onay sorulur ve yumuşak silme yapılır. Son aktif seçenek silinemez.
+- **26.4 Modal Mimarisi (Backdrop Donma Önlemi):**
+  - `#createOptionModal` ve `#editOptionNameModal` HTML yapıları herhangi bir kart, panel veya container içinde değil, sayfanın en altında `</body>` öncesinde bağımsız olarak tanımlanmıştır. Bu sayede iç içe modal backdrop donması kesin olarak engellenmiştir.
+- **26.5 Form Dropdown Entegrasyonu ve Eski Değer Koruması:**
+  - Araç oluşturma/düzenleme (`FuelType`, `VehicleType`), araç belgeleri lastik sekmesi (`Season`), bakım oluşturma/düzenleme (`MaintenanceType`) ve şoför oluşturma/düzenleme (`LicenseClass`) ekranlarında seçenekler dinamik olarak yüklenir.
+  - Düzenleme ekranlarında, kaydın mevcut eski değeri pasife alınmış olsa dahi listede `(Pasif)` etiketiyle seçili olarak gösterilir ve form kaydedildiğinde verinin kaybolması engellenir.
+
+---
+
+## 27. FAZ 10 ARAYÜZ VE STANDARTLAŞTIRMA GÜNCELLEMELERİ
+
+### 27.1 PDF Önizleme Yükleme Katmanı Standardı (`_PdfPreviewModal.cshtml`)
+- Ortak PDF önizleme modalındaki loading spinner katmanı, jQuery `show()` / `hide()` ve `!important` CSS çakışmalarını önlemek için tek bir `.is-hidden` CSS sınıfı (`display: none !important; opacity: 0; pointer-events: none;`) ile kontrol edilir.
+- Iframe yükleme olayı (`iframe.on('load')`) ile katman gizlenir.
+- Bazı tarayıcı içi PDF görüntüleyicilerinde iframe `load` olayının tetiklenmeme riskine karşı **3000 ms güvenlik zaman aşımı (fallback timeout)** uygulanmıştır.
+- Modal gizlendiğinde (`hidden.bs.modal`), iframe arka planda bellek tüketmemesi ve ses/veri akışını kesmesi için `src="about:blank"` yapılarak temizlenir; her yeni açılışta yükleme katmanı `.is-hidden` kaldırılarak yeniden gösterilir.
+- Mobilde "Yeni Sekmede Aç" butonu harici sekmede PDF indirme/görüntüleme standardını korur.
+
+### 27.2 Araç Belgeleri Paneli PDF Önizleme ve İndirme (`Views/Vehicle/Documents.cshtml`)
+- Muayene, Trafik Sigortası, Kasko ve Lastik sekmelerinin her birinin sağ üst köşesine "PDF Önizle" (göz simgeli) ve "İndir" butonları eklenmiştir.
+- Bu butonlar seçili aracın Id'sini (`vehicleId`) otomatik algılayarak ilgili rapor endpoint'ini ön filtreli çağırır. Araç seçilmemişse tüm filoyu kapsar.
+- Ortak `_PdfPreviewModal` üzerinden sayfa yenilenmeden önizlenir.
+
+### 27.3 Birleşik Araç Belge Raporu Ekranı (`Views/Report/InsuranceInspection.cshtml`)
+- Belge Kapsamı filtresine `Kasko` seçeneği eklenmiştir (Tümü, Muayene, Trafik Sigortası, Kasko).
+- Sayfaya Araç Dropdown filtresi eklenmiştir (Tüm Araçlar veya tek araç).
+- Üst kısma Araç Lastik Raporu'na doğrudan geçiş sağlayan sekme/link eklenmiştir.
+
+### 27.4 Genel Sekreter Salt Okunur Görünürlük Kalkanı (`_AdminLayout.cshtml`)
+- `User.IsInRole("GenelSekreter")` durumunda `<body>` etiketine `.role-genelsekreter` sınıfı atanır.
+- Merkezi CSS kuralı ile tüm modüllerdeki (Araç, Araç Belgeleri, Şoför, Görev, Bakım, Arıza, Talep, Vekâlet, Talep Seçenekleri, Sistem Tanımları, Kullanıcı Yönetimi) veri değiştirmeye yarayan butonlar, dropdown aksiyonları, modal tetikleyicileri ve düzenle/sil ikonları gizlenir.
+- Arama, filtre, sayfalama, Önizle, İndir, detaya girme, takvim ve raporlama öğeleri açık bırakılır.
+- Sunucu tarafındaki `ReadOnlyRoleFilter` kalkanı ile çift katmanlı güvenlik sağlanır.
+
+### 27.5 Kullanıcı Yönetimi Silme ve Dondurma Buton Standardı (`Views/Sef/Index.cshtml` & `Edit.cshtml`)
+- Index listesinde hem aktif hem de dondurulmuş (pasif) hesaplarda kırmızı "Sil" butonu görünür. Aktif hesaplarda hem "Dondur" hem de "Sil" butonları ayrı ayrı yer alır.
+- Düzenle sayfasında "Hesabı Sil" butonu ana formdan bağımsız, harici bir POST formu ile çalışır.
+- Onay modalları HTML akışında kartların dışında ve `</body>` etiketinden hemen önce tanımlanarak backdrop kilitlenmesi önlenmiştir.
+
+

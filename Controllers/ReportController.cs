@@ -16,11 +16,19 @@ namespace aractakipsys.Controllers;
 public class ReportController : Controller
 {
     private readonly IReportService _reportService;
+    private readonly IVehicleService _vehicleService;
+    private readonly aractakipsys.Data.ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    public ReportController(IReportService reportService, UserManager<ApplicationUser> userManager)
+    public ReportController(
+        IReportService reportService, 
+        IVehicleService vehicleService,
+        aractakipsys.Data.ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager)
     {
         _reportService = reportService;
+        _vehicleService = vehicleService;
+        _context = context;
         _userManager = userManager;
     }
 
@@ -181,7 +189,8 @@ public class ReportController : Controller
         {
             ReportScopeType.Insurance => "Sigorta_Raporu",
             ReportScopeType.Inspection => "Muayene_Raporu",
-            _ => "Sigorta_Muayene_Raporu"
+            ReportScopeType.Kasko => "Kasko_Raporu",
+            _ => "Arac_Belge_Raporu"
         };
 
         var fileName = $"{scopePrefix}_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
@@ -208,7 +217,7 @@ public class ReportController : Controller
             ModelState.AddModelError("", "Başlangıç tarihi bitiş tarihinden daha ileri bir tarih olamaz.");
         }
 
-        var report = await _reportService.GetVehicleRequestReportAsync(filter);
+        var report = await _reportService.GetVehicleRequestReportAsync(filter, paged: true);
         return View(report);
     }
 
@@ -219,7 +228,7 @@ public class ReportController : Controller
     [HttpGet]
     public async Task<IActionResult> ExportVehicleRequestsPdf([FromQuery] VehicleRequestReportFilterViewModel filter, [FromQuery] bool preview = false)
     {
-        var report = await _reportService.GetVehicleRequestReportAsync(filter);
+        var report = await _reportService.GetVehicleRequestReportAsync(filter, paged: false);
 
         if (report.Items.Count == 0)
         {
@@ -243,5 +252,107 @@ public class ReportController : Controller
 
         return File(pdfBytes, "application/pdf", fileName);
     }
+
+    /// <summary>
+    /// Araç Lastik Raporu HTML Ekranı (Faz 10 - Ek)
+    /// GET: /Report/Tires
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Tires([FromQuery] TireReportFilterViewModel filter)
+    {
+        // 1. Araç Dropdown Listesini Doldur
+        var vehicles = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+            _context.Vehicles.Where(v => !v.IsDeleted).OrderBy(v => v.PlateNumber));
+
+        filter.VehicleList = vehicles.Select(v => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+        {
+            Value = v.Id.ToString(),
+            Text = $"{v.PlateNumber} - {v.Brand} {v.Model}"
+        }).ToList();
+
+        // 2. Mevcut VehicleService üzerinden lastik verilerini getir (kopya kod yazılmadı)
+        var allTires = await _vehicleService.GetAllCurrentTiresReportAsync(filter.VehicleId);
+
+        // 3. Plaka / Model / Marka Arama Filtresi
+        if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+        {
+            var term = filter.SearchTerm.Trim().ToLower(new System.Globalization.CultureInfo("tr-TR"));
+            allTires = allTires.Where(t => 
+                (t.PlateNumber != null && t.PlateNumber.ToLower(new System.Globalization.CultureInfo("tr-TR")).Contains(term)) ||
+                (t.VehicleBrand != null && t.VehicleBrand.ToLower(new System.Globalization.CultureInfo("tr-TR")).Contains(term)) ||
+                (t.VehicleModel != null && t.VehicleModel.ToLower(new System.Globalization.CultureInfo("tr-TR")).Contains(term)) ||
+                (t.Brand != null && t.Brand.ToLower(new System.Globalization.CultureInfo("tr-TR")).Contains(term))
+            ).ToList();
+        }
+
+        // 4. Tarih Aralığı Filtresi (Takılma Tarihine göre)
+        if (filter.StartDate.HasValue)
+        {
+            allTires = allTires.Where(t => t.InstalledDate.HasValue && t.InstalledDate.Value.Date >= filter.StartDate.Value.Date).ToList();
+        }
+        if (filter.EndDate.HasValue)
+        {
+            allTires = allTires.Where(t => t.InstalledDate.HasValue && t.InstalledDate.Value.Date <= filter.EndDate.Value.Date).ToList();
+        }
+
+        // 5. Durum Kriteri Filtresi
+        if (filter.FilterOption == "Expired")
+        {
+            allTires = allTires.Where(x => 
+                (x.RemainingKm.HasValue && x.RemainingKm.Value <= 0) || 
+                (x.RemainingDays.HasValue && x.RemainingDays.Value <= 0)).ToList();
+        }
+        else if (filter.FilterOption == "ExpiringSoon")
+        {
+            allTires = allTires.Where(x => 
+                x.IsAlert && 
+                !((x.RemainingKm.HasValue && x.RemainingKm.Value <= 0) || (x.RemainingDays.HasValue && x.RemainingDays.Value <= 0))).ToList();
+        }
+        else if (filter.FilterOption == "Valid")
+        {
+            allTires = allTires.Where(x => !x.IsAlert).ToList();
+        }
+
+        var viewModel = new TireReportViewModel
+        {
+            Filter = filter,
+            Items = allTires
+        };
+
+        return View(viewModel);
+    }
+
+    /// <summary>
+    /// Araç Lastik Raporu PDF İndirme & Önizleme
+    /// GET: /Report/ExportTiresPdf
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> ExportTiresPdf([FromQuery] int? vehicleId, [FromQuery] bool preview = false)
+    {
+        var items = await _vehicleService.GetAllCurrentTiresReportAsync(vehicleId);
+
+        if (items.Count == 0)
+        {
+            TempData["ErrorMessage"] = "Raporlanacak lastik kaydı bulunamadı.";
+            return RedirectToAction(nameof(Tires), new { vehicleId });
+        }
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        var creatorName = currentUser?.FullName ?? User.Identity?.Name ?? "Sistem Yetkilisi";
+
+        var document = new VehicleTiresReportPdfDocument(items, creatorName);
+        var pdfBytes = document.GeneratePdf();
+
+        var fileName = $"Lastik_Kullanim_Raporu_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+        if (preview)
+        {
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            return File(pdfBytes, "application/pdf");
+        }
+
+        return File(pdfBytes, "application/pdf", fileName);
+    }
 }
+
 

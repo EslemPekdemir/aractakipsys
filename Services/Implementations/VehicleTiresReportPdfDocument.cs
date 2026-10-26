@@ -101,8 +101,9 @@ public class VehicleTiresReportPdfDocument : IDocument
                     table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4)
                         .Text(item.VehiclePlate).Bold();
 
+                    var vehicleBrandModel = $"{item.VehicleBrand} {item.VehicleModel}".Trim();
                     table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4)
-                        .Text($"{item.VehicleBrand} {item.VehicleModel}");
+                        .Text(!string.IsNullOrWhiteSpace(vehicleBrandModel) ? vehicleBrandModel : "-");
 
                     table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4)
                         .Text($"{item.Brand} {(string.IsNullOrWhiteSpace(item.Size) ? "" : $"({item.Size})")}".Trim());

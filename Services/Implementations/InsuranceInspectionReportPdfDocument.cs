@@ -32,7 +32,8 @@ public class InsuranceInspectionReportPdfDocument : IDocument
             {
                 ReportScopeType.Insurance => "Bilgi İşlem Daire Başkanlığı — Araç Trafik Sigortası Durum Raporu",
                 ReportScopeType.Inspection => "Bilgi İşlem Daire Başkanlığı — Araç Fenni Muayene Durum Raporu",
-                _ => "Bilgi İşlem Daire Başkanlığı — Sigorta ve Muayene Durum Raporu"
+                ReportScopeType.Kasko => "Bilgi İşlem Daire Başkanlığı — Araç Kasko Durum Raporu",
+                _ => "Bilgi İşlem Daire Başkanlığı — Araç Belge Durum Raporu (Muayene, Sigorta, Kasko)"
             };
 
             // 1. BAŞLIK (HEADER)
@@ -60,6 +61,11 @@ public class InsuranceInspectionReportPdfDocument : IDocument
                         {
                             statCol.Item().AlignRight().Text($"Muayenesi Geçenler: {_model.ExpiredCount} Araç").Bold().FontColor(Colors.Red.Darken3).FontSize(9);
                             statCol.Item().AlignRight().Text($"Muayenesi 30 Gün Kalanlar: {_model.ExpiringSoonCount} Araç").Bold().FontColor(Colors.Orange.Darken3).FontSize(9);
+                        }
+                        else if (scope == ReportScopeType.Kasko)
+                        {
+                            statCol.Item().AlignRight().Text($"Kaskosu Geçenler: {_model.ExpiredCount} Araç").Bold().FontColor(Colors.Red.Darken3).FontSize(9);
+                            statCol.Item().AlignRight().Text($"Kaskosu 30 Gün Kalanlar: {_model.ExpiringSoonCount} Araç").Bold().FontColor(Colors.Orange.Darken3).FontSize(9);
                         }
                         else
                         {
@@ -95,272 +101,160 @@ public class InsuranceInspectionReportPdfDocument : IDocument
             });
 
             // 2. TABLO İÇERİĞİ
+            // Kullanıcı Belirtimi: Sütunlar: plaka, araç (marka/model), belge türü, başlangıç, bitiş, kalan gün/durum, firma/kurum, poliçe/istasyon no, ödenen tutar; sonda toplam tutar.
             page.Content().PaddingVertical(8).Table(table =>
             {
-                if (scope == ReportScopeType.Insurance)
+                table.ColumnsDefinition(columns =>
                 {
-                    // Sadece Trafik Sigortası
-                    table.ColumnsDefinition(columns =>
-                    {
-                        columns.ConstantColumn(25);   // #
-                        columns.RelativeColumn(2.0f); // Plaka
-                        columns.RelativeColumn(2.8f); // Marka / Model
-                        columns.RelativeColumn(2.2f); // Sigorta Başlangıç
-                        columns.RelativeColumn(2.2f); // Sigorta Bitiş
-                        columns.RelativeColumn(2.5f); // Kalan Gün / Durum
-                        columns.RelativeColumn(2.0f); // Ödenen Tutar
-                        columns.RelativeColumn(1.8f); // Güncel Durum
-                    });
+                    columns.ConstantColumn(22);   // #
+                    columns.RelativeColumn(1.8f); // Plaka
+                    columns.RelativeColumn(2.3f); // Araç (Marka / Model)
+                    columns.RelativeColumn(2.0f); // Belge Türü
+                    columns.RelativeColumn(1.8f); // Başlangıç
+                    columns.RelativeColumn(1.8f); // Bitiş
+                    columns.RelativeColumn(2.4f); // Kalan Gün / Durum
+                    columns.RelativeColumn(2.4f); // Firma / Kurum
+                    columns.RelativeColumn(2.0f); // Poliçe / İstasyon No
+                    columns.RelativeColumn(1.8f); // Ödenen Tutar
+                });
 
-                    table.Header(header =>
-                    {
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("#").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Plaka").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Marka / Model").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Sigorta Başlangıç").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Sigorta Bitiş").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Kalan Gün / Durum").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Ödenen Tutar").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Güncel Durum").Bold();
-                    });
+                table.Header(header =>
+                {
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("#").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Plaka").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Araç (Marka / Model)").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Belge Türü").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Başlangıç").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Bitiş").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Kalan Gün / Durum").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Firma / Kurum").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Poliçe / İstasyon No").Bold();
+                    header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Ödenen Tutar").Bold();
+                });
 
-                    int index = 1;
-                    foreach (var item in _model.Items)
-                    {
-                        var bg = index % 2 == 0 ? Colors.Grey.Lighten5 : Colors.White;
-                        if (item.IsInsuranceExpired) bg = Colors.Red.Lighten5;
+                int rowIndex = 1;
+                decimal grandTotalCost = 0;
 
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(index.ToString());
+                foreach (var item in _model.Items)
+                {
+                    var brandModel = $"{item.Brand} {item.Model}".Trim();
+                    if (string.IsNullOrWhiteSpace(brandModel)) brandModel = "-";
+                    else brandModel = $"{brandModel} ({item.Year})";
+
+                    // Hangi belgelerin basılacağı
+                    var docsToPrint = new List<(string DocType, DateTime StartDate, DateTime EndDate, int DaysRemaining, decimal? Cost, string? Company, string? PolicyNo, bool IsExpired, bool IsExpiringSoon)>();
+
+                    if (scope == ReportScopeType.Insurance || scope == ReportScopeType.All)
+                    {
+                        docsToPrint.Add((
+                            "Trafik Sigortası",
+                            item.InsuranceStartDate,
+                            item.InsuranceExpiryDate,
+                            item.InsuranceDaysRemaining,
+                            item.InsuranceCost,
+                            item.InsuranceCompanyName,
+                            item.InsurancePolicyNumber,
+                            item.IsInsuranceExpired,
+                            item.IsInsuranceExpiringSoon
+                        ));
+                    }
+
+                    if (scope == ReportScopeType.Inspection || scope == ReportScopeType.All)
+                    {
+                        docsToPrint.Add((
+                            "Fenni Muayene",
+                            item.InspectionStartDate,
+                            item.InspectionExpiryDate,
+                            item.InspectionDaysRemaining,
+                            item.InspectionCost,
+                            item.InspectionStationName,
+                            item.InspectionPolicyNumber,
+                            item.IsInspectionExpired,
+                            item.IsInspectionExpiringSoon
+                        ));
+                    }
+
+                    if (scope == ReportScopeType.Kasko || scope == ReportScopeType.All)
+                    {
+                        if (item.KaskoExpiryDate.HasValue || scope == ReportScopeType.Kasko)
+                        {
+                            docsToPrint.Add((
+                                "Kasko",
+                                item.KaskoStartDate ?? DateTime.MinValue,
+                                item.KaskoExpiryDate ?? DateTime.MinValue,
+                                item.KaskoDaysRemaining ?? 0,
+                                item.KaskoCost,
+                                item.KaskoCompanyName,
+                                item.KaskoPolicyNumber,
+                                item.IsKaskoExpired,
+                                item.IsKaskoExpiringSoon
+                            ));
+                        }
+                    }
+
+                    foreach (var doc in docsToPrint)
+                    {
+                        var bg = rowIndex % 2 == 0 ? Colors.Grey.Lighten5 : Colors.White;
+                        if (doc.IsExpired) bg = Colors.Red.Lighten5;
+
+                        if (doc.Cost.HasValue && doc.Cost.Value > 0)
+                        {
+                            grandTotalCost += doc.Cost.Value;
+                        }
+
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(rowIndex.ToString());
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.PlateNumber).Bold();
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text($"{item.BrandModel} ({item.Year})");
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.InsuranceStartDate.ToString("dd.MM.yyyy"));
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.InsuranceExpiryDate.ToString("dd.MM.yyyy")).Bold();
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(brandModel);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(doc.DocType).SemiBold();
+                        
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                            .Text(doc.StartDate != DateTime.MinValue ? doc.StartDate.ToString("dd.MM.yyyy") : "-");
+                        
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                            .Text(doc.EndDate != DateTime.MinValue ? doc.EndDate.ToString("dd.MM.yyyy") : "-").Bold();
 
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(text =>
                         {
-                            if (item.IsInsuranceExpired)
+                            if (doc.EndDate == DateTime.MinValue)
                             {
-                                text.Span($"{Math.Abs(item.InsuranceDaysRemaining)} gün geçti").Bold().FontColor(Colors.Red.Darken2);
+                                text.Span("Kayıt Yok").FontColor(Colors.Grey.Darken1);
+                            }
+                            else if (doc.IsExpired)
+                            {
+                                text.Span($"{Math.Abs(doc.DaysRemaining)} gün geçti").Bold().FontColor(Colors.Red.Darken2);
                                 text.Span(" (Süresi Dolmuş)").FontColor(Colors.Red.Darken2);
                             }
-                            else if (item.IsInsuranceExpiringSoon)
+                            else if (doc.IsExpiringSoon)
                             {
-                                text.Span($"{item.InsuranceDaysRemaining} gün kaldı").Bold().FontColor(Colors.Orange.Darken3);
+                                text.Span($"{doc.DaysRemaining} gün kaldı").Bold().FontColor(Colors.Orange.Darken3);
                                 text.Span(" (Kritik)").FontColor(Colors.Orange.Darken3);
                             }
                             else
                             {
-                                text.Span($"{item.InsuranceDaysRemaining} gün").FontColor(Colors.Grey.Darken2);
+                                text.Span($"{doc.DaysRemaining} gün").FontColor(Colors.Grey.Darken2);
                                 text.Span(" (Geçerli)").FontColor(Colors.Green.Darken3);
                             }
                         });
 
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
-                            .Text(item.InsuranceCost.HasValue && item.InsuranceCost.Value > 0 ? $"{item.InsuranceCost.Value:N2} ₺" : "-").Bold().FontColor(Colors.Green.Darken3);
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                            .Text(!string.IsNullOrWhiteSpace(doc.Company) ? doc.Company : "-");
 
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.StatusDisplayName);
-                        index++;
-                    }
-
-                    // Dip Toplam
-                    table.Cell().ColumnSpan(6).Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
-                        .Text("TOPLAM SİGORTA MALİYETİ:").Bold().FontSize(9);
-                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
-                        .Text($"{_model.TotalInsuranceCost:N2} ₺").Bold().FontColor(Colors.Green.Darken4).FontSize(9);
-                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).Text("");
-                }
-                else if (scope == ReportScopeType.Inspection)
-                {
-                    // Sadece Fenni Muayene
-                    table.ColumnsDefinition(columns =>
-                    {
-                        columns.ConstantColumn(25);   // #
-                        columns.RelativeColumn(2.0f); // Plaka
-                        columns.RelativeColumn(2.8f); // Marka / Model
-                        columns.RelativeColumn(2.2f); // Muayene Başlangıç
-                        columns.RelativeColumn(2.2f); // Muayene Bitiş
-                        columns.RelativeColumn(2.5f); // Kalan Gün / Durum
-                        columns.RelativeColumn(2.0f); // Ödenen Tutar
-                        columns.RelativeColumn(1.8f); // Güncel Durum
-                    });
-
-                    table.Header(header =>
-                    {
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("#").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Plaka").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Marka / Model").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Muayene Başlangıç").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Muayene Bitiş").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Kalan Gün / Durum").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Ödenen Tutar").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Güncel Durum").Bold();
-                    });
-
-                    int index = 1;
-                    foreach (var item in _model.Items)
-                    {
-                        var bg = index % 2 == 0 ? Colors.Grey.Lighten5 : Colors.White;
-                        if (item.IsInspectionExpired) bg = Colors.Red.Lighten5;
-
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(index.ToString());
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.PlateNumber).Bold();
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text($"{item.BrandModel} ({item.Year})");
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.InspectionStartDate.ToString("dd.MM.yyyy"));
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.InspectionExpiryDate.ToString("dd.MM.yyyy")).Bold();
-
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(text =>
-                        {
-                            if (item.IsInspectionExpired)
-                            {
-                                text.Span($"{Math.Abs(item.InspectionDaysRemaining)} gün geçti").Bold().FontColor(Colors.Red.Darken2);
-                                text.Span(" (Süresi Dolmuş)").FontColor(Colors.Red.Darken2);
-                            }
-                            else if (item.IsInspectionExpiringSoon)
-                            {
-                                text.Span($"{item.InspectionDaysRemaining} gün kaldı").Bold().FontColor(Colors.Orange.Darken3);
-                                text.Span(" (Kritik)").FontColor(Colors.Orange.Darken3);
-                            }
-                            else
-                            {
-                                text.Span($"{item.InspectionDaysRemaining} gün").FontColor(Colors.Grey.Darken2);
-                                text.Span(" (Geçerli)").FontColor(Colors.Green.Darken3);
-                            }
-                        });
+                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                            .Text(!string.IsNullOrWhiteSpace(doc.PolicyNo) ? doc.PolicyNo : "-");
 
                         table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
-                            .Text(item.InspectionCost.HasValue && item.InspectionCost.Value > 0 ? $"{item.InspectionCost.Value:N2} ₺" : "-").Bold().FontColor(Colors.Green.Darken3);
+                            .Text(doc.Cost.HasValue && doc.Cost.Value > 0 ? $"{doc.Cost.Value:N2} ₺" : "-").Bold().FontColor(Colors.Green.Darken3);
 
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.StatusDisplayName);
-                        index++;
+                        rowIndex++;
                     }
-
-                    // Dip Toplam
-                    table.Cell().ColumnSpan(6).Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
-                        .Text("TOPLAM MUAYENE MALİYETİ:").Bold().FontSize(9);
-                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
-                        .Text($"{_model.TotalInspectionCost:N2} ₺").Bold().FontColor(Colors.Green.Darken4).FontSize(9);
-                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).Text("");
                 }
-                else
-                {
-                    // Tümü (Sigorta, Muayene ve Kasko Dahil)
-                    table.ColumnsDefinition(columns =>
-                    {
-                        columns.ConstantColumn(25);   // #
-                        columns.RelativeColumn(1.8f); // Plaka
-                        columns.RelativeColumn(2.2f); // Marka / Model
-                        columns.RelativeColumn(2.8f); // Trafik Sigortası
-                        columns.RelativeColumn(2.8f); // Fenni Muayene
-                        columns.RelativeColumn(2.8f); // Kasko
-                        columns.RelativeColumn(2.0f); // Toplam Tutar
-                        columns.RelativeColumn(1.8f); // Güncel Durum
-                    });
 
-                    table.Header(header =>
-                    {
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("#").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Plaka").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Marka / Model").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Trafik Sigortası").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Fenni Muayene").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Kasko").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignRight().Text("Toplam Tutar").Bold();
-                        header.Cell().Background(Colors.Grey.Lighten2).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(4).Text("Güncel Durum").Bold();
-                    });
+                // Dip Toplam Satırı
+                table.Cell().ColumnSpan(9).Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                    .Text("TOPLAM TUTAR:").Bold().FontSize(9);
 
-                    int index = 1;
-                    foreach (var item in _model.Items)
-                    {
-                        var bg = index % 2 == 0 ? Colors.Grey.Lighten5 : Colors.White;
-                        if (item.HasAnyExpired) bg = Colors.Red.Lighten5;
-
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(index.ToString());
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.PlateNumber).Bold();
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text($"{item.BrandModel} ({item.Year})");
-
-                        // Sigorta (Bitiş & Tutar)
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Column(col =>
-                        {
-                            col.Item().Text(text =>
-                            {
-                                text.Span("Bitiş: ").Bold();
-                                text.Span(item.InsuranceExpiryDate.ToString("dd.MM.yyyy")).Bold();
-                                if (item.IsInsuranceExpired)
-                                {
-                                    text.Span($" ({Math.Abs(item.InsuranceDaysRemaining)} gün geçti)").Bold().FontColor(Colors.Red.Darken2);
-                                }
-                                else if (item.IsInsuranceExpiringSoon)
-                                {
-                                    text.Span($" ({item.InsuranceDaysRemaining} gün kaldı)").Bold().FontColor(Colors.Orange.Darken3);
-                                }
-                            });
-                            col.Item().Text($"Tutar: {(item.InsuranceCost.HasValue && item.InsuranceCost.Value > 0 ? $"{item.InsuranceCost.Value:N2} ₺" : "-")}").FontSize(8).FontColor(Colors.Grey.Darken2);
-                        });
-
-                        // Muayene (Bitiş & Tutar)
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Column(col =>
-                        {
-                            col.Item().Text(text =>
-                            {
-                                text.Span("Bitiş: ").Bold();
-                                text.Span(item.InspectionExpiryDate.ToString("dd.MM.yyyy")).Bold();
-                                if (item.IsInspectionExpired)
-                                {
-                                    text.Span($" ({Math.Abs(item.InspectionDaysRemaining)} gün geçti)").Bold().FontColor(Colors.Red.Darken2);
-                                }
-                                else if (item.IsInspectionExpiringSoon)
-                                {
-                                    text.Span($" ({item.InspectionDaysRemaining} gün kaldı)").Bold().FontColor(Colors.Orange.Darken3);
-                                }
-                            });
-                            col.Item().Text($"Tutar: {(item.InspectionCost.HasValue && item.InspectionCost.Value > 0 ? $"{item.InspectionCost.Value:N2} ₺" : "-")}").FontSize(8).FontColor(Colors.Grey.Darken2);
-                        });
-
-                        // Kasko (Bitiş & Tutar)
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Column(col =>
-                        {
-                            if (item.KaskoExpiryDate.HasValue)
-                            {
-                                col.Item().Text(text =>
-                                {
-                                    text.Span("Bitiş: ").Bold();
-                                    text.Span(item.KaskoExpiryDate.Value.ToString("dd.MM.yyyy")).Bold();
-                                    if (item.IsKaskoExpired)
-                                    {
-                                        text.Span($" ({Math.Abs(item.KaskoDaysRemaining!.Value)} gün geçti)").Bold().FontColor(Colors.Red.Darken2);
-                                    }
-                                    else if (item.IsKaskoExpiringSoon)
-                                    {
-                                        text.Span($" ({item.KaskoDaysRemaining!.Value} gün kaldı)").Bold().FontColor(Colors.Orange.Darken3);
-                                    }
-                                });
-                                col.Item().Text($"Tutar: {(item.KaskoCost.HasValue && item.KaskoCost.Value > 0 ? $"{item.KaskoCost.Value:N2} ₺" : "-")}").FontSize(8).FontColor(Colors.Grey.Darken2);
-                            }
-                            else
-                            {
-                                col.Item().Text("Kasko Yok").FontSize(8).FontColor(Colors.Grey.Darken1);
-                            }
-                        });
-
-                        // Toplam Tutar
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).AlignRight()
-                            .Text(item.TotalDocumentCost > 0 ? $"{item.TotalDocumentCost:N2} ₺" : "-").Bold().FontColor(Colors.Green.Darken3);
-
-                        // Durum
-                        table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(item.StatusDisplayName);
-
-                        index++;
-                    }
-
-                    // Dip Toplam Satırı (Genel Toplam Tutar)
-                    table.Cell().ColumnSpan(6).Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
-                        .Text($"GENEL TOPLAM BELGE MALİYETİ (Sigorta: {_model.TotalInsuranceCost:N2} ₺ | Muayene: {_model.TotalInspectionCost:N2} ₺ | Kasko: {_model.TotalKaskoCost:N2} ₺):").Bold().FontSize(8);
-
-                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
-                        .Text($"{_model.TotalCost:N2} ₺").Bold().FontColor(Colors.Green.Darken4).FontSize(9);
-
-                    table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).Text("");
-                }
+                table.Cell().Background(Colors.Grey.Lighten3).BorderTop(1.5f).BorderColor(Colors.Grey.Darken1).Padding(5).AlignRight()
+                    .Text($"{grandTotalCost:N2} ₺").Bold().FontColor(Colors.Green.Darken4).FontSize(9);
             });
 
             // 3. ALT BİLGİ (FOOTER)

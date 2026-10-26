@@ -365,9 +365,9 @@ public class VehicleController : Controller
     /// GET: /Vehicle/ExportTiresPdf
     /// </summary>
     [HttpGet("ExportTiresPdf")]
-    public async Task<IActionResult> ExportTiresPdf([FromQuery] bool preview = false)
+    public async Task<IActionResult> ExportTiresPdf([FromQuery] int? vehicleId, [FromQuery] bool preview = false)
     {
-        var items = await _vehicleService.GetAllCurrentTiresReportAsync();
+        var items = await _vehicleService.GetAllCurrentTiresReportAsync(vehicleId);
         var userName = User.Identity?.Name ?? "Admin";
 
         var document = new aractakipsys.Services.Implementations.VehicleTiresReportPdfDocument(items, userName);

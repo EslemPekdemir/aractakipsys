@@ -1,8 +1,10 @@
 <!-- File: Views/Driver/Create.cshtml -->
 @model aractakipsys.Models.ViewModels.Driver.DriverCreateViewModel
+@inject aractakipsys.Services.Interfaces.ISystemDefinitionService SystemDefinitionService
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Yeni Şoför Ekle";
+    var activeLicenseClasses = await SystemDefinitionService.GetActiveOptionNamesAsync(aractakipsys.Common.SystemDefinitionCategories.LicenseClass);
 }
 
 <div class="row wrapper border-bottom white-bg page-heading mb-4">
@@ -106,6 +108,13 @@
                                 </div>
                                 <small class="text-muted d-block mb-3">Şoförün sahip olduğu ehliyet sınıflarını (B, D, E vb.) ve geçerlilik tarihlerini giriniz.</small>
 
+                                <datalist id="licenseClassSuggestions">
+                                    @foreach (var lc in activeLicenseClasses)
+                                    {
+                                        <option value="@lc" />
+                                    }
+                                </datalist>
+
                                 <div id="licensesContainer">
                                     @if (Model.Licenses != null && Model.Licenses.Any())
                                     {
@@ -113,7 +122,7 @@
                                         {
                                             <div class="row align-items-center mb-2 license-row" data-index="@i">
                                                 <div class="col-4">
-                                                    <input type="text" name="Licenses[@i].LicenseClass" value="@Model.Licenses[i].LicenseClass" class="form-control form-control-sm text-uppercase" placeholder="Sınıf (B, E)" required />
+                                                    <input type="text" name="Licenses[@i].LicenseClass" list="licenseClassSuggestions" value="@Model.Licenses[i].LicenseClass" class="form-control form-control-sm text-uppercase" placeholder="Sınıf (B, E)" required />
                                                 </div>
                                                 <div class="col-6">
                                                     <input type="date" name="Licenses[@i].LicenseExpiryDate" value="@(Model.Licenses[i].LicenseExpiryDate.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" required />
@@ -130,7 +139,7 @@
                                     {
                                         <div class="row align-items-center mb-2 license-row" data-index="0">
                                             <div class="col-4">
-                                                <input type="text" name="Licenses[0].LicenseClass" value="@(string.IsNullOrEmpty(Model.LicenseClass) ? "B" : Model.LicenseClass)" class="form-control form-control-sm text-uppercase" placeholder="Sınıf (B, E)" required />
+                                                <input type="text" name="Licenses[0].LicenseClass" list="licenseClassSuggestions" value="@(string.IsNullOrEmpty(Model.LicenseClass) ? "B" : Model.LicenseClass)" class="form-control form-control-sm text-uppercase" placeholder="Sınıf (B, E)" required />
                                             </div>
                                             <div class="col-6">
                                                 <input type="date" name="Licenses[0].LicenseExpiryDate" value="@(Model.LicenseExpiryDate?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" required />
@@ -206,7 +215,7 @@
         const html = `
             <div class="row align-items-center mb-2 license-row" data-index="${nextIdx}">
                 <div class="col-4">
-                    <input type="text" name="Licenses[${nextIdx}].LicenseClass" class="form-control form-control-sm text-uppercase" placeholder="Sınıf (B, E)" required />
+                    <input type="text" name="Licenses[${nextIdx}].LicenseClass" list="licenseClassSuggestions" class="form-control form-control-sm text-uppercase" placeholder="Sınıf (B, E)" required />
                 </div>
                 <div class="col-6">
                     <input type="date" name="Licenses[${nextIdx}].LicenseExpiryDate" class="form-control form-control-sm" required />

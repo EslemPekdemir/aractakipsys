@@ -112,36 +112,228 @@
             color: #ffffff !important;
         }
 
-        /* Bildirim Dropdown'ları (Masaüstü ve Genel) */
+        /* Birleşik Bildirim Merkezi Dropdown Stilleri */
         .navbar-top-links .dropdown-menu.dropdown-messages {
-            max-height: 420px;
-            overflow-y: auto;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-radius: 10px;
             margin-top: 5px;
         }
-        #navDocExpiryDropdown .dropdown-menu {
-            width: 340px;
-            max-height: 420px;
-            overflow-y: auto;
+        #navUnifiedNotificationDropdown .dropdown-menu {
+            width: 390px;
+            max-width: 92vw;
+            padding: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
         }
-        #navNotificationDropdown .dropdown-menu {
-            width: 320px;
-            max-height: 420px;
-            overflow-y: auto;
+        .custom-notify-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f8fafc;
         }
-        .notification-request-item,
-        .notification-doc-item {
-            transition: background-color 0.2s ease !important;
+        .custom-notify-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-notify-scroll::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        .custom-notify-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-notify-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .unified-notify-item {
+            transition: all 0.2s ease !important;
             cursor: pointer;
+            background-color: #ffffff;
+            border-left-width: 4px !important;
         }
-        .notification-request-item:hover,
-        .notification-doc-item:hover {
-            background-color: #f1f5f9 !important;
+        .unified-notify-item:hover {
+            background-color: #f8fafc !important;
         }
-        .notification-request-item:hover .notification-request-title,
-        .notification-doc-item:hover .notification-doc-plate {
+        .unified-notify-item:hover .notify-title {
             color: #1ab394 !important;
+        }
+        /* Bildirim Filtre Çipleri (Şık, Modern ve Ortalanmış) */
+        .notify-filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .notify-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 11px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            line-height: 1.2;
+            color: #64748b;
+            background: #ffffff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .notify-chip:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        .notify-chip .chip-count {
+            display: inline-block;
+            padding: 1px 5px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        /* Tümü */
+        .notify-chip[data-filter="all"] {
+            border-color: #e2e8f0;
+            color: #475569;
+        }
+        .notify-chip[data-filter="all"] .chip-count {
+            background: #e2e8f0;
+            color: #334155;
+        }
+        .notify-chip[data-filter="all"].active {
+            background: #1e293b;
+            color: #ffffff;
+            border-color: #1e293b;
+            box-shadow: 0 3px 8px rgba(30, 41, 59, 0.25);
+        }
+        .notify-chip[data-filter="all"].active .chip-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* Belge (Muayene / Sigorta) - Kırmızı */
+        .notify-chip[data-filter="docs"] {
+            background: #fff5f5;
+            border-color: #fed7d7;
+            color: #c53030;
+        }
+        .notify-chip[data-filter="docs"] .chip-count {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+        .notify-chip[data-filter="docs"].active {
+            background: #e53e3e;
+            color: #ffffff;
+            border-color: #e53e3e;
+            box-shadow: 0 3px 8px rgba(229, 62, 62, 0.3);
+        }
+        .notify-chip[data-filter="docs"].active .chip-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* Talep - Turuncu / Amber */
+        .notify-chip[data-filter="requests"] {
+            background: #fffaf0;
+            border-color: #feebc8;
+            color: #dd6b20;
+        }
+        .notify-chip[data-filter="requests"] .chip-count {
+            background: #feebc8;
+            color: #c05621;
+        }
+        .notify-chip[data-filter="requests"].active {
+            background: #dd6b20;
+            color: #ffffff;
+            border-color: #dd6b20;
+            box-shadow: 0 3px 8px rgba(221, 107, 32, 0.3);
+        }
+        .notify-chip[data-filter="requests"].active .chip-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* Arıza - Kırmızı */
+        .notify-chip[data-filter="faults"] {
+            background: #fff5f5;
+            border-color: #fed7d7;
+            color: #e53e3e;
+        }
+        .notify-chip[data-filter="faults"] .chip-count {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+        .notify-chip[data-filter="faults"].active {
+            background: #e53e3e;
+            color: #ffffff;
+            border-color: #e53e3e;
+            box-shadow: 0 3px 8px rgba(229, 62, 62, 0.3);
+        }
+        .notify-chip[data-filter="faults"].active .chip-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* Güzergah - Mavi / Turkuaz */
+        .notify-chip[data-filter="routes"] {
+            background: #e6fffa;
+            border-color: #b2f5ea;
+            color: #319795;
+        }
+        .notify-chip[data-filter="routes"] .chip-count {
+            background: #b2f5ea;
+            color: #285e61;
+        }
+        .notify-chip[data-filter="routes"].active {
+            background: #319795;
+            color: #ffffff;
+            border-color: #319795;
+            box-shadow: 0 3px 8px rgba(49, 151, 149, 0.3);
+        }
+        .notify-chip[data-filter="routes"].active .chip-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* Ehliyet - Turuncu / Sarı */
+        .notify-chip[data-filter="licenses"] {
+            background: #fffaf0;
+            border-color: #feebc8;
+            color: #d69e2e;
+        }
+        .notify-chip[data-filter="licenses"] .chip-count {
+            background: #feebc8;
+            color: #975a16;
+        }
+        .notify-chip[data-filter="licenses"].active {
+            background: #d69e2e;
+            color: #ffffff;
+            border-color: #d69e2e;
+            box-shadow: 0 3px 8px rgba(214, 158, 46, 0.3);
+        }
+        .notify-chip[data-filter="licenses"].active .chip-count {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* Dashboard Sistem Uyarısı Tıklanabilir Bildirim Kartları */
+        .toast-notification-card {
+            text-decoration: none !important;
+            display: block;
+        }
+        .toast-notification-card:hover {
+            background-color: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important;
+            transform: translateY(-1px);
+        }
+        .toast-notification-card:hover .text-primary {
+            color: #12836b !important;
         }
 
         /* Input-Group Arama Butonu ve Elemanları Dikey Uyum Stilleri */
@@ -274,8 +466,7 @@
             /* Bildirim ve Mesaj Açılır Menüleri (Mobil Ekran Ortalaması ve Taşma Önleme) */
             .navbar-top-links .dropdown-menu,
             .navbar-top-links .dropdown-menu.dropdown-messages,
-            #navDocExpiryDropdown .dropdown-menu,
-            #navNotificationDropdown .dropdown-menu {
+            #navUnifiedNotificationDropdown .dropdown-menu {
                 position: fixed !important;
                 top: 55px !important;
                 left: 10px !important;
@@ -341,12 +532,37 @@
         @if (isReadOnly)
         {
             <text>
-            /* Salt Okunur (Genel Sekreter) Modu: Yalnızca veri değiştiren form submit ve butonlarını gizle */
+            /* Salt Okunur (Genel Sekreter) Modu: Veri değiştirmeye yarayan tüm buton, link ve modal tetikleyicilerini merkezi olarak gizle */
             form[method="post"]:not(.readonly-allow-form) button[type="submit"],
             form[method="post"]:not(.readonly-allow-form) input[type="submit"],
             a[href*="/Create"]:not(.readonly-allow-link),
             a[href*="/Edit"]:not(.readonly-allow-link),
             a[href*="/Delete"]:not(.readonly-allow-link),
+            a[href*="/Add"]:not(.readonly-allow-link),
+            a[href*="/Update"]:not(.readonly-allow-link),
+            a[href*="/Revoke"]:not(.readonly-allow-link),
+            a[href*="/Cancel"]:not(.readonly-allow-link),
+            button[data-target="#addDocumentModal"],
+            button[data-target="#editDocumentModal"],
+            button[data-target="#addTireModal"],
+            button[data-target="#editTireModal"],
+            button[data-target="#createOptionModal"],
+            button[data-target="#editOptionNameModal"],
+            button[data-target="#resetPasswordModal"],
+            button[data-target="#offRouteDispatchModal"],
+            button[data-target="#deleteSefModal"],
+            button[data-target="#createDelegationModal"],
+            button[data-target="#vehicleChecksModal"],
+            button[data-target="#faultReportModal"],
+            button[data-target="#startAssignmentModal"],
+            button[data-target="#endAssignmentModal"],
+            button[data-target="#changeRouteModal"],
+            button[onclick*="openEditModal"],
+            button[onclick*="confirmDeleteDocument"],
+            button[onclick*="openEditTireModal"],
+            button[onclick*="confirmDeleteTire"],
+            .edit-option-btn,
+            .btn-reset-password,
             .btn-action-mutate,
             .readonly-hide-mutate {
                 display: none !important;
@@ -432,9 +648,9 @@
                         </a>
                     </li>
                     <li class="@(string.Equals(currentController, "Report", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
-                        <a href="/Report"><i class="fa fa-bar-chart"></i> <span class="nav-label">Kullanım Raporu</span></a>
+                        <a href="/Report"><i class="fa fa-bar-chart"></i> <span class="nav-label">Raporlar</span></a>
                     </li>
-                    @if (User.IsInRole("Admin") || User.IsInRole("DaireBaskani"))
+                    @if (User.IsInRole("Admin") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter"))
                     {
                         <li class="@(string.Equals(currentController, "Sef", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                             <a href="/Sef"><i class="fa fa-user-circle"></i> <span class="nav-label">Kullanıcı Yönetimi</span></a>
@@ -444,6 +660,12 @@
                     {
                         <li class="@(string.Equals(currentController, "AuditLog", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                             <a href="/AuditLog"><i class="fa fa-shield"></i> <span class="nav-label">Denetim Kayıtları</span></a>
+                        </li>
+                    }
+                    @if (User.IsInRole("Admin") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter"))
+                    {
+                        <li class="@(string.Equals(currentController, "SystemDefinition", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                            <a href="/SystemDefinition"><i class="fa fa-sliders"></i> <span class="nav-label">Sistem Tanımları</span></a>
                         </li>
                     }
                     <li class="@(string.Equals(currentController, "RoleDelegation", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
@@ -475,123 +697,66 @@
                         <li style="padding: 20px">
                             <span class="m-r-sm text-muted welcome-message d-none d-md-inline">Düzce Üniversitesi Araç Takip Paneli</span>
                         </li>
-                        <!-- BİLDİRİM ÇANI (SİGORTA & MUAYENE GEÇERLİLİK UYARILARI) -->
-                        <li class="dropdown" id="navDocExpiryDropdown">
-                            <a class="dropdown-toggle count-info" data-toggle="dropdown" data-display="static" href="#" title="Belge Süresi Yaklaşan / Geçen Araçlar" style="position: relative; padding: 20px 10px;">
-                                <i class="fa fa-bell" style="font-size: 1.2rem;"></i>  
-                                <span class="label label-danger d-none" id="navDocExpiryBadge" style="position: absolute; top: 12px; right: 2px; font-size: 10px; padding: 2px 5px; border-radius: 10px;">0</span>
+                        <!-- BİRLEŞİK BİLDİRİM MERKEZİ -->
+                        <li class="dropdown" id="navUnifiedNotificationDropdown">
+                            <a class="dropdown-toggle count-info" data-toggle="dropdown" data-display="static" href="#" title="Bildirim Merkezi" style="position: relative; padding: 20px 14px;">
+                                <i class="fa fa-bell" style="font-size: 1.25rem;"></i>  
+                                <span class="label label-danger d-none" id="unifiedNotificationBadge" style="position: absolute; top: 12px; right: 4px; font-size: 10px; padding: 2px 5px; border-radius: 10px; font-weight: 700;">0</span>
                             </a>
-                            <ul class="dropdown-menu dropdown-messages dropdown-menu-right" style="max-height: 420px; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.15); border-radius: 8px; margin-top: 5px;">
-                                <li class="p-2 border-bottom font-weight-bold text-dark d-flex justify-content-between align-items-center bg-light">
-                                    <span><i class="fa fa-exclamation-triangle text-danger mr-1"></i> Muayene & Sigorta Uyarıları</span>
-                                    <span class="badge badge-danger" id="dropdownDocExpiryCount">0 Araç</span>
+                            <ul class="dropdown-menu dropdown-messages dropdown-menu-right shadow-lg" style="margin-top: 5px;">
+                                <!-- BAŞLIK -->
+                                <li class="p-2 px-3 border-bottom d-flex justify-content-between align-items-center" style="background: #f8fafc;">
+                                    <div class="d-flex align-items-center font-weight-bold text-dark" style="font-size: 13px;">
+                                        <i class="fa fa-bell text-primary mr-2"></i>
+                                        <span>Bildirim Merkezi</span>
+                                    </div>
+                                    <span class="badge badge-primary px-2 py-1" id="unifiedNotificationTotalBadge" style="border-radius: 12px; font-size: 11px;">0 Bildirim</span>
                                 </li>
-                                <li id="dropdownDocExpiryItemsContainer">
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Süresi yaklaşan veya geçen araç bulunmuyor</div>
+
+                                <!-- KATEGORİ FİLTRE ÇİPLERİ (ŞIK VE ORTALANMIŞ) -->
+                                <li class="p-0 border-bottom">
+                                    <div class="notify-filter-bar" id="unifiedNotificationFilterPills">
+                                        <div class="notify-chip active" data-filter="all">
+                                            <span>Tümü</span>
+                                            <span class="chip-count" id="filterCountAll">0</span>
+                                        </div>
+                                        <div class="notify-chip" data-filter="docs" title="Muayene & Sigorta Uyarıları">
+                                            <i class="fa fa-exclamation-triangle"></i>
+                                            <span>Belge</span>
+                                            <span class="chip-count" id="filterCountDocs">0</span>
+                                        </div>
+                                        <div class="notify-chip" data-filter="requests" title="Bekleyen Araç Talepleri">
+                                            <i class="fa fa-envelope"></i>
+                                            <span>Talep</span>
+                                            <span class="chip-count" id="filterCountRequests">0</span>
+                                        </div>
+                                        <div class="notify-chip" data-filter="faults" title="Araç Arıza Bildirimleri">
+                                            <i class="fa fa-wrench"></i>
+                                            <span>Arıza</span>
+                                            <span class="chip-count" id="filterCountFaults">0</span>
+                                        </div>
+                                        <div class="notify-chip" data-filter="routes" title="Güzergah Değişiklikleri">
+                                            <i class="fa fa-road"></i>
+                                            <span>Güzergah</span>
+                                            <span class="chip-count" id="filterCountRoutes">0</span>
+                                        </div>
+                                        <div class="notify-chip" data-filter="licenses" title="Ehliyet Geçerlilik Uyarıları">
+                                            <i class="fa fa-id-card-o"></i>
+                                            <span>Ehliyet</span>
+                                            <span class="chip-count" id="filterCountLicenses">0</span>
+                                        </div>
                                     </div>
                                 </li>
-                                <li class="border-top text-center p-2 bg-light">
-                                    <a href="/Vehicle" class="font-weight-bold text-primary small d-block py-1" title="Tüm Araçları Listele">
-                                        <i class="fa fa-car mr-1"></i> Tümünü Gör (Araçlar)
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        <!-- BİLDİRİM (ARAÇ TALEPLERİ) -->
-                        <li class="dropdown" id="navNotificationDropdown">
-                            <a class="dropdown-toggle count-info" data-toggle="dropdown" data-display="static" href="#" title="Araç Talepleri Bildirimleri" style="position: relative; padding: 20px 10px;">
-                                <i class="fa fa-envelope-o" style="font-size: 1.2rem;"></i>  
-                                <span class="label label-warning d-none" id="navNotificationBadge" style="position: absolute; top: 12px; right: 2px; font-size: 10px; padding: 2px 5px; border-radius: 10px;">0</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-messages dropdown-menu-right" style="max-height: 420px; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.15); border-radius: 8px; margin-top: 5px;">
-                                <li class="p-2 border-bottom font-weight-bold text-dark d-flex justify-content-between align-items-center bg-light">
-                                    <span><i class="fa fa-envelope-open-o text-warning mr-1"></i> Bekleyen Araç Talepleri</span>
-                                    <span class="badge badge-warning" id="dropdownNotificationCount">0 Yeni</span>
-                                </li>
-                                <li id="dropdownNotificationItemsContainer">
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Bekleyen yeni talep bulunmuyor</div>
+
+                                <!-- KAYDIRILABİLİR BİLDİRİM LİSTESİ -->
+                                <li style="max-height: 420px; overflow-y: auto;" id="unifiedNotificationScrollContainer" class="custom-notify-scroll">
+                                    <div id="unifiedNotificationItemsList">
+                                        <div class="text-center p-4 text-muted small">
+                                            <i class="fa fa-check-circle text-success mb-2" style="font-size: 2rem;"></i>
+                                            <div class="font-weight-bold">Bekleyen bildirim veya kritik uyarı bulunmuyor</div>
+                                            <div class="text-muted font-11 mt-1">Filo durumu güncel ve kontrol altında.</div>
+                                        </div>
                                     </div>
-                                </li>
-                                <li class="border-top text-center p-2 bg-light">
-                                    <a href="/VehicleRequest" class="font-weight-bold text-primary small d-block py-1" title="Tüm Araç Taleplerini Listele">
-                                        <i class="fa fa-list mr-1"></i> Tümünü Gör (Talepler)
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        <!-- BİLDİRİM (ARAÇ ARIZA BİLDİRİMLERİ) -->
-                        <li class="dropdown" id="navFaultDropdown">
-                            <a class="dropdown-toggle count-info" data-toggle="dropdown" data-display="static" href="#" title="Arıza Bildirimleri" style="position: relative; padding: 20px 10px;">
-                                <i class="fa fa-wrench text-danger" style="font-size: 1.2rem;"></i>  
-                                <span class="label label-danger d-none" id="navFaultBadge" style="position: absolute; top: 12px; right: 2px; font-size: 10px; padding: 2px 5px; border-radius: 10px;">0</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-messages dropdown-menu-right" style="max-height: 420px; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.15); border-radius: 8px; margin-top: 5px;">
-                                <li class="p-2 border-bottom font-weight-bold text-dark d-flex justify-content-between align-items-center bg-light">
-                                    <span><i class="fa fa-wrench text-danger mr-1"></i> Bekleyen Arıza Bildirimleri</span>
-                                    <span class="badge badge-danger" id="dropdownFaultCount">0 Yeni</span>
-                                </li>
-                                <li id="dropdownFaultItemsContainer">
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Bekleyen arıza bildirimi bulunmuyor</div>
-                                    </div>
-                                </li>
-                                <li class="border-top text-center p-2 bg-light">
-                                    <a href="/FaultReport" class="font-weight-bold text-primary small d-block py-1" title="Tüm Arıza Bildirimlerini Listele">
-                                        <i class="fa fa-list mr-1"></i> Tümünü Gör (Arızalar)
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        <!-- BİLDİRİM (GÜZERGAH DEĞİŞİKLİKLERİ) -->
-                        <li class="dropdown" id="navRouteDropdown">
-                            <a class="dropdown-toggle count-info" data-toggle="dropdown" data-display="static" href="#" title="Güzergah Değişiklikleri" style="position: relative; padding: 20px 10px;">
-                                <i class="fa fa-road text-info" style="font-size: 1.2rem;"></i>  
-                                <span class="label label-info d-none" id="navRouteBadge" style="position: absolute; top: 12px; right: 2px; font-size: 10px; padding: 2px 5px; border-radius: 10px;">0</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-messages dropdown-menu-right" style="max-height: 420px; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.15); border-radius: 8px; margin-top: 5px;">
-                                <li class="p-2 border-bottom font-weight-bold text-dark d-flex justify-content-between align-items-center bg-light">
-                                    <span><i class="fa fa-road text-info mr-1"></i> Güzergah Değişiklikleri</span>
-                                    <span class="badge badge-info" id="dropdownRouteCount">0 Yeni</span>
-                                </li>
-                                <li id="dropdownRouteItemsContainer">
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Bildirilen güzergah değişikliği bulunmuyor</div>
-                                    </div>
-                                </li>
-                                <li class="border-top text-center p-2 bg-light">
-                                    <a href="/Assignment" class="font-weight-bold text-primary small d-block py-1" title="Tüm Görevleri Listele">
-                                        <i class="fa fa-list mr-1"></i> Tümünü Gör (Görevler)
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        <!-- BİLDİRİM (EHLİYET GEÇERLİLİK UYARILARI) -->
-                        <li class="dropdown" id="navLicenseExpiryDropdown">
-                            <a class="dropdown-toggle count-info" data-toggle="dropdown" data-display="static" href="#" title="Ehliyet Süresi Yaklaşan / Geçen Şoförler" style="position: relative; padding: 20px 10px;">
-                                <i class="fa fa-id-card-o text-warning" style="font-size: 1.2rem;"></i>  
-                                <span class="label label-warning d-none" id="navLicenseExpiryBadge" style="position: absolute; top: 12px; right: 2px; font-size: 10px; padding: 2px 5px; border-radius: 10px;">0</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-messages dropdown-menu-right" style="max-height: 420px; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.15); border-radius: 8px; margin-top: 5px;">
-                                <li class="p-2 border-bottom font-weight-bold text-dark d-flex justify-content-between align-items-center bg-light">
-                                    <span><i class="fa fa-id-card text-warning mr-1"></i> Ehliyet Geçerlilik Uyarıları</span>
-                                    <span class="badge badge-warning" id="dropdownLicenseExpiryCount">0 Şoför</span>
-                                </li>
-                                <li id="dropdownLicenseExpiryItemsContainer">
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Süresi yaklaşan veya geçen ehliyet bulunmuyor</div>
-                                    </div>
-                                </li>
-                                <li class="border-top text-center p-2 bg-light">
-                                    <a href="/Driver" class="font-weight-bold text-primary small d-block py-1" title="Tüm Şoförleri Listele">
-                                        <i class="fa fa-users mr-1"></i> Tümünü Gör (Şoförler)
-                                    </a>
                                 </li>
                             </ul>
                         </li>
@@ -668,11 +833,423 @@
     <script src="~/js/plugins/toastr/toastr.min.js"></script>
     <script src="~/js/plugins/select2/select2.full.min.js"></script>
 
+    @if (TempData["JustLoggedIn"] != null)
+    {
+        <script>
+            try {
+                sessionStorage.setItem('just_logged_in_for_toast', 'true');
+            } catch (e) { }
+        </script>
+    }
+
     <!-- CANLI BİLDİRİM VE BEKLEYEN TALEP KONTROL SCRIPTI -->
     <script>
         (function () {
-            let lastPendingCount = null;
+            // Birleşik Bildirim Deposu
+            const notificationStore = {
+                docs: { count: 0, items: [] },
+                requests: { count: 0, items: [] },
+                faults: { count: 0, items: [] },
+                routes: { count: 0, items: [] },
+                licenses: { count: 0, items: [] }
+            };
 
+            let currentFilter = 'all';
+            let lastPendingCount = null;
+            let lastPendingFaultCount = null;
+            let lastPendingRouteCount = null;
+            let lastExpiringLicenseCount = null;
+            let lastDocCount = null;
+
+            let initialChecksRemaining = 5;
+            let isInitialCheckCompleted = false;
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                return $('<div>').text(text).html();
+            }
+
+            function parseDateStrToTimestamp(str) {
+                if (!str) return 0;
+                var parts = str.trim().split(' ');
+                var dParts = parts[0].split('.');
+                if (dParts.length === 3) {
+                    var day = parseInt(dParts[0], 10);
+                    var month = parseInt(dParts[1], 10) - 1;
+                    var year = parseInt(dParts[2], 10);
+                    var hour = 0, min = 0;
+                    if (parts[1]) {
+                        var tParts = parts[1].split(':');
+                        hour = parseInt(tParts[0], 10) || 0;
+                        min = parseInt(tParts[1], 10) || 0;
+                    }
+                    return new Date(year, month, day, hour, min).getTime();
+                }
+                var d = new Date(str);
+                return isNaN(d.getTime()) ? 0 : d.getTime();
+            }
+
+            // Web Audio API ile harici ses dosyası olmaksızın yerleşik kurumsal uyarı bip sesi (tek ses)
+            window.playDashboardNotificationSound = function () {
+                try {
+                    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtx) return;
+                    var ctx = new AudioCtx();
+                    var now = ctx.currentTime;
+
+                    var osc = ctx.createOscillator();
+                    var gain = ctx.createGain();
+
+                    osc.type = 'sine';
+                    // 587.33 Hz (D5) -> 880 Hz (A5) yumuşak çift tonlu kurumsal bildirim sesi (0.35 sn)
+                    osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } catch (e) {
+                    console.warn("Audio notification could not be played:", e);
+                }
+            };
+
+            // Dashboard Sistem Uyarısı Toast Bildirimini (Son 2 Bildirim) Senkronize Et
+            function updateDashboardAlertToast(allItems, forceShow) {
+                var $toast = $('#dashboardAlertToast');
+                if ($toast.length === 0) return;
+
+                if (!allItems || allItems.length === 0) {
+                    $toast.hide();
+                    return;
+                }
+
+                // Tarihe göre azalan (en yeniden en eskiye) sırala
+                var sorted = allItems.slice().sort(function (a, b) {
+                    return (b.timestamp || 0) - (a.timestamp || 0);
+                });
+
+                var top2 = sorted.slice(0, 2);
+                if (top2.length === 0) {
+                    $toast.hide();
+                    return;
+                }
+
+                // İmza oluştur (url:title)
+                var sig = top2.map(function (it) {
+                    return (it.url || '') + ':' + (it.title || '');
+                }).join('|');
+
+                // Son 2 bildirim için şık, tıklanabilir kartlar oluştur
+                var cardsHtml = '';
+                top2.forEach(function (item) {
+                    cardsHtml += `
+                        <a href="${item.url}" class="toast-notification-card text-decoration-none d-block p-2" 
+                           style="background: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid ${item.borderColor} !important; border-radius: 8px; margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s ease;">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge ${item.categoryBadgeClass}" style="font-size: 10px; padding: 2px 7px; border-radius: 4px;">
+                                    <i class="fa ${item.categoryIcon} mr-1"></i>${escapeHtml(item.categoryName)}
+                                </span>
+                                <span class="text-muted font-11">${item.dateBadgeHtml}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="${item.titleColorClass} font-12 text-truncate" style="max-width: 230px;">
+                                    <i class="fa ${item.titleIcon} mr-1"></i>${escapeHtml(item.title)}
+                                </strong>
+                                ${item.subInfo ? `<small class="text-muted font-11 text-truncate ml-1" style="max-width: 110px;">${escapeHtml(item.subInfo)}</small>` : ''}
+                            </div>
+                            <div class="text-truncate small text-secondary" style="max-width: 100%; font-size: 11.5px; line-height: 1.35;" title="${escapeHtml(item.desc)}">
+                                <i class="fa ${item.descIcon} mr-1 text-muted"></i>${escapeHtml(item.desc)}
+                            </div>
+                            <div class="d-flex justify-content-end align-items-center mt-1 pt-1 border-top" style="border-color: #f1f5f9 !important;">
+                                <span class="text-primary font-weight-bold" style="font-size: 11px;">
+                                    Detayı Gör <i class="fa fa-arrow-right ml-1"></i>
+                                </span>
+                            </div>
+                        </a>
+                    `;
+                });
+
+                $('#dashboardToastItemsContainer').html(cardsHtml);
+                $toast.attr('data-signature', sig);
+
+                // Kapatma butonu tıklandığında toast'ı gizle
+                $toast.off('click', '[data-dismiss="toast"]').on('click', '[data-dismiss="toast"]', function (e) {
+                    e.stopPropagation();
+                    clearTimeout(window._dashboardToastTimer);
+                    if (typeof $toast.toast === 'function') {
+                        $toast.toast('hide');
+                    } else {
+                        $toast.fadeOut(300);
+                    }
+                });
+
+                // YALNIZCA kullanıcı hesabına yeni giriş yaptığında veya yeni bir istek/olay geldiğinde gösterilir
+                // Normal dashboard ziyaretlerinde ASLA otomatik açılmaz!
+                if (forceShow === true) {
+                    if (typeof $toast.toast === 'function') {
+                        $toast.toast({ delay: 3000, autohide: true }).toast('show');
+                    } else {
+                        $toast.stop(true, true).css('display', 'block').hide().fadeIn(300);
+                    }
+                    if (typeof window.playDashboardNotificationSound === 'function') {
+                        window.playDashboardNotificationSound();
+                    }
+
+                    // 3 saniye sonra kesin otomatik kapanma
+                    clearTimeout(window._dashboardToastTimer);
+                    window._dashboardToastTimer = setTimeout(function () {
+                        if (typeof $toast.toast === 'function') {
+                            $toast.toast('hide');
+                        }
+                        $toast.fadeOut(400);
+                    }, 3000);
+                }
+            }
+
+            // İlk 5 kontrolün tamamlanmasını takip etme
+            function onCheckComplete() {
+                if (initialChecksRemaining > 0) {
+                    initialChecksRemaining--;
+                    if (initialChecksRemaining === 0) {
+                        isInitialCheckCompleted = true;
+                        var isJustLoggedIn = false;
+                        try {
+                            isJustLoggedIn = (sessionStorage.getItem('just_logged_in_for_toast') === 'true');
+                            if (isJustLoggedIn) {
+                                sessionStorage.removeItem('just_logged_in_for_toast');
+                            }
+                        } catch (e) { }
+
+                        // YALNIZCA kullanıcı hesabına yeni giriş yaptıysa ilk girişte bildirim açılır
+                        if (isJustLoggedIn) {
+                            renderUnifiedNotifications(true);
+                        }
+                    }
+                }
+            }
+
+            // Birleşik Bildirimleri Ekrana Çizme Fonksiyonu
+            function renderUnifiedNotifications(forceShowToast = false) {
+                const docCount = notificationStore.docs.count || 0;
+                const reqCount = notificationStore.requests.count || 0;
+                const faultCount = notificationStore.faults.count || 0;
+                const routeCount = notificationStore.routes.count || 0;
+                const licenseCount = notificationStore.licenses.count || 0;
+
+                const totalCount = docCount + reqCount + faultCount + routeCount + licenseCount;
+
+                // 1. Üst Navbar Çan Rozetini Güncelle
+                const $badge = $('#unifiedNotificationBadge');
+                if (totalCount > 0) {
+                    $badge.text(totalCount).removeClass('d-none');
+                } else {
+                    $badge.text('0').addClass('d-none');
+                }
+
+                // 2. Başlıktaki Toplam Sayaç
+                $('#unifiedNotificationTotalBadge').text(totalCount + ' Bildirim');
+
+                // 3. Filtre Rozet Sayılarını Güncelle
+                $('#filterCountAll').text(totalCount);
+                $('#filterCountDocs').text(docCount);
+                $('#filterCountRequests').text(reqCount);
+                $('#filterCountFaults').text(faultCount);
+                $('#filterCountRoutes').text(routeCount);
+                $('#filterCountLicenses').text(licenseCount);
+
+                // 4. Görünecek Bildirim Kartlarını Topla (Tüm 5 Kategori)
+                const allNotificationItems = [];
+
+                // Muayene & Sigorta (Belge - Kırmızı)
+                (notificationStore.docs.items || []).forEach(function (item) {
+                    const isExp = item.isExpired || (typeof item.daysDiff !== 'undefined' && item.daysDiff < 0);
+                    const ts = isExp 
+                        ? (Date.now() - (Math.abs(item.daysDiff || 1) * 3600000))
+                        : (Date.now() - 864000000 - ((item.daysDiff || 30) * 86400000));
+
+                    allNotificationItems.push({
+                        category: 'docs',
+                        categoryName: 'Belge',
+                        categoryBadgeClass: isExp ? 'badge-danger' : 'badge-warning',
+                        categoryIcon: 'fa-exclamation-triangle',
+                        borderColor: isExp ? '#ed5565' : '#f8ac59',
+                        title: item.plateNumber,
+                        titleIcon: 'fa-car',
+                        titleColorClass: 'text-danger',
+                        subInfo: item.brandModel,
+                        desc: item.documentDescription,
+                        descIcon: item.iconClass || 'fa-file-text-o',
+                        dateBadgeHtml: `<span class="badge ${item.badgeClass || (isExp ? 'badge-danger' : 'badge-warning')}" style="font-size: 9px; padding: 2px 6px;">${escapeHtml(item.badgeText)}</span>`,
+                        url: `/Vehicle/Details/${item.vehicleId}`,
+                        timestamp: ts
+                    });
+                });
+
+                // Araç Talepleri (Talep - Turuncu / Sarı)
+                (notificationStore.requests.items || []).forEach(function (item) {
+                    const reqId = item.id || item.Id;
+                    allNotificationItems.push({
+                        category: 'requests',
+                        categoryName: 'Talep',
+                        categoryBadgeClass: 'badge-warning',
+                        categoryIcon: 'fa-envelope',
+                        borderColor: '#f8ac59',
+                        title: item.requesterFullName,
+                        titleIcon: 'fa-user-circle',
+                        titleColorClass: 'text-warning font-weight-bold',
+                        subInfo: '',
+                        desc: item.purpose,
+                        descIcon: 'fa-info-circle',
+                        dateBadgeHtml: `<small class="text-muted font-11">${escapeHtml(item.formattedDate)}</small>`,
+                        url: `/VehicleRequest/Fulfill/${reqId}`,
+                        timestamp: parseDateStrToTimestamp(item.formattedDate)
+                    });
+                });
+
+                // Arıza Bildirimleri (Arıza - Kırmızı)
+                (notificationStore.faults.items || []).forEach(function (item) {
+                    allNotificationItems.push({
+                        category: 'faults',
+                        categoryName: 'Arıza',
+                        categoryBadgeClass: 'badge-danger',
+                        categoryIcon: 'fa-wrench',
+                        borderColor: '#ed5565',
+                        title: item.plate,
+                        titleIcon: 'fa-wrench',
+                        titleColorClass: 'text-danger',
+                        subInfo: item.driver,
+                        desc: item.description,
+                        descIcon: 'fa-exclamation-circle',
+                        dateBadgeHtml: `<small class="text-muted font-11">${escapeHtml(item.formattedDate)}</small>`,
+                        url: `/FaultReport/Detail/${item.id}`,
+                        timestamp: parseDateStrToTimestamp(item.formattedDate)
+                    });
+                });
+
+                // Güzergah Değişiklikleri (Güzergah - Turkuaz / Mavi)
+                (notificationStore.routes.items || []).forEach(function (item) {
+                    const routeDesc = (item.newRoute ? 'Yeni: ' + item.newRoute : '') + (item.reason ? ' (' + item.reason + ')' : '');
+                    allNotificationItems.push({
+                        category: 'routes',
+                        categoryName: 'Güzergah',
+                        categoryBadgeClass: 'badge-info',
+                        categoryIcon: 'fa-road',
+                        borderColor: '#23c6c8',
+                        title: item.plate,
+                        titleIcon: 'fa-road',
+                        titleColorClass: 'text-info',
+                        subInfo: item.driver,
+                        desc: routeDesc,
+                        descIcon: 'fa-map-marker',
+                        dateBadgeHtml: `<small class="text-muted font-11">${escapeHtml(item.formattedDate)}</small>`,
+                        url: `/Assignment/Details/${item.assignmentId}`,
+                        timestamp: parseDateStrToTimestamp(item.formattedDate)
+                    });
+                });
+
+                // Ehliyet Süreleri (Ehliyet - Turuncu)
+                (notificationStore.licenses.items || []).forEach(function (item) {
+                    const isExp = item.isExpired || (typeof item.daysRemaining !== 'undefined' && item.daysRemaining < 0);
+                    const ts = isExp 
+                        ? (Date.now() - (Math.abs(item.daysRemaining || 1) * 3600000))
+                        : (item.licenseExpiryDate ? new Date(item.licenseExpiryDate).getTime() : 0);
+
+                    allNotificationItems.push({
+                        category: 'licenses',
+                        categoryName: 'Ehliyet',
+                        categoryBadgeClass: isExp ? 'badge-danger' : 'badge-warning',
+                        categoryIcon: 'fa-id-card-o',
+                        borderColor: isExp ? '#ed5565' : '#f8ac59',
+                        title: item.driverFullName || item.fullName,
+                        titleIcon: 'fa-user',
+                        titleColorClass: 'text-warning font-weight-bold',
+                        subInfo: item.department || 'Birim Yok',
+                        desc: `Sınıf: ${item.licenseClass} (${item.expiryDate || (item.licenseExpiryDate ? new Date(item.licenseExpiryDate).toLocaleDateString('tr-TR') : '')})`,
+                        descIcon: 'fa-id-card',
+                        dateBadgeHtml: `<span class="badge ${item.statusBadgeClass || item.badgeClass || (isExp ? 'badge-danger' : 'badge-warning')}" style="font-size: 9px; padding: 2px 6px;">${escapeHtml(item.statusBadgeText || item.badgeText)}</span>`,
+                        url: `/Driver/Details/${item.driverId}`,
+                        timestamp: ts
+                    });
+                });
+
+                // Dropdown için aktif sekmeye göre filtreleme
+                const renderItems = (currentFilter === 'all')
+                    ? allNotificationItems
+                    : allNotificationItems.filter(function (it) { return it.category === currentFilter; });
+
+                // 5. İçeriği Dropdown Listesine Yaz
+                const $container = $('#unifiedNotificationItemsList');
+                if (totalCount === 0) {
+                    $container.html(`
+                        <div class="text-center p-4 text-muted small">
+                            <i class="fa fa-check-circle text-success mb-2" style="font-size: 2rem;"></i>
+                            <div class="font-weight-bold">Bekleyen bildirim veya kritik uyarı bulunmuyor</div>
+                            <div class="text-muted font-11 mt-1">Filo durumu güncel ve kontrol altında.</div>
+                        </div>
+                    `);
+                    updateDashboardAlertToast([], false);
+                    return;
+                }
+
+                if (renderItems.length === 0) {
+                    $container.html(`
+                        <div class="text-center p-4 text-muted small">
+                            <i class="fa fa-filter text-muted mb-2" style="font-size: 2rem;"></i>
+                            <div class="font-weight-bold">Bu filtreye ait aktif bildirim yok</div>
+                            <div class="text-muted font-11 mt-1">Tüm bildirimleri görmek için "Tümü" sekmesini seçebilirsiniz.</div>
+                        </div>
+                    `);
+                } else {
+                    let html = '<ul class="list-unstyled mb-0">';
+                    renderItems.forEach(function (item) {
+                        html += `
+                            <li class="border-bottom p-2 unified-notify-item" style="border-left: 4px solid ${item.borderColor} !important;">
+                                <a href="${item.url}" class="text-dark d-block text-decoration-none" style="padding: 3px 6px; border-radius: 4px;" title="İncelemek için tıklayınız">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge ${item.categoryBadgeClass}" style="font-size: 9px; padding: 2px 6px;">
+                                            <i class="fa ${item.categoryIcon} mr-1"></i>${item.categoryName}
+                                        </span>
+                                        ${item.dateBadgeHtml}
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <strong class="${item.titleColorClass} font-12 notify-title">
+                                            <i class="fa ${item.titleIcon} mr-1"></i>${escapeHtml(item.title)}
+                                        </strong>
+                                        ${item.subInfo ? `<small class="text-muted font-11">${escapeHtml(item.subInfo)}</small>` : ''}
+                                    </div>
+                                    <div class="text-truncate small text-secondary mb-1" style="max-width: 100%;" title="${escapeHtml(item.desc)}">
+                                        <i class="fa ${item.descIcon} mr-1 text-muted"></i>${escapeHtml(item.desc)}
+                                    </div>
+                                    <div class="text-right font-11">
+                                        <span class="text-primary font-weight-bold" style="font-size: 11px;">İncele <i class="fa fa-arrow-right ml-1"></i></span>
+                                    </div>
+                                </a>
+                            </li>
+                        `;
+                    });
+                    html += '</ul>';
+                    $container.html(html);
+                }
+
+                // 6. Dashboard Açılır Uyarısını (Son 2 Bildirim) Kartlarını Güncelle
+                updateDashboardAlertToast(allNotificationItems, forceShowToast === true);
+            }
+
+            // Filtre Çipleri Tıklama Olayı (Dropdown'ın Kapanmasını Engeller)
+            $(document).on('click', '#unifiedNotificationFilterPills .notify-chip', function (e) {
+                e.stopPropagation();
+                $('#unifiedNotificationFilterPills .notify-chip').removeClass('active');
+                $(this).addClass('active');
+                currentFilter = $(this).data('filter');
+                renderUnifiedNotifications(false);
+            });
+
+            // 1. Araç Talepleri
             function checkPendingVehicleRequests() {
                 $.ajax({
                     url: '/VehicleRequest/PendingNotificationSummary',
@@ -683,7 +1260,10 @@
                             const count = res.pendingCount || 0;
                             const items = res.latestRequests || [];
 
-                            // 1. Sol Menü (Sidebar) Rozeti
+                            notificationStore.requests.count = count;
+                            notificationStore.requests.items = items;
+
+                            // Sol Menü (Sidebar) Rozeti
                             const $sidebarBadge = $('#sidebarRequestBadge');
                             if (count > 0) {
                                 $sidebarBadge.text(count).removeClass('d-none');
@@ -691,54 +1271,10 @@
                                 $sidebarBadge.addClass('d-none');
                             }
 
-                            // 2. Üst Navbar Çan Rozeti
-                            const $navBadge = $('#navNotificationBadge');
-                            const $dropCount = $('#dropdownNotificationCount');
-                            if (count > 0) {
-                                $navBadge.text(count).removeClass('d-none');
-                                $dropCount.text(count + ' Yeni');
-                            } else {
-                                $navBadge.addClass('d-none');
-                                $dropCount.text('0 Yeni');
-                            }
-
-                            // 3. Dropdown İçeriği
-                            const $container = $('#dropdownNotificationItemsContainer');
-                            if (count === 0 || items.length === 0) {
-                                $container.html(`
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Bekleyen yeni talep bulunmuyor</div>
-                                    </div>
-                                `);
-                            } else {
-                                let html = '<ul class="list-unstyled mb-0">';
-                                items.forEach(function (item) {
-                                    const requestId = item.id || item.Id;
-                                    html += `
-                                        <li class="border-bottom p-2 notification-request-item">
-                                            <a href="/VehicleRequest/Fulfill/${requestId}" class="text-dark d-block text-decoration-none notification-request-link" style="padding: 4px 6px; border-radius: 4px;" title="Talebi İncele ve Karşıla">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <strong class="text-primary font-12 notification-request-title"><i class="fa fa-user-circle mr-1"></i>${escapeHtml(item.requesterFullName)}</strong>
-                                                    <small class="text-muted font-11">${escapeHtml(item.formattedDate)}</small>
-                                                </div>
-                                                <div class="text-truncate small text-secondary mb-1" style="max-width: 100%;" title="${escapeHtml(item.purpose)}">
-                                                    ${escapeHtml(item.purpose)}
-                                                </div>
-                                                <div class="d-flex justify-content-between align-items-center font-11 text-muted">
-                                                    <span class="badge badge-warning" style="font-size: 9px; padding: 2px 5px;"><i class="fa fa-clock-o mr-1"></i>Bekliyor</span>
-                                                    <span class="text-primary font-weight-bold" style="font-size: 11px;">Talebi İncele <i class="fa fa-arrow-right ml-1"></i></span>
-                                                </div>
-                                            </a>
-                                        </li>
-                                    `;
-                                });
-                                html += '</ul>';
-                                $container.html(html);
-                            }
-
-                            // 4. Yeni Talep Düştüyse Canlı Toastr Bildirimi Ver
+                            // Yalnızca YENİ bir talep geldiğinde uyar
+                            let isNew = false;
                             if (lastPendingCount !== null && count > lastPendingCount) {
+                                isNew = true;
                                 const newDiff = count - lastPendingCount;
                                 if (typeof toastr !== 'undefined') {
                                     toastr.options = {
@@ -756,16 +1292,19 @@
                                     );
                                 }
                             }
-
                             lastPendingCount = count;
+
+                            renderUnifiedNotifications(isNew);
+                            onCheckComplete();
                         }
                     },
                     error: function () {
-                        // Arka plan kontrolü sessizce başarısız olabilir
+                        onCheckComplete();
                     }
                 });
             }
 
+            // 2. Belge (Muayene & Sigorta)
             function checkExpiringVehicleDocuments() {
                 $.ajax({
                     url: '/Vehicle/ExpiringDocumentSummary',
@@ -774,64 +1313,39 @@
                     success: function (res) {
                         if (res) {
                             const count = res.totalCount || 0;
-                            const items = res.expiringVehicles || [];
+                            notificationStore.docs.count = count;
+                            notificationStore.docs.items = res.expiringVehicles || [];
 
-                            const $navBadge = $('#navDocExpiryBadge');
-                            const $dropCount = $('#dropdownDocExpiryCount');
-                            if (count > 0) {
-                                $navBadge.text(count).removeClass('d-none');
-                                $dropCount.text(count + ' Araç');
-                            } else {
-                                $navBadge.addClass('d-none');
-                                $dropCount.text('0 Araç');
+                            let isNew = false;
+                            if (lastDocCount !== null && count > lastDocCount) {
+                                isNew = true;
+                                const diff = count - lastDocCount;
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.options = {
+                                        closeButton: true,
+                                        progressBar: true,
+                                        positionClass: "toast-top-right",
+                                        timeOut: 8000,
+                                        onclick: function () {
+                                            window.location.href = '/Report/InsuranceInspection';
+                                        }
+                                    };
+                                    toastr.warning(diff + ' aracın belge geçerlilik süresi doldu veya yaklaşıyor!', 'Belge Geçerlilik Uyarısı');
+                                }
                             }
+                            lastDocCount = count;
 
-                            const $container = $('#dropdownDocExpiryItemsContainer');
-                            if (count === 0 || items.length === 0) {
-                                $container.html(`
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Süresi yaklaşan veya geçen araç bulunmuyor</div>
-                                    </div>
-                                `);
-                            } else {
-                                let html = '<ul class="list-unstyled mb-0">';
-                                items.forEach(function (item) {
-                                    const borderClass = item.isExpired ? 'border-left border-danger' : 'border-left border-warning';
-                                    html += `
-                                        <li class="border-bottom p-2 notification-doc-item ${borderClass}" style="border-left-width: 4px !important;">
-                                            <a href="/Vehicle/Details/${item.vehicleId}" class="text-dark d-block text-decoration-none notification-doc-link" style="padding: 4px 6px; border-radius: 4px;" title="Araç Detayını İncele">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <strong class="text-primary font-12 notification-doc-plate"><i class="fa fa-car mr-1"></i>${escapeHtml(item.plateNumber)}</strong>
-                                                    <span class="badge ${item.badgeClass}" style="font-size: 9px; padding: 2px 6px;">${escapeHtml(item.badgeText)}</span>
-                                                </div>
-                                                <div class="small text-muted mb-1">${escapeHtml(item.brandModel)}</div>
-                                                <div class="d-flex justify-content-between align-items-center font-11 text-muted">
-                                                    <span class="font-weight-bold text-dark"><i class="fa ${item.iconClass} mr-1"></i>${escapeHtml(item.documentDescription)}</span>
-                                                    <span class="text-primary font-weight-bold" style="font-size: 11px;">İncele <i class="fa fa-arrow-right ml-1"></i></span>
-                                                </div>
-                                            </a>
-                                        </li>
-                                    `;
-                                });
-                                html += '</ul>';
-                                $container.html(html);
-                            }
+                            renderUnifiedNotifications(isNew);
+                            onCheckComplete();
                         }
                     },
                     error: function () {
-                        // sessizce geç
+                        onCheckComplete();
                     }
                 });
             }
 
-            function escapeHtml(text) {
-                if (!text) return '';
-                return $('<div>').text(text).html();
-            }
-
-            let lastPendingFaultCount = null;
-
+            // 3. Arıza Bildirimleri
             function checkPendingFaultReports() {
                 $.ajax({
                     url: '/FaultReport/PendingNotificationSummary',
@@ -842,6 +1356,10 @@
                             const count = res.pendingCount || 0;
                             const items = res.latestFaults || [];
 
+                            notificationStore.faults.count = count;
+                            notificationStore.faults.items = items;
+
+                            // Sol Menü (Sidebar) Rozeti
                             const $sidebarBadge = $('#sidebarFaultBadge');
                             if (count > 0) {
                                 $sidebarBadge.text(count).removeClass('d-none');
@@ -849,47 +1367,9 @@
                                 $sidebarBadge.addClass('d-none');
                             }
 
-                            const $navBadge = $('#navFaultBadge');
-                            const $dropCount = $('#dropdownFaultCount');
-                            if (count > 0) {
-                                $navBadge.text(count).removeClass('d-none');
-                                $dropCount.text(count + ' Yeni');
-                            } else {
-                                $navBadge.addClass('d-none');
-                                $dropCount.text('0 Yeni');
-                            }
-
-                            const $container = $('#dropdownFaultItemsContainer');
-                            if (count === 0 || items.length === 0) {
-                                $container.html(`
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Bekleyen arıza bildirimi bulunmuyor</div>
-                                    </div>
-                                `);
-                            } else {
-                                let html = '<ul class="list-unstyled mb-0">';
-                                items.forEach(function (item) {
-                                    html += `
-                                        <li class="border-bottom p-2 notification-request-item">
-                                            <a href="/FaultReport/Detail/${item.id}" class="text-dark d-block text-decoration-none" style="padding: 4px 6px; border-radius: 4px;" title="Arıza Bildirimini İncele">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <strong class="text-danger font-12"><i class="fa fa-wrench mr-1"></i>${escapeHtml(item.plate)}</strong>
-                                                    <small class="text-muted font-11">${escapeHtml(item.formattedDate)}</small>
-                                                </div>
-                                                <div class="small text-muted mb-1 font-italic">${escapeHtml(item.driver)}</div>
-                                                <div class="text-truncate small text-secondary mb-1" style="max-width: 100%;" title="${escapeHtml(item.description)}">
-                                                    ${escapeHtml(item.description)}
-                                                </div>
-                                            </a>
-                                        </li>
-                                    `;
-                                });
-                                html += '</ul>';
-                                $container.html(html);
-                            }
-
+                            let isNew = false;
                             if (lastPendingFaultCount !== null && count > lastPendingFaultCount) {
+                                isNew = true;
                                 if (typeof toastr !== 'undefined') {
                                     toastr.options = {
                                         closeButton: true,
@@ -904,14 +1384,18 @@
                                 }
                             }
                             lastPendingFaultCount = count;
+
+                            renderUnifiedNotifications(isNew);
+                            onCheckComplete();
                         }
                     },
-                    error: function () { }
+                    error: function () {
+                        onCheckComplete();
+                    }
                 });
             }
 
-            let lastPendingRouteCount = null;
-
+            // 4. Güzergah Değişiklikleri
             function checkPendingRouteChanges() {
                 $.ajax({
                     url: '/Assignment/PendingRouteChangeNotificationSummary',
@@ -922,50 +1406,12 @@
                             const count = res.pendingCount || 0;
                             const items = res.latestChanges || [];
 
-                            const $navBadge = $('#navRouteBadge');
-                            const $dropCount = $('#dropdownRouteCount');
-                            if (count > 0) {
-                                $navBadge.text(count).removeClass('d-none');
-                                $dropCount.text(count + ' Yeni');
-                            } else {
-                                $navBadge.addClass('d-none');
-                                $dropCount.text('0 Yeni');
-                            }
+                            notificationStore.routes.count = count;
+                            notificationStore.routes.items = items;
 
-                            const $container = $('#dropdownRouteItemsContainer');
-                            if (count === 0 || items.length === 0) {
-                                $container.html(`
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Bildirilen güzergah değişikliği bulunmuyor</div>
-                                    </div>
-                                `);
-                            } else {
-                                let html = '<ul class="list-unstyled mb-0">';
-                                items.forEach(function (item) {
-                                    html += `
-                                        <li class="border-bottom p-2 notification-request-item">
-                                            <a href="/Assignment/Details/${item.assignmentId}" class="text-dark d-block text-decoration-none" style="padding: 4px 6px; border-radius: 4px;" title="Görev Detayını İncele">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <strong class="text-info font-12"><i class="fa fa-road mr-1"></i>${escapeHtml(item.plate)}</strong>
-                                                    <small class="text-muted font-11">${escapeHtml(item.formattedDate)}</small>
-                                                </div>
-                                                <div class="small text-muted mb-1 font-italic">${escapeHtml(item.driver)}</div>
-                                                <div class="small font-weight-bold text-dark text-truncate mb-1" title="${escapeHtml(item.newRoute)}">
-                                                    Yeni: ${escapeHtml(item.newRoute)}
-                                                </div>
-                                                <div class="text-truncate small text-secondary" style="max-width: 100%;" title="${escapeHtml(item.reason)}">
-                                                    Neden: ${escapeHtml(item.reason)}
-                                                </div>
-                                            </a>
-                                        </li>
-                                    `;
-                                });
-                                html += '</ul>';
-                                $container.html(html);
-                            }
-
+                            let isNew = false;
                             if (lastPendingRouteCount !== null && count > lastPendingRouteCount) {
+                                isNew = true;
                                 if (typeof toastr !== 'undefined') {
                                     toastr.options = {
                                         closeButton: true,
@@ -980,14 +1426,18 @@
                                 }
                             }
                             lastPendingRouteCount = count;
+
+                            renderUnifiedNotifications(isNew);
+                            onCheckComplete();
                         }
                     },
-                    error: function () { }
+                    error: function () {
+                        onCheckComplete();
+                    }
                 });
             }
 
-            let lastExpiringLicenseCount = null;
-
+            // 5. Ehliyet Süreleri
             function checkExpiringDriverLicenses() {
                 $.ajax({
                     url: '/Driver/ExpiringLicenseSummary',
@@ -996,8 +1446,12 @@
                     success: function (res) {
                         if (res) {
                             const count = res.totalCount || 0;
-                            const items = res.expiringDrivers || [];
+                            const items = res.expiringLicenses || res.expiringDrivers || [];
 
+                            notificationStore.licenses.count = count;
+                            notificationStore.licenses.items = items;
+
+                            // Sol Menü (Sidebar) Rozeti
                             const $sidebarBadge = $('#sidebarDriverBadge');
                             if (count > 0) {
                                 $sidebarBadge.text(count).removeClass('d-none');
@@ -1005,49 +1459,9 @@
                                 $sidebarBadge.addClass('d-none');
                             }
 
-                            const $navBadge = $('#navLicenseExpiryBadge');
-                            const $dropCount = $('#dropdownLicenseExpiryCount');
-                            if (count > 0) {
-                                $navBadge.text(count).removeClass('d-none');
-                                $dropCount.text(count + ' Şoför');
-                            } else {
-                                $navBadge.addClass('d-none');
-                                $dropCount.text('0 Şoför');
-                            }
-
-                            const $container = $('#dropdownLicenseExpiryItemsContainer');
-                            if (count === 0 || items.length === 0) {
-                                $container.html(`
-                                    <div class="text-center p-3 text-muted small">
-                                        <i class="fa fa-check-circle text-success mb-1" style="font-size: 1.5rem;"></i>
-                                        <div>Süresi yaklaşan veya geçen ehliyet bulunmuyor</div>
-                                    </div>
-                                `);
-                            } else {
-                                let html = '<ul class="list-unstyled mb-0">';
-                                items.forEach(function (item) {
-                                    const borderClass = item.isExpired ? 'border-left border-danger' : 'border-left border-warning';
-                                    html += `
-                                        <li class="border-bottom p-2 notification-doc-item ${borderClass}" style="border-left-width: 4px !important;">
-                                            <a href="/Driver/Details/${item.driverId}" class="text-dark d-block text-decoration-none notification-doc-link" style="padding: 4px 6px; border-radius: 4px;" title="Şoför Detayını İncele">
-                                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <strong class="text-primary font-12"><i class="fa fa-user mr-1"></i>${escapeHtml(item.fullName)}</strong>
-                                                    <span class="badge ${item.statusBadgeClass}" style="font-size: 9px; padding: 2px 6px;">${escapeHtml(item.statusBadgeText)}</span>
-                                                </div>
-                                                <div class="small text-muted mb-1">${escapeHtml(item.department || 'Birim Yok')}</div>
-                                                <div class="d-flex justify-content-between align-items-center font-11 text-muted">
-                                                    <span class="font-weight-bold text-dark"><i class="fa fa-id-card-o mr-1"></i>Sınıf: ${escapeHtml(item.licenseClass)} (${escapeHtml(item.expiryDate)})</span>
-                                                    <span class="text-primary font-weight-bold" style="font-size: 11px;">İncele <i class="fa fa-arrow-right ml-1"></i></span>
-                                                </div>
-                                            </a>
-                                        </li>
-                                    `;
-                                });
-                                html += '</ul>';
-                                $container.html(html);
-                            }
-
+                            let isNew = false;
                             if (lastExpiringLicenseCount !== null && count > lastExpiringLicenseCount) {
+                                isNew = true;
                                 const diff = count - lastExpiringLicenseCount;
                                 if (typeof toastr !== 'undefined') {
                                     toastr.options = {
@@ -1063,9 +1477,14 @@
                                 }
                             }
                             lastExpiringLicenseCount = count;
+
+                            renderUnifiedNotifications(isNew);
+                            onCheckComplete();
                         }
                     },
-                    error: function () { }
+                    error: function () {
+                        onCheckComplete();
+                    }
                 });
             }
 

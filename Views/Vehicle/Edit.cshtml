@@ -1,8 +1,11 @@
 <!-- File: Views/Vehicle/Edit.cshtml -->
 @model aractakipsys.Models.ViewModels.Vehicle.VehicleEditViewModel
+@inject aractakipsys.Services.Interfaces.ISystemDefinitionService SystemDefinitionService
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Araç Düzenle: " + Model.PlateNumber;
+    var activeVehicleTypes = await SystemDefinitionService.GetActiveOptionNamesAsync(aractakipsys.Common.SystemDefinitionCategories.VehicleType);
+    var activeFuelTypes = await SystemDefinitionService.GetActiveOptionNamesAsync(aractakipsys.Common.SystemDefinitionCategories.FuelType);
 }
 
 <div class="row wrapper border-bottom white-bg page-heading mb-4">
@@ -204,44 +207,32 @@
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
                                     <label asp-for="VehicleType" class="font-weight-bold">Araç Tipi <span class="text-danger">*</span></label>
-                                    <input asp-for="VehicleType" list="vehicleTypeSuggestions" class="form-control" placeholder="Seçiniz veya yazınız (Örn: Sedan, SUV, Minibüs...)" autocomplete="off" />
-                                    <datalist id="vehicleTypeSuggestions">
-                                        <option value="Sedan" />
-                                        <option value="Hatchback" />
-                                        <option value="SUV" />
-                                        <option value="Crossover" />
-                                        <option value="Station Wagon" />
-                                        <option value="Minibüs" />
-                                        <option value="Midibüs" />
-                                        <option value="Otobüs" />
-                                        <option value="Panelvan" />
-                                        <option value="Kamyonet" />
-                                        <option value="Pikap" />
-                                        <option value="Kamyon" />
-                                        <option value="Makam Aracı" />
-                                        <option value="Hizmet Aracı" />
-                                        <option value="Çekici / Kurtarıcı" />
-                                        <option value="Ambulans" />
-                                        <option value="İş Makinesi" />
-                                        <option value="Traktör" />
-                                        <option value="Diğer" />
-                                    </datalist>
+                                    <select asp-for="VehicleType" class="form-control">
+                                        <option value="">-- Araç Tipi Seçiniz --</option>
+                                        @if (!string.IsNullOrEmpty(Model.VehicleType) && !activeVehicleTypes.Contains(Model.VehicleType, StringComparer.OrdinalIgnoreCase))
+                                        {
+                                            <option value="@Model.VehicleType" selected="selected">@Model.VehicleType (Pasif)</option>
+                                        }
+                                        @foreach (var vt in activeVehicleTypes)
+                                        {
+                                            <option value="@vt" selected="@(string.Equals(Model.VehicleType, vt, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@vt</option>
+                                        }
+                                    </select>
                                     <span asp-validation-for="VehicleType" class="text-danger small font-weight-bold"></span>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <label asp-for="FuelType" class="font-weight-bold">Yakıt Tipi <span class="text-danger">*</span></label>
-                                    <input asp-for="FuelType" list="fuelTypeSuggestions" class="form-control" placeholder="Seçiniz veya yazınız (Örn: Dizel, Benzin...)" autocomplete="off" />
-                                    <datalist id="fuelTypeSuggestions">
-                                        <option value="Dizel" />
-                                        <option value="Benzin" />
-                                        <option value="LPG" />
-                                        <option value="Benzin & LPG" />
-                                        <option value="Hibrit" />
-                                        <option value="Plug-in Hibrit (PHEV)" />
-                                        <option value="Elektrik" />
-                                        <option value="CNG (Doğalgaz)" />
-                                        <option value="Diğer" />
-                                    </datalist>
+                                    <select asp-for="FuelType" class="form-control">
+                                        <option value="">-- Yakıt Tipi Seçiniz --</option>
+                                        @if (!string.IsNullOrEmpty(Model.FuelType) && !activeFuelTypes.Contains(Model.FuelType, StringComparer.OrdinalIgnoreCase))
+                                        {
+                                            <option value="@Model.FuelType" selected="selected">@Model.FuelType (Pasif)</option>
+                                        }
+                                        @foreach (var ft in activeFuelTypes)
+                                        {
+                                            <option value="@ft" selected="@(string.Equals(Model.FuelType, ft, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@ft</option>
+                                        }
+                                    </select>
                                     <span asp-validation-for="FuelType" class="text-danger small font-weight-bold"></span>
                                 </div>
                             </div>

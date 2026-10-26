@@ -13,17 +13,20 @@ public class VehicleService : IVehicleService
     private readonly ApplicationDbContext _context;
     private readonly IAuditLogService _auditLogService;
     private readonly IConfiguration _configuration;
+    private readonly ISystemDefinitionService _systemDefinitionService;
     private readonly ILogger<VehicleService> _logger;
 
     public VehicleService(
         ApplicationDbContext context,
         IAuditLogService auditLogService,
         IConfiguration configuration,
+        ISystemDefinitionService systemDefinitionService,
         ILogger<VehicleService> logger)
     {
         _context = context;
         _auditLogService = auditLogService;
         _configuration = configuration;
+        _systemDefinitionService = systemDefinitionService;
         _logger = logger;
     }
 
@@ -132,14 +135,14 @@ public class VehicleService : IVehicleService
         // Son 5 Görevlendirme
         var recentAssignments = await _context.Assignments
             .Include(a => a.Driver)
-                .ThenInclude(d => d.User)
+                .ThenInclude(d => d!.User)
             .Where(a => a.VehicleId == id)
             .OrderByDescending(a => a.PlannedStartTime)
             .Take(5)
             .Select(a => new VehicleAssignmentSummaryViewModel
             {
                 Id = a.Id,
-                DriverFullName = a.Driver.User.FullName,
+                DriverFullName = a.Driver != null ? a.Driver.User.FullName : (a.IsDriverless ? "Şoförsüz Görev" : (a.ExternalDriverFullName ?? "Dış Görevli")),
                 Purpose = a.Purpose,
                 PlannedStartTime = a.PlannedStartTime,
                 PlannedEndTime = a.PlannedEndTime,
@@ -233,6 +236,28 @@ public class VehicleService : IVehicleService
         if (await _context.Vehicles.IgnoreQueryFilters().AnyAsync(v => v.PlateNumber == cleanPlate))
         {
             return (false, "Bu plaka sistemde daha önce kayıtlı (veya silinmiş) bir araca aittir, kullanılamaz.", 0);
+        }
+
+        // Sunucu Doğrulaması (Madde 2): Yakıt Tipi ve Araç Türü Sistem Tanımlarında aktif olmalı
+        var (fuelValid, fuelErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.FuelType, model.FuelType);
+        if (!fuelValid)
+        {
+            return (false, fuelErr!, 0);
+        }
+
+        var (vehTypeValid, vehTypeErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.VehicleType, model.VehicleType);
+        if (!vehTypeValid)
+        {
+            return (false, vehTypeErr!, 0);
+        }
+
+        if (!string.IsNullOrWhiteSpace(model.TireSeason))
+        {
+            var (tireSeasonValid, tireSeasonErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.TireSeason, model.TireSeason);
+            if (!tireSeasonValid)
+            {
+                return (false, tireSeasonErr!, 0);
+            }
         }
 
         var vehicle = new Vehicle
@@ -367,6 +392,19 @@ public class VehicleService : IVehicleService
             FuelType = vehicle.FuelType,
             vehicle.Notes
         };
+
+        // Sunucu Doğrulaması (Madde 2): Mevcut değerler hariç, yeni değer aktif bir seçenek olmalı
+        var (fuelValid, fuelErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.FuelType, model.FuelType, vehicle.FuelType);
+        if (!fuelValid)
+        {
+            return (false, fuelErr!);
+        }
+
+        var (vehTypeValid, vehTypeErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.VehicleType, model.VehicleType, vehicle.VehicleType);
+        if (!vehTypeValid)
+        {
+            return (false, vehTypeErr!);
+        }
 
         // Güncellenebilir alanlar (CurrentKm, Status ve Belge tarihleri iş kuralı gereği buradan güncellenmez; tek kaynak VehicleDocuments)
         vehicle.PlateNumber = cleanPlate;
@@ -1006,6 +1044,13 @@ public class VehicleService : IVehicleService
             return (false, "Araç bulunamadı.");
         }
 
+        // Sunucu Doğrulaması (Madde 2): Lastik Mevsimi Sistem Tanımlarında aktif bir seçenek olmalı
+        var (seasonValid, seasonErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.TireSeason, model.Season);
+        if (!seasonValid)
+        {
+            return (false, seasonErr!);
+        }
+
         // DOT Tarihinden Üretim Yılı Çıkarımı (Örn: "52/23" -> 2023)
         int? prodYear = null;
         if (!string.IsNullOrWhiteSpace(model.DotDate) && model.DotDate.Contains('/'))
@@ -1071,6 +1116,13 @@ public class VehicleService : IVehicleService
         if (tire == null)
         {
             return (false, "Lastik kaydı bulunamadı.");
+        }
+
+        // Sunucu Doğrulaması (Madde 2): Mevcut değer hariç, yeni değer aktif bir seçenek olmalı
+        var (seasonValid, seasonErr) = await _systemDefinitionService.ValidateOptionAsync(aractakipsys.Common.SystemDefinitionCategories.TireSeason, model.Season, tire.Season);
+        if (!seasonValid)
+        {
+            return (false, seasonErr!);
         }
 
         var oldState = new
@@ -1176,17 +1228,31 @@ public class VehicleService : IVehicleService
         return (true, $"{tire.Vehicle.PlateNumber} plakalı aracın lastik kaydı silindi.");
     }
 
-    public async Task<List<VehicleTireItemViewModel>> GetAllCurrentTiresReportAsync()
+    public async Task<List<VehicleTireItemViewModel>> GetAllCurrentTiresReportAsync(int? vehicleId = null)
     {
-        var vehicles = await _context.Vehicles
+        var vehiclesQuery = _context.Vehicles
             .AsNoTracking()
-            .Where(v => !v.IsDeleted)
+            .Where(v => !v.IsDeleted);
+
+        if (vehicleId.HasValue && vehicleId.Value > 0)
+        {
+            vehiclesQuery = vehiclesQuery.Where(v => v.Id == vehicleId.Value);
+        }
+
+        var vehicles = await vehiclesQuery
             .OrderBy(v => v.PlateNumber)
             .ToListAsync();
 
-        var tires = await _context.VehicleTires
+        var tiresQuery = _context.VehicleTires
             .AsNoTracking()
-            .Where(t => !t.IsDeleted)
+            .Where(t => !t.IsDeleted);
+
+        if (vehicleId.HasValue && vehicleId.Value > 0)
+        {
+            tiresQuery = tiresQuery.Where(t => t.VehicleId == vehicleId.Value);
+        }
+
+        var tires = await tiresQuery
             .OrderByDescending(t => t.InstalledDate ?? t.CreatedAt)
             .ThenByDescending(t => t.Id)
             .ToListAsync();
@@ -1194,6 +1260,44 @@ public class VehicleService : IVehicleService
         var reportList = new List<VehicleTireItemViewModel>();
         var tireKmThreshold = _configuration.GetValue<int?>("VehicleSettings:TireKmWarningThreshold") ?? 1000;
 
+        if (vehicleId.HasValue && vehicleId.Value > 0)
+        {
+            // Seçili araç için TÜM lastik kayıtları (geçmişiyle)
+            var v = vehicles.FirstOrDefault();
+            if (v != null)
+            {
+                for (int i = 0; i < tires.Count; i++)
+                {
+                    var t = tires[i];
+                    reportList.Add(new VehicleTireItemViewModel
+                    {
+                        Id = t.Id,
+                        VehicleId = v.Id,
+                        PlateNumber = v.PlateNumber,
+                        VehicleBrand = v.Brand,
+                        VehicleModel = v.Model,
+                        Brand = t.Brand,
+                        Size = t.Size,
+                        DotDate = t.DotDate,
+                        ProductionYear = t.ProductionYear,
+                        Season = t.Season,
+                        InstalledDate = t.InstalledDate,
+                        InstalledKm = t.InstalledKm,
+                        RecommendedReplaceKm = t.RecommendedReplaceKm,
+                        RecommendedReplaceDate = t.RecommendedReplaceDate,
+                        Cost = t.Cost,
+                        Notes = t.Notes,
+                        CreatedAt = t.CreatedAt,
+                        VehicleCurrentKm = v.CurrentKm,
+                        KmWarningThreshold = tireKmThreshold,
+                        IsCurrentTire = (i == 0) // En son takılan güncel
+                    });
+                }
+            }
+            return reportList;
+        }
+
+        // Tüm araçlar için her aracın güncel (en son) takılı lastiği
         foreach (var v in vehicles)
         {
             var latestTire = tires.FirstOrDefault(t => t.VehicleId == v.Id);
@@ -1204,6 +1308,8 @@ public class VehicleService : IVehicleService
                     Id = latestTire.Id,
                     VehicleId = v.Id,
                     PlateNumber = v.PlateNumber,
+                    VehicleBrand = v.Brand,
+                    VehicleModel = v.Model,
                     Brand = latestTire.Brand,
                     Size = latestTire.Size,
                     DotDate = latestTire.DotDate,

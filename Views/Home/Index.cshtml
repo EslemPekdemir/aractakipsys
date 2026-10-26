@@ -491,19 +491,14 @@
 }
 
 <!-- OTOMATİK SİSTEM UYARISI TOAST BİLDİRİMİ (NATIVE BOOTSTRAP TOAST) -->
-@if ((User.IsInRole("Admin") || User.IsInRole("Kullanici") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter")) && (Model.PendingVehicleRequestsCount > 0 || Model.DocumentAlertVehiclesCount > 0 || Model.ExpiringDriverLicensesCount > 0))
+@if (User.IsInRole("Admin") || User.IsInRole("Kullanici") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter"))
 {
-    var hasPending = Model.PendingVehicleRequestsCount > 0;
-    var hasDocAlert = Model.DocumentAlertVehiclesCount > 0;
-    var hasLicAlert = Model.ExpiringDriverLicensesCount > 0;
-    var primaryUrl = hasPending ? "/VehicleRequest" : (hasDocAlert ? "/Vehicle" : "/Driver");
-
-    <div aria-live="polite" aria-atomic="true" class="position-fixed" style="top: 25px; right: 25px; z-index: 99999; max-width: 420px;">
-        <div id="dashboardAlertToast" class="toast shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" data-delay="8000" data-autohide="true" data-target-url="@primaryUrl" data-signature="@Model.ToastAlertSignature"
-             style="background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.18) !important; border-left: 5px solid @(hasDocAlert || hasLicAlert ? "#ed5565" : "#1c84c6") !important; cursor: pointer; display: none;">
+    <div aria-live="polite" aria-atomic="true" class="position-fixed" style="top: 25px; right: 25px; z-index: 99999; width: 380px; max-width: calc(100vw - 40px); pointer-events: none;">
+        <div id="dashboardAlertToast" class="toast shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" data-delay="3000" data-autohide="true"
+             style="background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.18) !important; border-left: 5px solid #ed5565 !important; display: none; pointer-events: auto;">
             <div class="toast-header bg-light d-flex justify-content-between align-items-center py-2 px-3 border-bottom">
                 <div class="d-flex align-items-center">
-                    <span class="badge @(hasDocAlert || hasLicAlert ? "badge-danger" : "badge-warning") p-1 mr-2 text-white" style="border-radius: 6px;">
+                    <span class="badge badge-danger p-1 mr-2 text-white" style="border-radius: 6px;">
                         <i class="fa fa-bell"></i>
                     </span>
                     <strong class="mr-auto text-dark font-13 font-weight-bold">Sistem Uyarısı</strong>
@@ -515,44 +510,8 @@
                     </button>
                 </div>
             </div>
-            <div class="toast-body p-3">
-                <div class="d-flex align-items-start mb-2">
-                    <i class="fa fa-exclamation-triangle text-warning font-18 mr-2 mt-1"></i>
-                    <div class="text-dark font-13" style="line-height: 1.4;">
-                        @if (hasPending)
-                        {
-                            <div><i class="fa fa-envelope-open text-primary mr-1"></i> <strong>@Model.PendingVehicleRequestsCount araç talebi</strong> onay bekliyor.</div>
-                        }
-                        @if (hasDocAlert)
-                        {
-                            <div><i class="fa fa-car text-danger mr-1"></i> <strong>@Model.DocumentAlertVehiclesCount aracın</strong> muayene veya sigorta süresi doldu/yaklaşıyor.</div>
-                        }
-                        @if (hasLicAlert)
-                        {
-                            <div><i class="fa fa-id-card text-warning mr-1"></i> <strong>@Model.ExpiringDriverLicensesCount şoförün</strong> ehliyet geçerlilik süresi doldu/yaklaşıyor.</div>
-                        }
-                    </div>
-                </div>
-                <div class="mt-2 pt-2 border-top d-flex justify-content-end align-items-center flex-wrap" style="gap: 4px;">
-                    @if (hasPending)
-                    {
-                        <a href="/VehicleRequest" class="btn btn-xs btn-outline-primary font-weight-bold toast-action-btn">
-                            <i class="fa fa-envelope-open mr-1"></i> Talepler (@Model.PendingVehicleRequestsCount)
-                        </a>
-                    }
-                    @if (hasDocAlert)
-                    {
-                        <a href="/Vehicle" class="btn btn-xs btn-outline-danger font-weight-bold toast-action-btn">
-                            <i class="fa fa-car mr-1"></i> Araçlar (@Model.DocumentAlertVehiclesCount)
-                        </a>
-                    }
-                    @if (hasLicAlert)
-                    {
-                        <a href="/Driver" class="btn btn-xs btn-outline-warning font-weight-bold toast-action-btn">
-                            <i class="fa fa-id-card mr-1"></i> Şoförler (@Model.ExpiringDriverLicensesCount)
-                        </a>
-                    }
-                </div>
+            <div class="toast-body p-2" id="dashboardToastItemsContainer">
+                <!-- Son gelen bildirimlerden 2 tanesi tıklanabilir kart olarak _AdminLayout.cshtml tarafından yerleştirilir -->
             </div>
         </div>
     </div>
@@ -1567,89 +1526,7 @@
                 });
             }
 
-            // Web Audio API ile harici ses dosyası olmaksızın yerleşik kurumsal uyarı bip sesi
-            function playDashboardNotificationSound() {
-                try {
-                    var AudioCtx = window.AudioContext || window.webkitAudioContext;
-                    if (!AudioCtx) return;
-                    var ctx = new AudioCtx();
-                    var now = ctx.currentTime;
-
-                    var osc = ctx.createOscillator();
-                    var gain = ctx.createGain();
-
-                    osc.type = 'sine';
-                    // 587.33 Hz (D5) -> 880 Hz (A5) yumuşak çift tonlu kurumsal bildirim sesi (0.35 sn)
-                    osc.frequency.setValueAtTime(587.33, now);
-                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-
-                    gain.gain.setValueAtTime(0.18, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-
-                    osc.start(now);
-                    osc.stop(now + 0.35);
-                } catch (e) {
-                    console.warn("Audio notification could not be played:", e);
-                }
-            }
-
-            // Otomatik Dashboard Sistem Uyarısı Toast Bildirimi (sessionStorage & İmza Tabanlı)
-            var $toast = $('#dashboardAlertToast');
-            if ($toast.length > 0) {
-                var currentSig = $toast.data('signature') || '';
-                var shownSig = sessionStorage.getItem('dashboard_toast_shown_sig');
-                var dismissedSig = sessionStorage.getItem('dashboard_toast_dismissed_sig');
-
-                // Koşul: Kullanıcı bu imza setini elle kapattıysa VEYA bu oturumda zaten gördüyse gösterme!
-                var shouldShow = (currentSig !== shownSig) && (currentSig !== dismissedSig);
-
-                if (shouldShow && currentSig) {
-                    // Native Bootstrap Toast başlatma
-                    if (typeof $toast.toast === 'function') {
-                        $toast.toast({ delay: 8000, autohide: true }).toast('show');
-                    } else {
-                        $toast.css('display', 'block').hide().fadeIn(350);
-                        setTimeout(function () {
-                            $toast.fadeOut(450);
-                        }, 8000);
-                    }
-
-                    // Bip sesi çal
-                    playDashboardNotificationSound();
-
-                    // Bu imzayı gösterildi olarak sessionStorage'a kaydet
-                    sessionStorage.setItem('dashboard_toast_shown_sig', currentSig);
-                }
-
-                // Kapatma butonu (X) tıklandığında o anki imzayı 'kapatıldı' olarak sessionStorage'a yaz
-                $toast.find('[data-dismiss="toast"]').on('click', function (e) {
-                    e.stopPropagation();
-                    sessionStorage.setItem('dashboard_toast_dismissed_sig', currentSig);
-                    if (typeof $toast.toast === 'function') {
-                        $toast.toast('hide');
-                    } else {
-                        $toast.fadeOut(300);
-                    }
-                });
-
-                // Toast içindeki butonlara tıklandığında kart tıklama olayını engelle
-                $toast.find('.toast-action-btn').on('click', function (e) {
-                    e.stopPropagation();
-                });
-
-                // Toast kartının herhangi bir yerine tıklandığında ilgili sayfaya yönlendir
-                $toast.on('click', function (e) {
-                    if (!$(e.target).closest('button, a').length) {
-                        var targetUrl = $(this).data('target-url');
-                        if (targetUrl) {
-                            window.location.href = targetUrl;
-                        }
-                    }
-                });
-            }
+            // Not: Sistem uyarısı toast bildirimi (son 2 bildirim kartı, 3 sn otomatik kapanma ve tek ses) _AdminLayout.cshtml içindeki birleşik bildirim merkezi tarafından merkezi yönetilir.
         });
 
         // Plaka Arama AJAX İşlemleri (Aşama D)

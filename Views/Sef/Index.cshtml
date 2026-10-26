@@ -16,9 +16,18 @@
         </ol>
     </div>
     <div class="col-lg-4 text-right d-flex align-items-center justify-content-end">
-        <a href="/Sef/Create" class="btn btn-primary font-weight-bold shadow-sm">
-            <i class="fa fa-user-plus mr-1"></i> Yeni Yetkili Tanımla
-        </a>
+        @if (User.IsInRole("Admin") || User.IsInRole("DaireBaskani"))
+        {
+            <a href="/Sef/Create" class="btn btn-primary font-weight-bold shadow-sm">
+                <i class="fa fa-user-plus mr-1"></i> Yeni Yetkili Tanımla
+            </a>
+        }
+        else if (User.IsInRole("GenelSekreter"))
+        {
+            <span class="badge badge-light border text-muted px-3 py-2 font-13 shadow-sm">
+                <i class="fa fa-eye mr-1 text-info"></i> Salt Okunur Denetim
+            </span>
+        }
     </div>
 </div>
 
@@ -109,9 +118,12 @@
                     <i class="fa fa-users text-muted mb-3" style="font-size: 3rem; opacity: 0.4;"></i>
                     <h5 class="font-weight-bold text-dark">Kayıtlı Ulaşım Şefi Bulunamadı</h5>
                     <p class="text-muted small">Sisteme yeni bir Ulaşım Sorumlusu tanımlamak için yukarıdaki butonu kullanabilirsiniz.</p>
-                    <a href="/Sef/Create" class="btn btn-primary btn-sm font-weight-bold">
-                        <i class="fa fa-plus mr-1"></i> İlk Şefi Ekle
-                    </a>
+                    @if (User.IsInRole("Admin") || User.IsInRole("DaireBaskani"))
+                    {
+                        <a href="/Sef/Create" class="btn btn-primary btn-sm font-weight-bold">
+                            <i class="fa fa-plus mr-1"></i> İlk Şefi Ekle
+                        </a>
+                    }
                 </div>
             }
             else
@@ -127,14 +139,20 @@
                                 <th style="min-width: 130px;">Telefon</th>
                                 <th style="width: 110px;" class="text-center">Durum</th>
                                 <th style="width: 110px;" class="text-center">Kayıt Tarihi</th>
-                                <th style="width: 220px;" class="text-right">İşlemler</th>
+                                <th style="width: 280px;" class="text-right">İşlemler</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @{ var rowNum = 1; var isCurrentAdmin = User.IsInRole("Admin"); }
+                            @{ 
+                                var rowNum = 1; 
+                                var isCurrentAdmin = User.IsInRole("Admin"); 
+                                var isReadOnlyUser = User.IsInRole("GenelSekreter");
+                                var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                            }
                             @foreach (var item in Model)
                             {
-                                var canManageUser = isCurrentAdmin || (item.Role != "Admin" && item.Role != "DaireBaskani" && item.Role != "GenelSekreter");
+                                var canManageUser = !isReadOnlyUser && (isCurrentAdmin || (item.Role != "Admin" && item.Role != "DaireBaskani" && item.Role != "GenelSekreter"));
+                                var isSelf = !string.IsNullOrWhiteSpace(currentUserId) && item.Id == currentUserId;
                                 <tr>
                                     <td class="text-center align-middle font-weight-bold text-muted">@(rowNum++)</td>
                                     <td class="align-middle">
@@ -186,40 +204,48 @@
                                         @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
                                     </td>
                                     <td class="text-right align-middle">
-                                        @if (canManageUser)
+                                        @if (isReadOnlyUser)
                                         {
-                                            <div class="btn-group btn-group-sm">
-                                                <a href="/Sef/Edit/@item.Id" class="btn btn-outline-primary" title="Bilgileri Düzenle">
+                                            <span class="badge badge-light border text-muted px-2 py-1"><i class="fa fa-eye mr-1 text-info"></i> Salt Okunur</span>
+                                        }
+                                        else if (canManageUser)
+                                        {
+                                            <div class="d-inline-flex align-items-center">
+                                                <a href="/Sef/Edit/@item.Id" class="btn btn-xs btn-outline-primary mr-1" title="Bilgileri Düzenle">
                                                     <i class="fa fa-pencil mr-1"></i> Düzenle
                                                 </a>
-                                                <button type="button" class="btn btn-outline-warning text-dark btn-reset-password" 
+                                                <button type="button" class="btn btn-xs btn-outline-warning text-dark mr-1 btn-reset-password" 
                                                         data-id="@item.Id" data-name="@item.FullName" data-username="@item.UserName" 
                                                         title="Şifre Sıfırla">
                                                     <i class="fa fa-key mr-1"></i> Şifre
                                                 </button>
-                                                <form method="post" action="/Sef/ToggleStatus/@item.Id" class="d-inline" onsubmit="return confirm('@(item.IsActive ? $"{item.FullName} hesabını dondurmak istediğinize emin misiniz? Şef sisteme giriş yapamayacaktır." : $"{item.FullName} hesabını tekrar aktif etmek istediğinize emin misiniz?")');">
-                                                    @Html.AntiForgeryToken()
-                                                    @if (item.IsActive)
-                                                    {
-                                                        <button type="submit" class="btn btn-outline-secondary text-dark" title="Hesabı Dondur (Pasif Yap)">
-                                                            <i class="fa fa-pause"></i>
-                                                        </button>
-                                                    }
-                                                    else
-                                                    {
-                                                        <button type="submit" class="btn btn-outline-success" title="Hesabı Tekrar Aktif Et">
-                                                            <i class="fa fa-play"></i>
-                                                        </button>
-                                                    }
-                                                </form>
-                                                @if (item.IsActive)
+                                                @if (!isSelf)
                                                 {
-                                                    <form method="post" action="/Sef/Delete/@item.Id" class="d-inline" onsubmit="return confirm('@item.FullName (@item.UserName) şef hesabını pasife almak (dondurmak) istediğinize emin misiniz? Sistem denetim ve görev geçmişi korunacaktır.');">
+                                                    <form method="post" action="/Sef/ToggleStatus/@item.Id" class="d-inline mr-1" onsubmit="return confirm('@(item.IsActive ? $"{item.FullName} hesabını dondurmak istediğinize emin misiniz? Şef sisteme giriş yapamayacaktır." : $"{item.FullName} hesabını tekrar aktif etmek istediğinize emin misiniz?")');">
                                                         @Html.AntiForgeryToken()
-                                                        <button type="submit" class="btn btn-outline-danger" title="Hesabı Pasife Al (Soft-Delete)">
+                                                        @if (item.IsActive)
+                                                        {
+                                                            <button type="submit" class="btn btn-xs btn-outline-secondary text-dark" title="Hesabı Dondur (Pasif Yap)">
+                                                                <i class="fa fa-pause mr-1"></i> Dondur
+                                                            </button>
+                                                        }
+                                                        else
+                                                        {
+                                                            <button type="submit" class="btn btn-xs btn-outline-success" title="Hesabı Tekrar Aktif Et">
+                                                                <i class="fa fa-play mr-1"></i> Aktifleştir
+                                                            </button>
+                                                        }
+                                                    </form>
+                                                    <form method="post" action="/Sef/Delete/@item.Id" class="d-inline" onsubmit="return confirm('\'@item.FullName\' hesabını silmek istediğinize emin misiniz? Geçmiş görev ve denetim kayıtları korunacaktır.');">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-xs btn-outline-danger" title="Hesabı Sil">
                                                             <i class="fa fa-trash mr-1"></i> Sil
                                                         </button>
                                                     </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-light text-muted px-2 py-1 align-self-center ml-1 border" title="Aktif Oturum (Kendi Hesabınız)">Siz</span>
                                                 }
                                             </div>
                                         }
