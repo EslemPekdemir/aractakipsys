@@ -296,13 +296,21 @@ else
                                             </td>
                                             <td class="small text-muted" style="max-width: 250px;">@(doc.Notes ?? "-")</td>
                                             <td class="text-right text-nowrap">
-                                                <button type="button" class="btn btn-xs btn-outline-primary mr-1" 
-                                                        onclick="openEditModal(@doc.Id, '@doc.DocumentType', '@doc.StartDate.ToString("yyyy-MM-dd")', '@doc.EndDate.ToString("yyyy-MM-dd")', @doc.Cost, '@(doc.PolicyOrStationNumber?.Replace("'", "\\'"))', '@(doc.CompanyName?.Replace("'", "\\'"))', '@(doc.Notes?.Replace("'", "\\'"))')"
+                                                <button type="button" class="btn btn-xs btn-outline-primary mr-1 btn-action-mutate btn-edit-document" 
+                                                        data-id="@doc.Id"
+                                                        data-doc-type="@doc.DocumentType"
+                                                        data-start-date="@doc.StartDate.ToString("yyyy-MM-dd")"
+                                                        data-end-date="@doc.EndDate.ToString("yyyy-MM-dd")"
+                                                        data-cost="@doc.Cost.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                                        data-policy="@(doc.PolicyOrStationNumber ?? "")"
+                                                        data-company="@(doc.CompanyName ?? "")"
+                                                        data-notes="@(doc.Notes ?? "")"
                                                         title="Düzenle">
                                                     <i class="fa fa-pencil"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-xs btn-outline-danger" 
-                                                        onclick="confirmDeleteDocument(@doc.Id, '@doc.DocumentTypeName (@doc.EndDate.ToString("dd.MM.yyyy"))')"
+                                                <button type="button" class="btn btn-xs btn-outline-danger btn-action-mutate btn-delete-document" 
+                                                        data-id="@doc.Id"
+                                                        data-desc="@doc.DocumentTypeName (@doc.EndDate.ToString("dd.MM.yyyy"))"
                                                         title="Sil">
                                                     <i class="fa fa-trash"></i>
                                                 </button>
@@ -396,13 +404,21 @@ else
                                             </td>
                                             <td class="small text-muted" style="max-width: 250px;">@(doc.Notes ?? "-")</td>
                                             <td class="text-right text-nowrap">
-                                                <button type="button" class="btn btn-xs btn-outline-primary mr-1" 
-                                                        onclick="openEditModal(@doc.Id, '@doc.DocumentType', '@doc.StartDate.ToString("yyyy-MM-dd")', '@doc.EndDate.ToString("yyyy-MM-dd")', @doc.Cost, '@(doc.PolicyOrStationNumber?.Replace("'", "\\'"))', '@(doc.CompanyName?.Replace("'", "\\'"))', '@(doc.Notes?.Replace("'", "\\'"))')"
+                                                <button type="button" class="btn btn-xs btn-outline-primary mr-1 btn-action-mutate btn-edit-document" 
+                                                        data-id="@doc.Id"
+                                                        data-doc-type="@doc.DocumentType"
+                                                        data-start-date="@doc.StartDate.ToString("yyyy-MM-dd")"
+                                                        data-end-date="@doc.EndDate.ToString("yyyy-MM-dd")"
+                                                        data-cost="@doc.Cost.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                                        data-policy="@(doc.PolicyOrStationNumber ?? "")"
+                                                        data-company="@(doc.CompanyName ?? "")"
+                                                        data-notes="@(doc.Notes ?? "")"
                                                         title="Düzenle">
                                                     <i class="fa fa-pencil"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-xs btn-outline-danger" 
-                                                        onclick="confirmDeleteDocument(@doc.Id, '@doc.DocumentTypeName (@doc.EndDate.ToString("dd.MM.yyyy"))')"
+                                                <button type="button" class="btn btn-xs btn-outline-danger btn-action-mutate btn-delete-document" 
+                                                        data-id="@doc.Id"
+                                                        data-desc="@doc.DocumentTypeName (@doc.EndDate.ToString("dd.MM.yyyy"))"
                                                         title="Sil">
                                                     <i class="fa fa-trash"></i>
                                                 </button>
@@ -496,13 +512,21 @@ else
                                             </td>
                                             <td class="small text-muted" style="max-width: 250px;">@(doc.Notes ?? "-")</td>
                                             <td class="text-right text-nowrap">
-                                                <button type="button" class="btn btn-xs btn-outline-primary mr-1" 
-                                                        onclick="openEditModal(@doc.Id, '@doc.DocumentType', '@doc.StartDate.ToString("yyyy-MM-dd")', '@doc.EndDate.ToString("yyyy-MM-dd")', @doc.Cost, '@(doc.PolicyOrStationNumber?.Replace("'", "\\'"))', '@(doc.CompanyName?.Replace("'", "\\'"))', '@(doc.Notes?.Replace("'", "\\'"))')"
+                                                <button type="button" class="btn btn-xs btn-outline-primary mr-1 btn-action-mutate btn-edit-document" 
+                                                        data-id="@doc.Id"
+                                                        data-doc-type="@doc.DocumentType"
+                                                        data-start-date="@doc.StartDate.ToString("yyyy-MM-dd")"
+                                                        data-end-date="@doc.EndDate.ToString("yyyy-MM-dd")"
+                                                        data-cost="@doc.Cost.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                                        data-policy="@(doc.PolicyOrStationNumber ?? "")"
+                                                        data-company="@(doc.CompanyName ?? "")"
+                                                        data-notes="@(doc.Notes ?? "")"
                                                         title="Düzenle">
                                                     <i class="fa fa-pencil"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-xs btn-outline-danger" 
-                                                        onclick="confirmDeleteDocument(@doc.Id, '@doc.DocumentTypeName (@doc.EndDate.ToString("dd.MM.yyyy"))')"
+                                                <button type="button" class="btn btn-xs btn-outline-danger btn-action-mutate btn-delete-document" 
+                                                        data-id="@doc.Id"
+                                                        data-desc="@doc.DocumentTypeName (@doc.EndDate.ToString("dd.MM.yyyy"))"
                                                         title="Sil">
                                                     <i class="fa fa-trash"></i>
                                                 </button>
@@ -640,13 +664,24 @@ else
                                                 @(tire.Cost > 0 ? $"{tire.Cost:N2} ₺" : "-")
                                             </td>
                                             <td class="text-right text-nowrap">
-                                                <button type="button" class="btn btn-xs btn-outline-primary mr-1" 
-                                                        onclick="openEditTireModal(@tire.Id, '@(tire.Brand?.Replace("'", "\\'"))', '@(tire.Size?.Replace("'", "\\'"))', '@(tire.DotDate ?? "")', '@tire.Season', '@(tire.InstalledDate?.ToString("yyyy-MM-dd") ?? "")', '@(tire.InstalledKm?.ToString() ?? "")', '@(tire.RecommendedReplaceKm?.ToString() ?? "")', '@(tire.RecommendedReplaceDate?.ToString("yyyy-MM-dd") ?? "")', @tire.Cost, '@(tire.Notes?.Replace("'", "\\'"))')"
+                                                <button type="button" class="btn btn-xs btn-outline-primary mr-1 btn-action-mutate btn-edit-tire" 
+                                                        data-id="@tire.Id"
+                                                        data-brand="@tire.Brand"
+                                                        data-size="@(tire.Size ?? "")"
+                                                        data-dot="@(tire.DotDate ?? "")"
+                                                        data-season="@tire.Season"
+                                                        data-installed-date="@(tire.InstalledDate?.ToString("yyyy-MM-dd") ?? "")"
+                                                        data-installed-km="@(tire.InstalledKm?.ToString() ?? "")"
+                                                        data-rec-km="@(tire.RecommendedReplaceKm?.ToString() ?? "")"
+                                                        data-rec-date="@(tire.RecommendedReplaceDate?.ToString("yyyy-MM-dd") ?? "")"
+                                                        data-cost="@((tire.Cost ?? 0).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))"
+                                                        data-notes="@(tire.Notes ?? "")"
                                                         title="Düzenle">
                                                     <i class="fa fa-pencil"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-xs btn-outline-danger" 
-                                                        onclick="confirmDeleteTire(@tire.Id, '@tire.Brand (@tire.SeasonDisplay)')"
+                                                <button type="button" class="btn btn-xs btn-outline-danger btn-action-mutate btn-delete-tire" 
+                                                        data-id="@tire.Id"
+                                                        data-desc="@tire.Brand (@tire.SeasonDisplay)"
                                                         title="Sil">
                                                     <i class="fa fa-trash"></i>
                                                 </button>
@@ -994,7 +1029,7 @@ else
         $('#editDocumentType').val(docType);
         $('#editStartDate').val(start);
         $('#editEndDate').val(end);
-        $('#editCost').val(cost);
+        $('#editCost').val(cost || 0);
         $('#editPolicyOrStationNumber').val(policyNo || '');
         $('#editCompanyName').val(company || '');
         $('#editNotes').val(notes || '');
@@ -1032,6 +1067,49 @@ else
             $('#deleteTireForm').submit();
         }
     }
+
+    $(document).ready(function () {
+        $(document).on('click', '.btn-edit-document', function () {
+            var $btn = $(this);
+            openEditModal(
+                $btn.attr('data-id'),
+                $btn.attr('data-doc-type'),
+                $btn.attr('data-start-date'),
+                $btn.attr('data-end-date'),
+                $btn.attr('data-cost'),
+                $btn.attr('data-policy'),
+                $btn.attr('data-company'),
+                $btn.attr('data-notes')
+            );
+        });
+
+        $(document).on('click', '.btn-delete-document', function () {
+            var $btn = $(this);
+            confirmDeleteDocument($btn.attr('data-id'), $btn.attr('data-desc'));
+        });
+
+        $(document).on('click', '.btn-edit-tire', function () {
+            var $btn = $(this);
+            openEditTireModal(
+                $btn.attr('data-id'),
+                $btn.attr('data-brand'),
+                $btn.attr('data-size'),
+                $btn.attr('data-dot'),
+                $btn.attr('data-season'),
+                $btn.attr('data-installed-date'),
+                $btn.attr('data-installed-km'),
+                $btn.attr('data-rec-km'),
+                $btn.attr('data-rec-date'),
+                $btn.attr('data-cost'),
+                $btn.attr('data-notes')
+            );
+        });
+
+        $(document).on('click', '.btn-delete-tire', function () {
+            var $btn = $(this);
+            confirmDeleteTire($btn.attr('data-id'), $btn.attr('data-desc'));
+        });
+    });
 </script>
 }
 

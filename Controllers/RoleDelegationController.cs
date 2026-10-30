@@ -176,7 +176,12 @@ public class RoleDelegationController : Controller
             var pdfBytes = await _roleDelegationService.GenerateDelegationPdfAsync(id, userId, isElevated);
             var fileName = $"Yetki_Devri_Belgesi_YD_{id:D5}.pdf";
 
-            FileDownloadHelper.SetContentDisposition(Response, fileName, preview);
+            if (preview)
+            {
+                FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
+                return File(pdfBytes, "application/pdf");
+            }
+
             return File(pdfBytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
         }
         catch (KeyNotFoundException)

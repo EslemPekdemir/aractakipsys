@@ -131,7 +131,7 @@ public class RoleDelegationPdfDocument : IDocument
                         {
                             "Driver" => "Şoför (Saha Personeli)",
                             "Kullanici" => "Ulaşım Şefi",
-                            _ => _delegation.OriginalDelegateeRole
+                            _ => _delegation.OriginalDelegateeRole ?? "-"
                         };
 
                         c.Item().Text(t => { t.Span("Adı Soyadı: ").Bold(); t.Span(_delegation.DelegateeUser?.FullName ?? "-"); });
@@ -162,7 +162,7 @@ public class RoleDelegationPdfDocument : IDocument
                     c.Item().PaddingTop(8).Text(t =>
                     {
                         t.Span("Devir Gerekçesi / Açıklama: ").Bold();
-                        t.Span(_delegation.Reason);
+                        t.Span(_delegation.Reason ?? "-");
                     });
 
                     if (_delegation.ActualRevokedAt.HasValue)
