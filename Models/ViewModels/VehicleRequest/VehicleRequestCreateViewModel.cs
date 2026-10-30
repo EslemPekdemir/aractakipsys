@@ -56,6 +56,11 @@ public class VehicleRequestCreateViewModel
     [Display(Name = "Talep Gerekçesi ve Görev Detayı")]
     public string Purpose { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Gidilecek güzergah / rota alanı zorunludur.")]
+    [StringLength(500, ErrorMessage = "Güzergah en fazla 500 karakter olabilir.")]
+    [Display(Name = "Gidilecek Güzergah / Rota")]
+    public string Route { get; set; } = string.Empty;
+
     // Dropdown seçenek listeleri (Controller tarafından doldurulur)
     public List<string> AvailableDepartments { get; set; } = new();
     public List<string> AvailableVehicleTypes { get; set; } = new();

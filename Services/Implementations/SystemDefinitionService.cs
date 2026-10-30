@@ -147,17 +147,16 @@ public class SystemDefinitionService : ISystemDefinitionService
             return (false, "Sistem varsayılanı olan temel tanımların adı değiştirilemez; gerekirse pasife alabilirsiniz.");
         }
 
-        // Kural 1: Kullanımda olan seçeneğin adı değiştirilemez
-        var usageCount = await GetUsageCountAsync(entity.CategoryKey, entity.Name);
-        if (usageCount > 0)
-        {
-            return (false, $"Bu seçenek şu anda {usageCount} adet kayıtta kullanıldığı için adı değiştirilemez; yalnızca pasife alabilirsiniz.");
-        }
-
         var trimmedName = newName?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(trimmedName))
         {
             return (false, "Yeni seçenek adı boş olamaz.");
+        }
+
+        var oldName = entity.Name;
+        if (string.Equals(oldName, trimmedName, StringComparison.OrdinalIgnoreCase))
+        {
+            return (true, $"Seçenek adı zaten '{trimmedName}'.");
         }
 
         var normalized = SystemDefinitionCategories.NormalizeName(trimmedName);
@@ -171,26 +170,121 @@ public class SystemDefinitionService : ISystemDefinitionService
             return (false, $"'{trimmedName}' seçeneği bu kategoride zaten mevcuttur.");
         }
 
-        var oldName = entity.Name;
-        entity.Name = trimmedName;
-        entity.NormalizedName = normalized;
-        entity.UpdatedAt = DateTime.UtcNow;
-        entity.UpdatedBy = userId ?? "System";
+        // Kaskat Güncelleme (Cascade Rename): İlgili tablolardaki eski adlar yeni adla tek transaction içinde güncellenir
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            entity.Name = trimmedName;
+            entity.NormalizedName = normalized;
+            entity.UpdatedAt = DateTime.UtcNow;
+            entity.UpdatedBy = userId ?? "System";
 
-        await _context.SaveChangesAsync();
+            int cascadedCount = 0;
 
-        await _auditLogService.LogAsync(
-            nameof(SystemDefinition),
-            entity.Id,
-            AuditAction.Update,
-            userId,
-            new { entity.CategoryKey, Name = oldName },
-            new { entity.CategoryKey, Name = trimmedName });
+            switch (entity.CategoryKey)
+            {
+                case SystemDefinitionCategories.TireSeason:
+                    var tires = await _context.VehicleTires
+                        .Where(t => !t.IsDeleted && t.Season == oldName)
+                        .ToListAsync();
+                    foreach (var t in tires)
+                    {
+                        t.Season = trimmedName;
+                    }
+                    cascadedCount += tires.Count;
 
-        _logger.LogInformation("Sistem Tanımı Adı Değiştirildi: [{Category}] ID:{Id} '{Old}' -> '{New}' - Yapan: {User}",
-            entity.CategoryKey, entity.Id, oldName, trimmedName, userId);
+                    var vehiclesWithSeason = await _context.Vehicles
+                        .Where(v => !v.IsDeleted && v.TireSeason == oldName)
+                        .ToListAsync();
+                    foreach (var v in vehiclesWithSeason)
+                    {
+                        v.TireSeason = trimmedName;
+                    }
+                    cascadedCount += vehiclesWithSeason.Count;
+                    break;
 
-        return (true, $"Seçenek adı başarıyla '{trimmedName}' olarak güncellendi.");
+                case SystemDefinitionCategories.FuelType:
+                    var vehiclesWithFuel = await _context.Vehicles
+                        .Where(v => !v.IsDeleted && v.FuelType == oldName)
+                        .ToListAsync();
+                    foreach (var v in vehiclesWithFuel)
+                    {
+                        v.FuelType = trimmedName;
+                    }
+                    cascadedCount += vehiclesWithFuel.Count;
+                    break;
+
+                case SystemDefinitionCategories.VehicleType:
+                    var vehiclesWithType = await _context.Vehicles
+                        .Where(v => !v.IsDeleted && v.VehicleType == oldName)
+                        .ToListAsync();
+                    foreach (var v in vehiclesWithType)
+                    {
+                        v.VehicleType = trimmedName;
+                    }
+                    cascadedCount += vehiclesWithType.Count;
+                    break;
+
+                case SystemDefinitionCategories.MaintenanceType:
+                    var maintenances = await _context.Maintenances
+                        .Where(m => !m.IsDeleted && m.MaintenanceType == oldName)
+                        .ToListAsync();
+                    foreach (var m in maintenances)
+                    {
+                        m.MaintenanceType = trimmedName;
+                    }
+                    cascadedCount += maintenances.Count;
+                    break;
+
+                case SystemDefinitionCategories.LicenseClass:
+                    var licenses = await _context.DriverLicenses
+                        .Where(l => !l.IsDeleted && l.LicenseClass == oldName)
+                        .ToListAsync();
+                    foreach (var l in licenses)
+                    {
+                        l.LicenseClass = trimmedName;
+                    }
+                    cascadedCount += licenses.Count;
+
+                    var drivers = await _context.Drivers
+                        .Where(d => !d.IsDeleted && d.LicenseClass != null && d.LicenseClass.Contains(oldName))
+                        .ToListAsync();
+                    foreach (var d in drivers)
+                    {
+                        var parts = d.LicenseClass!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        var updatedParts = parts.Select(p => string.Equals(p, oldName, StringComparison.OrdinalIgnoreCase) ? trimmedName : p);
+                        d.LicenseClass = string.Join(", ", updatedParts);
+                    }
+                    break;
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            await _auditLogService.LogAsync(
+                nameof(SystemDefinition),
+                entity.Id,
+                AuditAction.Update,
+                userId,
+                new { entity.CategoryKey, Name = oldName },
+                new { entity.CategoryKey, Name = trimmedName, CascadedRecords = cascadedCount });
+
+            _logger.LogInformation("Sistem Tanımı Adı Değiştirildi (Cascade): [{Category}] ID:{Id} '{Old}' -> '{New}' - Etkilenen Kayıt: {Count} - Yapan: {User}",
+                entity.CategoryKey, entity.Id, oldName, trimmedName, cascadedCount, userId);
+
+            var message = cascadedCount > 0
+                ? $"'{oldName}' seçeneği '{trimmedName}' olarak güncellendi ve kullanıldığı {cascadedCount} adet kayda başarıyla uygulandı."
+                : $"Seçenek adı başarıyla '{trimmedName}' olarak güncellendi.";
+
+            return (true, message);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Sistem Tanımı Adı Değiştirilirken Hata Oluştu (Cascade Rollback): [{Category}] ID:{Id} '{Old}' -> '{New}'",
+                entity.CategoryKey, entity.Id, oldName, trimmedName);
+            return (false, "Seçenek adı güncellenirken bir veritabanı hatası oluştu.");
+        }
     }
 
     public async Task<(bool Success, string Message)> ToggleStatusAsync(int id, string? userId)

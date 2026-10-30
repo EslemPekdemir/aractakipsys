@@ -234,7 +234,31 @@
                                         </button>
                                     </div>
                                     <div id="additionalDriversList" style="display: flex; flex-direction: column; gap: 8px;">
-                                        <!-- Dinamik eklenen şoför satırları buraya gelecek -->
+                                        @if (Model.DriverIds != null && Model.DriverIds.Count > 0)
+                                        {
+                                            @for (int i = 0; i < Model.DriverIds.Count; i++)
+                                            {
+                                                var extraDriverId = Model.DriverIds[i];
+                                                var rowId = "existing_driver_row_" + i;
+                                                <div class="additional-driver-row input-group mt-1" id="@rowId">
+                                                    <select name="DriverIds" class="form-control select2-driver additional-driver-select">
+                                                        <option value="">-- Ek Şoför Seçiniz --</option>
+                                                        @foreach (var d in Model.AvailableDrivers)
+                                                        {
+                                                            var isSelected = d.Id == extraDriverId;
+                                                            <option value="@d.Id" disabled="@(!d.IsAvailable && !isSelected ? "disabled" : null)" selected="@(isSelected ? "selected" : null)">
+                                                                @d.DisplayText
+                                                            </option>
+                                                        }
+                                                    </select>
+                                                    <div class="input-group-append">
+                                                        <button type="button" class="btn btn-outline-danger" onclick="removeDriverRow('@rowId')" title="Bu Şoförü Kaldır">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
                                     </div>
                                     <small class="text-muted d-block mt-1">
                                         Birden fazla şoför atandığında her şoför için ayrı Taşıt Görev Emri oluşturulur ve her şoförün ehliyet/çakışma kontrolü ayrı yapılır.

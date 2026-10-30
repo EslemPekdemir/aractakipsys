@@ -137,9 +137,16 @@
                 <span class="detail-value">@Model.RequesterPhone</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label"><i class="fa fa-comment mr-1 text-muted"></i> Talep Amacı</span>
+                <span class="detail-label"><i class="fa fa-bullseye mr-1 text-muted"></i> Görev Amacı</span>
                 <span class="detail-value text-truncate" title="@Model.Purpose">@Model.Purpose</span>
             </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Route))
+            {
+                <div class="detail-row">
+                    <span class="detail-label"><i class="fa fa-map-marker mr-1 text-muted"></i> Güzergah</span>
+                    <span class="detail-value text-truncate" title="@Model.Route">@Model.Route</span>
+                </div>
+            }
             <div class="detail-row">
                 <span class="detail-label"><i class="fa fa-info-circle mr-1 text-muted"></i> Durum</span>
                 <span class="detail-value">

@@ -12,6 +12,7 @@ public class VehicleRequestFulfillViewModel
     public string RequesterEmail { get; set; } = string.Empty;
     public string RequesterPhone { get; set; } = string.Empty;
     public string Purpose { get; set; } = string.Empty;
+    public string? Route { get; set; }
     public DateTime CreatedAt { get; set; }
 
     [Required(ErrorMessage = "Lütfen görevlendirilecek bir araç seçiniz.")]

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuestPDF.Fluent;
 
 using aractakipsys.Common;
+using aractakipsys.Common.Helpers;
 
 namespace aractakipsys.Controllers;
 
@@ -94,11 +95,11 @@ public class ReportController : Controller
 
         if (preview)
         {
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
             return File(pdfBytes, "application/pdf");
         }
 
-        return File(pdfBytes, "application/pdf", fileName);
+        return File(pdfBytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
     }
 
     [HttpGet]
@@ -146,11 +147,11 @@ public class ReportController : Controller
 
         if (preview)
         {
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
             return File(pdfBytes, "application/pdf");
         }
 
-        return File(pdfBytes, "application/pdf", fileName);
+        return File(pdfBytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
     }
 
     /// <summary>
@@ -197,11 +198,11 @@ public class ReportController : Controller
 
         if (preview)
         {
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
             return File(pdfBytes, "application/pdf");
         }
 
-        return File(pdfBytes, "application/pdf", fileName);
+        return File(pdfBytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
     }
 
     /// <summary>
@@ -246,11 +247,11 @@ public class ReportController : Controller
 
         if (preview)
         {
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
             return File(pdfBytes, "application/pdf");
         }
 
-        return File(pdfBytes, "application/pdf", fileName);
+        return File(pdfBytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
     }
 
     /// <summary>
@@ -347,11 +348,11 @@ public class ReportController : Controller
 
         if (preview)
         {
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
             return File(pdfBytes, "application/pdf");
         }
 
-        return File(pdfBytes, "application/pdf", fileName);
+        return File(pdfBytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
     }
 }
 

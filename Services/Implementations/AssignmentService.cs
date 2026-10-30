@@ -398,23 +398,26 @@ public class AssignmentService : IAssignmentService
             return null;
         }
 
-        var driverIds = assignment.AssignmentDrivers
+        var allDrivers = assignment.AssignmentDrivers
             .Where(ad => !ad.IsDeleted)
             .OrderByDescending(ad => ad.IsPrimary)
             .Select(ad => ad.DriverId)
             .ToList();
 
-        if (driverIds.Count == 0 && assignment.DriverId.HasValue)
+        if (allDrivers.Count == 0 && assignment.DriverId.HasValue)
         {
-            driverIds.Add(assignment.DriverId.Value);
+            allDrivers.Add(assignment.DriverId.Value);
         }
+
+        var primaryDriverId = assignment.DriverId ?? allDrivers.FirstOrDefault();
+        var additionalDriverIds = allDrivers.Where(id => id != primaryDriverId).ToList();
 
         var model = new AssignmentEditViewModel
         {
             Id = assignment.Id,
             VehicleId = assignment.VehicleId,
-            DriverId = driverIds.FirstOrDefault(),
-            DriverIds = driverIds,
+            DriverId = primaryDriverId,
+            DriverIds = additionalDriverIds,
             RequestedByDepartment = assignment.RequestedByDepartment,
             Destination = assignment.Destination,
             Purpose = assignment.Purpose,
@@ -898,24 +901,38 @@ public class AssignmentService : IAssignmentService
         }
         else
         {
-            if (model.DriverIds != null && model.DriverIds.Any(id => id > 0))
+            var allProvidedDriverIds = new List<int>();
+
+            // 1. Asıl / Birincil Şoför (model.DriverId) daima 1. sırada (Asıl Şoför) yer alır
+            if (model.DriverId.HasValue && model.DriverId.Value > 0)
             {
-                validDriverIds = model.DriverIds.Where(id => id > 0).ToList();
-            }
-            else if (model.DriverId.HasValue && model.DriverId.Value > 0)
-            {
-                validDriverIds.Add(model.DriverId.Value);
+                allProvidedDriverIds.Add(model.DriverId.Value);
             }
 
-            if (validDriverIds.Count == 0)
+            // 2. Ek Şoförler (model.DriverIds) sırayla eklenir
+            if (model.DriverIds != null && model.DriverIds.Count > 0)
+            {
+                foreach (var extraId in model.DriverIds)
+                {
+                    if (extraId > 0)
+                    {
+                        allProvidedDriverIds.Add(extraId);
+                    }
+                }
+            }
+
+            if (allProvidedDriverIds.Count == 0)
             {
                 return (false, "Lütfen görevlendirilecek en az bir kurum şoförü seçiniz.", 0);
             }
 
-            if (validDriverIds.Count != validDriverIds.Distinct().Count())
+            // Mükerrer şoför kontrolü (Asıl şoför ile ek şoförün veya ek şoförlerin birbiriyle aynı seçilmesi)
+            if (allProvidedDriverIds.Count != allProvidedDriverIds.Distinct().Count())
             {
                 return (false, "Aynı şoför bir göreve birden fazla kez eklenemez.", 0);
             }
+
+            validDriverIds = allProvidedDriverIds;
 
             // Her şoför için müsaitlik ve ehliyet kontrolü
             foreach (var dId in validDriverIds)
@@ -1068,24 +1085,38 @@ public class AssignmentService : IAssignmentService
         }
         else
         {
-            if (model.DriverIds != null && model.DriverIds.Any(id => id > 0))
+            var allProvidedDriverIds = new List<int>();
+
+            // 1. Asıl / Birincil Şoför (model.DriverId) daima 1. sırada (Asıl Şoför) yer alır
+            if (model.DriverId.HasValue && model.DriverId.Value > 0)
             {
-                validDriverIds = model.DriverIds.Where(id => id > 0).ToList();
-            }
-            else if (model.DriverId.HasValue && model.DriverId.Value > 0)
-            {
-                validDriverIds.Add(model.DriverId.Value);
+                allProvidedDriverIds.Add(model.DriverId.Value);
             }
 
-            if (validDriverIds.Count == 0)
+            // 2. Ek Şoförler (model.DriverIds) sırayla eklenir
+            if (model.DriverIds != null && model.DriverIds.Count > 0)
+            {
+                foreach (var extraId in model.DriverIds)
+                {
+                    if (extraId > 0)
+                    {
+                        allProvidedDriverIds.Add(extraId);
+                    }
+                }
+            }
+
+            if (allProvidedDriverIds.Count == 0)
             {
                 return (false, "Lütfen görevlendirilecek en az bir kurum şoförü seçiniz.");
             }
 
-            if (validDriverIds.Count != validDriverIds.Distinct().Count())
+            // Mükerrer şoför kontrolü
+            if (allProvidedDriverIds.Count != allProvidedDriverIds.Distinct().Count())
             {
                 return (false, "Aynı şoför bir göreve birden fazla kez eklenemez.");
             }
+
+            validDriverIds = allProvidedDriverIds;
 
             // Seyir halindeki görevlerde araç değiştirilemez
             if (assignment.Status == AssignmentStatus.InProgress)

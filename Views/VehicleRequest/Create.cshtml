@@ -70,6 +70,9 @@
         .request-univ-logo:hover {
             transform: scale(1.02);
         }
+        .input-group {
+            align-items: stretch;
+        }
         .form-control {
             border-radius: 8px;
             padding: 10px 14px;
@@ -86,10 +89,36 @@
             border: 1px solid #d1d5db;
             border-right: none;
             color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 14px;
+            min-height: 46px;
         }
         .input-group .form-control {
             border-radius: 0 8px 8px 0;
             border-left: none;
+        }
+        /* Açılır listeler (select) ve tarih alanlarında metinlerin alttan kesilmesini önleyen kurallar */
+        select.form-control,
+        select.form-control:not([size]):not([multiple]) {
+            height: 46px !important;
+            min-height: 46px !important;
+            padding: 8px 14px !important;
+            font-size: 0.93rem !important;
+            line-height: 1.5 !important;
+            box-sizing: border-box !important;
+            background-color: #ffffff !important;
+        }
+        input[type="datetime-local"].form-control {
+            height: 46px !important;
+            min-height: 46px !important;
+            padding: 8px 10px !important;
+            font-size: 0.88rem !important;
+            line-height: 1.4 !important;
+        }
+        input.form-control:not([type="checkbox"]):not([type="radio"]) {
+            height: 46px;
         }
         .btn-submit {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
@@ -330,22 +359,42 @@
                 </div>
             </div>
 
-            <!-- 5. TALEP AMACI -->
-            <div class="form-group mb-4">
+            <!-- 8. GÖREV / TALEP AMACI -->
+            <div class="form-group mb-3">
                 <label asp-for="Purpose" class="field-label">
-                    Talep Amacı <span class="text-danger">*</span>
+                    Görev / Talep Amacı <span class="text-danger">*</span>
                 </label>
                 <div class="input-group align-items-stretch">
                     <div class="input-group-prepend d-flex">
                         <span class="input-group-text d-flex align-items-center justify-content-center px-3" style="border-radius: 8px 0 0 8px; border-right: none; height: 100%;">
-                            <i class="fa fa-comment text-muted"></i>
+                            <i class="fa fa-bullseye text-muted"></i>
                         </span>
                     </div>
-                    <textarea asp-for="Purpose" class="form-control" rows="4" 
-                              style="border-radius: 0 8px 8px 0; resize: vertical;"
-                              placeholder="Aracı ne için talep ettiğinizi, gidilecek güzergahı ve görev amacını belirtiniz..." required></textarea>
+                    <textarea asp-for="Purpose" class="form-control" rows="2" 
+                              style="border-radius: 0 8px 8px 0; resize: vertical; min-height: 58px;"
+                              placeholder="Aracın hangi resmi görev veya amaç doğrultusunda talep edildiğini belirtiniz (Örn: Kongre katılımı, fakülte heyeti toplantısı, saha teknik incelemesi)..." required></textarea>
                 </div>
-                <span asp-validation-for="Purpose" class="text-danger small font-weight-bold"></span>
+                <small class="text-muted" style="font-size: 0.78rem;">* Görev konusunu ve gerekçesini belirtiniz.</small>
+                <span asp-validation-for="Purpose" class="text-danger small font-weight-bold d-block"></span>
+            </div>
+
+            <!-- 9. GİDİLECEK GÜZERGAH / ROTA -->
+            <div class="form-group mb-4">
+                <label asp-for="Route" class="field-label">
+                    Gidilecek Güzergah / Rota <span class="text-danger">*</span>
+                </label>
+                <div class="input-group align-items-stretch">
+                    <div class="input-group-prepend d-flex">
+                        <span class="input-group-text d-flex align-items-center justify-content-center px-3" style="border-radius: 8px 0 0 8px; border-right: none; height: 100%;">
+                            <i class="fa fa-map-marker text-muted"></i>
+                        </span>
+                    </div>
+                    <textarea asp-for="Route" class="form-control" rows="2" 
+                              style="border-radius: 0 8px 8px 0; resize: vertical; min-height: 58px;"
+                              placeholder="Gidilecek yerleri ve güzergahı sırasıyla belirtiniz (Örn: Konuralp Yerleşkesi - Valilik - Akçakoca MYO)..." required></textarea>
+                </div>
+                <small class="text-muted" style="font-size: 0.78rem;">* Aracın uğrayacağı durakları veya varış noktasını belirtiniz.</small>
+                <span asp-validation-for="Route" class="text-danger small font-weight-bold d-block"></span>
             </div>
 
             <!-- GÖNDER BUTONU -->

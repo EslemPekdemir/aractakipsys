@@ -4,18 +4,23 @@
     var currentUser = await UserManager.GetUserAsync(User);
     var displayName = currentUser?.FullName ?? User.Identity?.Name ?? "Kullanıcı";
     var roles = currentUser != null ? await UserManager.GetRolesAsync(currentUser) : new List<string>();
+
+    // DÜZELTME 5: Devreden Şef girince banner ve "Devri Sonlandır" butonu; vekil için vekâlet banner'ı
+    var activeDelegatedByMe = currentUser != null ? await RoleDelegationService.GetActiveDelegationByDelegatorAsync(currentUser.Id) : null;
+    var activeDelegatedToMe = currentUser != null ? await RoleDelegationService.GetActiveDelegationForUserAsync(currentUser.Id) : null;
+
     var roleName = roles.Contains("Admin") ? "Sistem Yöneticisi" 
                  : (roles.Contains("DaireBaskani") ? "Daire Başkanı"
                  : (roles.Contains("GenelSekreter") ? "Genel Sekreter"
                  : (roles.Contains("Kullanici") ? "Ulaşım / Birim Şefi" 
                  : (roles.Contains("Driver") ? "Şoför" : "Kullanıcı Personel"))));
+    if (activeDelegatedToMe != null)
+    {
+        roleName = "Vekil Ulaşım Şefi (" + roleName + ")";
+    }
     var isReadOnly = User.IsInRole("GenelSekreter");
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
-
-    // DÜZELTME 5: Devreden Şef girince banner ve "Devri Sonlandır" butonu; vekil için vekâlet banner'ı
-    var activeDelegatedByMe = currentUser != null ? await RoleDelegationService.GetActiveDelegationByDelegatorAsync(currentUser.Id) : null;
-    var activeDelegatedToMe = currentUser != null ? await RoleDelegationService.GetActiveDelegationForUserAsync(currentUser.Id) : null;
 }
 <!DOCTYPE html>
 <html>
@@ -670,7 +675,7 @@
                     }
                     <li class="@(string.Equals(currentController, "RoleDelegation", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                         <a href="/RoleDelegation">
-                            <i class="fa fa-handshake-o"></i> 
+                            <i class="fa fa-exchange"></i> 
                             <span class="nav-label">Yetki Devri (Vekâlet)</span>
                             @if (activeDelegatedByMe != null || activeDelegatedToMe != null)
                             {
@@ -678,6 +683,15 @@
                             }
                         </a>
                     </li>
+                    @if (roles.Contains("Driver"))
+                    {
+                        <li class="border-top pt-2 mt-2">
+                            <a href="/Surucu" title="Şoför Portalı ekranına git">
+                                <i class="fa fa-id-badge text-warning"></i> 
+                                <span class="nav-label text-warning font-weight-bold">Şoför Portalı</span>
+                            </a>
+                        </li>
+                    }
                     <li>
                         <a href="/Account/Logout"><i class="fa fa-sign-out"></i> <span class="nav-label">Çıkış Yap</span></a>
                     </li>
@@ -793,7 +807,7 @@
                 {
                     <div class="alert alert-info alert-dismissible shadow-sm mb-3" style="border-left: 5px solid #23c6c8;">
                         <h5 class="alert-heading font-weight-bold mb-1">
-                            <i class="fa fa-handshake-o mr-1"></i> Vekâleten Görev Yürütmektesiniz
+                            <i class="fa fa-info-circle mr-1"></i> Vekâleten Görev Yürütmektesiniz
                         </h5>
                         <div class="small text-dark">
                             <strong>@(activeDelegatedToMe.DelegatorUser?.FullName ?? "Ulaşım Şefi")</strong> adına <strong>@activeDelegatedToMe.StartDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm") - @activeDelegatedToMe.EndDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</strong> tarihleri arasında vekâleten Ulaşım Şefliği görevini yürütmektesiniz. Yapacağınız işlemler denetim kaydında vekâleten olarak işaretlenecektir.

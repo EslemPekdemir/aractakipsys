@@ -732,10 +732,10 @@ Admin ve Daire Başkanı tarafından formlardaki seçenek listelerine yeni seçe
 
 ### 23.4 İş Kuralları ve Doğrulama Matrisi
 
-1. **Rename Kuralı (Rename Cascade Yasak):**
-   - Herhangi bir tabloda kullanımda olan (sayım > 0) seçeneklerin adı değiştirilemez, yalnızca pasife alınabilir.
-   - `IsSystemDefault = true` olan seçeneklerin adı her zaman kilitlidir.
-   - Yalnızca kullanımda olmayan ve sistem varsayılanı olmayan seçeneklerin adı serbestçe değiştirilebilir.
+1. **Rename Kuralı (Özel Tanımlar Cascade Güncelleme):**
+   - Özel tanımlar kullanımda olsa bile düzenlenebilir; adı değiştirildiğinde bağlı tüm kayıtlar (`Vehicles`, `VehicleTires`, `Maintenances`, `DriverLicenses`, `Drivers`) tek bir atomik veritabanı işlemiyle otomatik olarak yeni adla kaskat (cascade) güncellenir.
+   - `IsSystemDefault = true` olan temel çekirdek seçeneklerin adı her zaman kilitlidir.
+   - Ekranda her seçenek için kullanım sayısı gösterilir ve düzenleme modalında kaç kaydın etkileneceği kullanıcıya bildirilir.
 2. **Sunucu Doğrulaması (Server-Side Validation):**
    - Araç ekleme/düzenleme (`FuelType`, `VehicleType`), lastik ekleme/düzenleme (`Season`), bakım ekleme/düzenleme (`MaintenanceType`), şoför/ehliyet ekleme/düzenleme (`LicenseClass`) işlemlerinde gönderilen değer ilgili kategoride **aktif** bir seçenek olmalıdır.
    - Düzenleme formlarında kaydın mevcut eski değeri pasif olsa dahi korunur ve geçerli kabul edilir.

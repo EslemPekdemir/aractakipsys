@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuestPDF.Fluent;
 
 using aractakipsys.Common;
+using aractakipsys.Common.Helpers;
 
 namespace aractakipsys.Controllers;
 
@@ -110,11 +111,11 @@ public class AssignmentController : Controller
 
         if (preview)
         {
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
             return File(pdfBytes, "application/pdf");
         }
 
-        return File(pdfBytes, "application/pdf", fileName);
+        return File(pdfBytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
     }
 
     /// <summary>
@@ -170,19 +171,9 @@ public class AssignmentController : Controller
         if (!ModelState.IsValid)
         {
             var repopulatedModel = await _assignmentService.GetCreateViewModelAsync(model.PlannedStartTime, model.PlannedEndTime);
-            repopulatedModel.VehicleId = model.VehicleId;
-            repopulatedModel.DriverId = model.DriverId;
-            repopulatedModel.RequestedByDepartment = model.RequestedByDepartment;
-            repopulatedModel.Purpose = model.Purpose;
-            repopulatedModel.AccommodationNights = model.AccommodationNights;
-            repopulatedModel.AccommodationCost = model.AccommodationCost;
-            repopulatedModel.PerDiemType = model.PerDiemType ?? "Hourly";
-            repopulatedModel.PerDiemHours = model.PerDiemHours;
-            repopulatedModel.PerDiemRate = model.PerDiemRate;
-            repopulatedModel.PerDiemDays = model.PerDiemDays;
-            repopulatedModel.PerDiemAmount = model.PerDiemAmount;
-            repopulatedModel.ExpenseNotes = model.ExpenseNotes;
-            return View(repopulatedModel);
+            model.AvailableVehicles = repopulatedModel.AvailableVehicles;
+            model.AvailableDrivers = repopulatedModel.AvailableDrivers;
+            return View(model);
         }
 
         var adminUserId = GetCurrentUserId();
@@ -192,19 +183,9 @@ public class AssignmentController : Controller
         {
             ModelState.AddModelError(string.Empty, message);
             var repopulatedModel = await _assignmentService.GetCreateViewModelAsync(model.PlannedStartTime, model.PlannedEndTime);
-            repopulatedModel.VehicleId = model.VehicleId;
-            repopulatedModel.DriverId = model.DriverId;
-            repopulatedModel.RequestedByDepartment = model.RequestedByDepartment;
-            repopulatedModel.Purpose = model.Purpose;
-            repopulatedModel.AccommodationNights = model.AccommodationNights;
-            repopulatedModel.AccommodationCost = model.AccommodationCost;
-            repopulatedModel.PerDiemType = model.PerDiemType ?? "Hourly";
-            repopulatedModel.PerDiemHours = model.PerDiemHours;
-            repopulatedModel.PerDiemRate = model.PerDiemRate;
-            repopulatedModel.PerDiemDays = model.PerDiemDays;
-            repopulatedModel.PerDiemAmount = model.PerDiemAmount;
-            repopulatedModel.ExpenseNotes = model.ExpenseNotes;
-            return View(repopulatedModel);
+            model.AvailableVehicles = repopulatedModel.AvailableVehicles;
+            model.AvailableDrivers = repopulatedModel.AvailableDrivers;
+            return View(model);
         }
 
         TempData["SuccessMessage"] = message;

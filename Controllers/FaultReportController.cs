@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 
 using aractakipsys.Common;
+using aractakipsys.Common.Helpers;
 
 namespace aractakipsys.Controllers;
 
@@ -168,11 +169,11 @@ public class FaultReportController : Controller
 
         if (preview)
         {
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
             return File(bytes, "application/pdf");
         }
 
-        return File(bytes, "application/pdf", fileName);
+        return File(bytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
     }
 
     /// <summary>
@@ -189,11 +190,11 @@ public class FaultReportController : Controller
 
         if (preview)
         {
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
             return File(bytes, "application/pdf");
         }
 
-        return File(bytes, "application/pdf", fileName);
+        return File(bytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
     }
 
     /// <summary>

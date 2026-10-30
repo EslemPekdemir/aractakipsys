@@ -18,6 +18,7 @@ public class AccountController : Controller
     private readonly ILogger<AccountController> _logger;
     private readonly IEmailService _emailService;
     private readonly ICaptchaService _captchaService;
+    private readonly IRoleDelegationService _roleDelegationService;
 
     public AccountController(
         SignInManager<ApplicationUser> signInManager,
@@ -25,7 +26,8 @@ public class AccountController : Controller
         IWebHostEnvironment webHostEnvironment,
         ILogger<AccountController> logger,
         IEmailService emailService,
-        ICaptchaService captchaService)
+        ICaptchaService captchaService,
+        IRoleDelegationService roleDelegationService)
     {
         _signInManager = signInManager;
         _userManager = userManager;
@@ -33,6 +35,7 @@ public class AccountController : Controller
         _logger = logger;
         _emailService = emailService;
         _captchaService = captchaService;
+        _roleDelegationService = roleDelegationService;
     }
 
     /// <summary>
@@ -139,8 +142,11 @@ public class AccountController : Controller
             TempData["JustLoggedIn"] = true;
 
             var roles = await _userManager.GetRolesAsync(user);
+            var activeDelegation = await _roleDelegationService.GetActiveDelegationForUserAsync(user.Id);
+            var hasActiveDelegation = activeDelegation != null;
+
             var isDriver = roles.Contains("Driver");
-            var isAdminOrStaff = roles.Contains("Admin") || roles.Contains("DaireBaskani") || roles.Contains("GenelSekreter") || roles.Contains("Kullanici");
+            var isAdminOrStaff = roles.Contains("Admin") || roles.Contains("DaireBaskani") || roles.Contains("GenelSekreter") || roles.Contains("Kullanici") || hasActiveDelegation;
 
             // ReturnUrl doğrulama: Sadece kullanıcının rolüyle yetki uyumluysa ReturnUrl'e yönlendir
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
@@ -158,8 +164,8 @@ public class AccountController : Controller
                 }
                 else if (isAdminOrStaff)
                 {
-                    // Yönetici veya Personel şoför portalına (/surucu) gidemez; harici panel sayfalarını açabilir
-                    if (!returnUrlLower.StartsWith("/surucu"))
+                    // Yönetici veya Personel şoför portalına (/surucu) gidemez (vekil şoför hariç); harici panel sayfalarını açabilir
+                    if (!returnUrlLower.StartsWith("/surucu") || hasActiveDelegation)
                     {
                         return Redirect(model.ReturnUrl);
                     }
@@ -167,7 +173,7 @@ public class AccountController : Controller
                 }
             }
 
-            // Rol bazlı varsayılan yönlendirme
+            // Rol bazlı varsayılan yönlendirme: Aktif vekâleti olan şoförler de doğrudan Yönetim Paneline (Home) yönlendirilir
             if (isDriver && !isAdminOrStaff)
             {
                 return RedirectToAction("Index", "Surucu");
@@ -576,7 +582,7 @@ public class AccountController : Controller
 
     private IActionResult RedirectUserByRole()
     {
-        if (User.IsInRole("Admin") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter") || User.IsInRole("Kullanici"))
+        if (User.IsInRole("Admin") || User.IsInRole("DaireBaskani") || User.IsInRole("GenelSekreter") || User.IsInRole("Kullanici") || User.HasClaim(c => c.Type == "DelegatorUserId"))
         {
             return RedirectToAction("Index", "Home");
         }

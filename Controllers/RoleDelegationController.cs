@@ -1,6 +1,7 @@
 // File: Controllers/RoleDelegationController.cs
 using System.Security.Claims;
 using aractakipsys.Common;
+using aractakipsys.Common.Helpers;
 using aractakipsys.Models.ViewModels;
 using aractakipsys.Models.ViewModels.RoleDelegation;
 using aractakipsys.Services.Interfaces;
@@ -175,14 +176,8 @@ public class RoleDelegationController : Controller
             var pdfBytes = await _roleDelegationService.GenerateDelegationPdfAsync(id, userId, isElevated);
             var fileName = $"Yetki_Devri_Belgesi_YD_{id:D5}.pdf";
 
-            if (preview)
-            {
-                Response.Headers.Append("Content-Disposition", $"inline; filename=\"{fileName}\"");
-                return File(pdfBytes, "application/pdf");
-            }
-
-            Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileName}\"");
-            return File(pdfBytes, "application/pdf", fileName);
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview);
+            return File(pdfBytes, "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
         }
         catch (KeyNotFoundException)
         {

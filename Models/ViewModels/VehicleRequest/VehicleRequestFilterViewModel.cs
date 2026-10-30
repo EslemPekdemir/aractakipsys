@@ -38,6 +38,7 @@ public class VehicleRequestListItemViewModel
     public string RequesterEmail { get; set; } = string.Empty;
     public string RequesterPhone { get; set; } = string.Empty;
     public string Purpose { get; set; } = string.Empty;
+    public string? Route { get; set; }
     public VehicleRequestStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
 

@@ -152,7 +152,7 @@
                                 @for (int i = 0; i < Model.Items.Count; i++)
                                 {
                                     var item = Model.Items[i];
-                                    var isLockedRename = item.IsSystemDefault || item.UsageCount > 0;
+                                    var isLockedRename = item.IsSystemDefault;
                                     var isLastActive = item.IsActive && Model.ActiveCount <= 1;
 
                                     <tr class="@(!item.IsActive ? "text-muted bg-light" : "")">
@@ -213,7 +213,7 @@
                                                     @if (isLockedRename)
                                                     {
                                                         <button type="button" class="btn btn-xs btn-outline-secondary mr-1" disabled
-                                                                title="@(item.IsSystemDefault ? "Sistem varsayılanı seçeneklerin adı değiştirilemez." : "Kullanımda olan (" + item.UsageCount + " kayıt) seçeneğin adı değiştirilemez, yalnızca pasife alınabilir.")">
+                                                                title="Sistem varsayılanı olan temel tanımların adı değiştirilemez; gerekirse pasife alabilirsiniz.">
                                                             <i class="fa fa-lock mr-1"></i> Düzenle
                                                         </button>
                                                     }
@@ -223,6 +223,7 @@
                                                                 data-id="@item.Id"
                                                                 data-name="@item.Name"
                                                                 data-category="@item.CategoryKey"
+                                                                data-usage="@item.UsageCount"
                                                                 data-toggle="modal"
                                                                 data-target="#editOptionNameModal"
                                                                 title="Seçenek adını düzenle">
@@ -372,9 +373,9 @@
                     <input type="hidden" name="CategoryKey" id="editOptionCategoryKey" value="@Model.SelectedCategory.Key" />
 
                     <div class="modal-body p-4">
-                        <div class="alert alert-warning small mb-3">
+                        <div id="editOptionUsageAlert" class="alert alert-info small mb-3">
                             <i class="fa fa-info-circle mr-1"></i>
-                            Yalnızca hiçbir kayıtta kullanılmayan seçeneklerin adı serbestçe değiştirilebilir.
+                            <span id="editOptionUsageText">Yükleniyor...</span>
                         </div>
 
                         <div class="form-group mb-0">
@@ -403,10 +404,28 @@
                 var id = $(this).data('id');
                 var name = $(this).data('name');
                 var category = $(this).data('category');
+                var usage = parseInt($(this).data('usage'), 10) || 0;
 
                 $('#editOptionId').val(id);
                 $('#editOptionNewName').val(name);
                 $('#editOptionCategoryKey').val(category);
+
+                if (usage > 0) {
+                    $('#editOptionUsageAlert')
+                        .removeClass('alert-info')
+                        .addClass('alert-warning')
+                        .show();
+                    $('#editOptionUsageText').html(
+                        '<strong>Önemli Bilgilendirme:</strong> Bu seçenek şu anda <strong>' + usage + ' adet kayıtta</strong> aktif olarak kullanılmaktadır. ' +
+                        'Adını değiştirdiğinizde, bağlı tüm kayıtlar da otomatik olarak yeni adla güncellenecektir (Cascade Güncelleme).'
+                    );
+                } else {
+                    $('#editOptionUsageAlert')
+                        .removeClass('alert-warning')
+                        .addClass('alert-info')
+                        .show();
+                    $('#editOptionUsageText').text('Bu seçenek henüz hiçbir kayıtta kullanılmamaktadır. Adını serbestçe değiştirebilirsiniz.');
+                }
             });
         });
     </script>

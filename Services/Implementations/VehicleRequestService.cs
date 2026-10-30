@@ -101,6 +101,14 @@ public class VehicleRequestService : IVehicleRequestService
             {
                 return (false, "Talep gerekçesi en fazla 500 karakter olabilir.", 0);
             }
+            if (string.IsNullOrWhiteSpace(model.Route))
+            {
+                return (false, "Gidilecek güzergah / rota alanı zorunludur.", 0);
+            }
+            if (model.Route.Trim().Length > 500)
+            {
+                return (false, "Güzergah bilgisi en fazla 500 karakter olabilir.", 0);
+            }
 
             // Birim doğrulama: RequestDepartments tablosundaki AKTİF kayıtlardan biriyle eşleşmeli (büyük/küçük harf duyarsız, trimli)
             var trimmedDept = model.Department.Trim();
@@ -164,6 +172,7 @@ public class VehicleRequestService : IVehicleRequestService
                 RequesterPhone = model.RequesterPhone.Trim(),
                 RequestType = model.RequestType,
                 Purpose = model.Purpose.Trim(),
+                Route = model.Route.Trim(),
                 Status = VehicleRequestStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = email.ToLowerInvariant(),
@@ -296,6 +305,7 @@ public class VehicleRequestService : IVehicleRequestService
                 RequesterEmail = r.RequesterEmail,
                 RequesterPhone = r.RequesterPhone,
                 Purpose = r.Purpose,
+                Route = r.Route,
                 Status = r.Status,
                 CreatedAt = r.CreatedAt,
                 FulfilledAssignmentId = r.FulfilledAssignmentId,
@@ -372,6 +382,7 @@ public class VehicleRequestService : IVehicleRequestService
             RequesterEmail = request.RequesterEmail,
             RequesterPhone = request.RequesterPhone,
             Purpose = request.Purpose,
+            Route = request.Route,
             CreatedAt = request.CreatedAt,
             PlannedStartTime = plannedStart,
             PlannedEndTime = plannedEnd,
@@ -416,6 +427,8 @@ public class VehicleRequestService : IVehicleRequestService
             DriverId = model.DriverId,
             RequestedByDepartment = !string.IsNullOrWhiteSpace(request.Department) ? request.Department : request.RequesterFullName,
             Purpose = purposeForAssignment,
+            Destination = !string.IsNullOrWhiteSpace(request.Route) ? request.Route.Trim() : (!string.IsNullOrWhiteSpace(model.Route) ? model.Route.Trim() : "Düzce"),
+            Route = !string.IsNullOrWhiteSpace(request.Route) ? request.Route.Trim() : model.Route?.Trim(),
             PlannedStartTime = model.PlannedStartTime,
             PlannedEndTime = model.PlannedEndTime
         };

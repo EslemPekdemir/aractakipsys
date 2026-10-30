@@ -28,6 +28,9 @@ public class VehicleRequest : BaseAuditableEntity
     [StringLength(500, ErrorMessage = "Talep gerekçesi en fazla 500 karakter olabilir.")]
     public string Purpose { get; set; } = string.Empty;
 
+    [StringLength(500, ErrorMessage = "Güzergah en fazla 500 karakter olabilir.")]
+    public string? Route { get; set; }
+
     [Required]
     public VehicleRequestType RequestType { get; set; } = VehicleRequestType.OfficialTrip;
 

@@ -211,12 +211,21 @@
                             <i class="fa fa-calendar mr-1 text-muted"></i> @Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
                         </span>
                     </div>
-                    <div class="mb-0">
-                        <label class="text-muted small text-uppercase font-weight-bold d-block mb-1">Talep Gerekçesi / Görev Amacı</label>
+                    <div class="mb-2">
+                        <label class="text-muted small text-uppercase font-weight-bold d-block mb-1">Görev / Talep Amacı</label>
                         <div class="p-3 bg-light rounded border text-secondary" style="font-size: 0.9rem; line-height: 1.5;">
-                            @Model.Purpose
+                            <i class="fa fa-bullseye text-primary mr-1"></i> @Model.Purpose
                         </div>
                     </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Route))
+                    {
+                        <div class="mb-0">
+                            <label class="text-muted small text-uppercase font-weight-bold d-block mb-1">Gidilecek Güzergah / Rota</label>
+                            <div class="p-3 bg-light rounded border text-secondary" style="font-size: 0.9rem; line-height: 1.5;">
+                                <i class="fa fa-map-marker text-danger mr-1"></i> @Model.Route
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
 
@@ -364,16 +373,25 @@
                             </small>
                         </div>
 
-                        <!-- GÖREV AMACI / AÇIKLAMASI (SADECE OKUNABİLİR) -->
+                        <!-- GÖREV AMACI (SADECE OKUNABİLİR) -->
                         <div class="form-group mb-3">
                             <label asp-for="Purpose" class="font-weight-bold text-dark">
-                                <i class="fa fa-file-text-o mr-1 text-primary"></i> Talep Edilen Görev Açıklaması ve Güzergah
+                                <i class="fa fa-bullseye mr-1 text-primary"></i> Talep Edilen Görev Amacı
                             </label>
-                            <textarea asp-for="Purpose" class="form-control" rows="3" readonly="readonly" 
+                            <textarea asp-for="Purpose" class="form-control" rows="2" readonly="readonly" 
                                       style="background-color: #f8fafc; cursor: not-allowed; border-color: #e2e8f0; color: #334155; font-size: 0.9rem;" required></textarea>
                             <span asp-validation-for="Purpose" class="text-danger small"></span>
+                        </div>
+
+                        <!-- GÜZERGAH / ROTA (SADECE OKUNABİLİR) -->
+                        <div class="form-group mb-3">
+                            <label asp-for="Route" class="font-weight-bold text-dark">
+                                <i class="fa fa-map-marker mr-1 text-danger"></i> Talep Edilen Güzergah / Rota
+                            </label>
+                            <textarea asp-for="Route" class="form-control" rows="2" readonly="readonly" 
+                                      style="background-color: #f8fafc; cursor: not-allowed; border-color: #e2e8f0; color: #334155; font-size: 0.9rem;"></textarea>
                             <small class="form-text text-muted" style="font-size: 0.76rem;">
-                                Talep sahibi tarafından belirtilen resmi gerekçedir.
+                                Onaylandığında otomatik olarak resmi görevin güzergah alanına aktarılır.
                             </small>
                         </div>
 

@@ -205,9 +205,15 @@
                                         <div class="small text-muted"><i class="fa fa-phone mr-1 text-muted"></i>@item.RequesterPhone</div>
                                     </td>
                                     <td class="align-middle">
-                                        <span class="d-inline-block text-truncate" style="max-width: 250px;" title="@item.Purpose">
-                                            @item.Purpose
-                                        </span>
+                                        <div class="font-weight-bold text-dark text-truncate" style="max-width: 250px;" title="@item.Purpose">
+                                            <i class="fa fa-bullseye text-primary mr-1"></i> @item.Purpose
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(item.Route))
+                                        {
+                                            <div class="small text-muted text-truncate mt-1" style="max-width: 250px;" title="@item.Route">
+                                                <i class="fa fa-map-marker text-danger mr-1"></i> @item.Route
+                                            </div>
+                                        }
                                     </td>
                                     <td class="align-middle small">
                                         @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")

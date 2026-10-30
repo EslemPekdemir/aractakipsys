@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using aractakipsys.Common;
+using aractakipsys.Common.Helpers;
 
 namespace aractakipsys.Controllers;
 
@@ -379,11 +380,11 @@ public class VehicleController : Controller
 
         if (preview)
         {
-            Response.Headers["Content-Disposition"] = $"inline; filename=\"{fileName}\"";
+            FileDownloadHelper.SetContentDisposition(Response, fileName, preview: true);
             return File(memoryStream.ToArray(), "application/pdf");
         }
 
-        return File(memoryStream.ToArray(), "application/pdf", fileName);
+        return File(memoryStream.ToArray(), "application/pdf", FileDownloadHelper.ToSafeAsciiFileName(fileName));
     }
 }
 
