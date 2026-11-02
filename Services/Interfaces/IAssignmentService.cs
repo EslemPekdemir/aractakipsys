@@ -49,4 +49,7 @@ public interface IAssignmentService
 
     // Üst Navbar Bildirim Çanı İçin Seferdeki Güzergah Değişiklikleri Özeti (Faz 2B)
     Task<(int PendingCount, List<AssignmentRouteChangeItemViewModel> LatestChanges)> GetPendingRouteChangeNotificationSummaryAsync();
+
+    // Şefin Şoför Güzergah Değişikliğini Onaylaması (Güzergah Dışı Sevk Kaydına Aktarır)
+    Task<(bool Success, string Message, int AssignmentId)> ApproveRouteChangeAsync(int routeChangeId, string reviewerUserId);
 }

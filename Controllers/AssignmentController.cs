@@ -150,6 +150,31 @@ public class AssignmentController : Controller
     }
 
     /// <summary>
+    /// Şoförün Bildirdiği Güzergah Değişikliğini Onaylama (Şef / Amir Onayı)
+    /// POST: /Assignment/ApproveRouteChange/{id}
+    /// </summary>
+    [HttpPost("ApproveRouteChange/{id:int}")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = AppRoles.OperationalStaff)]
+    public async Task<IActionResult> ApproveRouteChange(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+
+        var (success, message, assignmentId) = await _assignmentService.ApproveRouteChangeAsync(id, userId);
+        if (success)
+        {
+            TempData["SuccessMessage"] = message;
+        }
+        else
+        {
+            TempData["ErrorMessage"] = message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id = assignmentId > 0 ? assignmentId : 0 });
+    }
+
+    /// <summary>
     /// Yeni Görev Atama Formu
     /// GET: /Assignment/Create
     /// </summary>

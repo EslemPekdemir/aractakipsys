@@ -16,4 +16,8 @@ public class AssignmentRouteChangeItemViewModel
     public string ChangedByUserId { get; set; } = string.Empty;
     public string ChangedByFullName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public bool IsReviewedByAdmin { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public string? ReviewedByUserId { get; set; }
+    public string? ReviewedByFullName { get; set; }
 }

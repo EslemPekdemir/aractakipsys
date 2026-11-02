@@ -230,6 +230,18 @@ public class AssignmentService : IAssignmentService
             checksCompletedBy = checksLog.ChangedByUser?.FullName ?? checksLog.ChangedByUser?.UserName;
         }
 
+        var reviewerUserIds = a.RouteChanges
+            .Where(rc => !rc.IsDeleted && !string.IsNullOrEmpty(rc.ReviewedByUserId))
+            .Select(rc => rc.ReviewedByUserId!)
+            .Distinct()
+            .ToList();
+
+        var reviewerNames = reviewerUserIds.Any()
+            ? await _context.Users
+                .Where(u => reviewerUserIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.FullName ?? u.UserName ?? "Yetkili")
+            : new Dictionary<string, string>();
+
         var assignedDrivers = a.AssignmentDrivers
             .Where(ad => !ad.IsDeleted)
             .OrderByDescending(ad => ad.IsPrimary)
@@ -341,7 +353,11 @@ public class AssignmentService : IAssignmentService
                     Reason = rc.Reason,
                     ChangedByUserId = rc.ChangedByUserId,
                     ChangedByFullName = rc.ChangedByFullName,
-                    CreatedAt = rc.CreatedAt
+                    CreatedAt = rc.CreatedAt,
+                    IsReviewedByAdmin = rc.IsReviewedByAdmin,
+                    ReviewedAt = rc.ReviewedAt,
+                    ReviewedByUserId = rc.ReviewedByUserId,
+                    ReviewedByFullName = (!string.IsNullOrEmpty(rc.ReviewedByUserId) && reviewerNames.TryGetValue(rc.ReviewedByUserId, out var revName)) ? revName : null
                 })
                 .ToList()
         };
@@ -385,6 +401,61 @@ public class AssignmentService : IAssignmentService
             });
 
         return (true, "Acil güzergah dışı sevk bilgisi başarıyla kaydedildi.");
+    }
+
+    /// <summary>
+    /// Şefin Şoför Güzergah Değişikliğini Onaylaması (Güzergah Dışı Sevk Kaydına Aktarır)
+    /// </summary>
+    public async Task<(bool Success, string Message, int AssignmentId)> ApproveRouteChangeAsync(int routeChangeId, string reviewerUserId)
+    {
+        var rc = await _context.AssignmentRouteChanges
+            .Include(r => r.Assignment)
+            .FirstOrDefaultAsync(r => r.Id == routeChangeId && !r.IsDeleted);
+
+        if (rc == null || rc.Assignment == null)
+        {
+            return (false, "Güzergah değişikliği kaydı bulunamadı.", 0);
+        }
+
+        var assignment = rc.Assignment;
+        var reviewer = await _context.Users.FirstOrDefaultAsync(u => u.Id == reviewerUserId);
+        var reviewerName = reviewer?.FullName ?? reviewer?.UserName ?? "Ulaşım Şefi";
+
+        rc.IsReviewedByAdmin = true;
+        rc.ReviewedAt = DateTime.UtcNow;
+        rc.ReviewedByUserId = reviewerUserId;
+
+        // Görevin resmi sevk alanlarını güncelle: Onaylayan şef ve ek güzergah bilgileri resmi belgeye işlenir
+        assignment.OffRouteDispatcherName = reviewerName;
+        assignment.OffRouteDispatcherTitle = "Ulaşım Şefi";
+
+        var destSuffix = !string.IsNullOrWhiteSpace(rc.NewDestination) ? $" (Hedef: {rc.NewDestination})" : "";
+        assignment.OffRouteReason = $"Ek Güzergah: {rc.NewRoute}{destSuffix} | Gerekçe: {rc.Reason}";
+        assignment.OffRouteReportedAt = DateTime.Now;
+        assignment.OffRouteReportedByUserId = reviewerUserId;
+        assignment.UpdatedAt = DateTime.UtcNow;
+        assignment.UpdatedBy = reviewerName;
+
+        await _context.SaveChangesAsync();
+
+        await _auditLogService.LogAsync(
+            nameof(Assignment),
+            assignment.Id,
+            AuditAction.Update,
+            reviewerUserId,
+            reviewerName,
+            new
+            {
+                AssignmentId = assignment.Id,
+                Action = "RouteChangeApprovedByChief",
+                RouteChangeId = rc.Id,
+                NewRoute = rc.NewRoute,
+                NewDestination = rc.NewDestination,
+                Reason = rc.Reason,
+                ApprovedBy = reviewerName
+            });
+
+        return (true, "Şoförün ek güzergah değişikliği onaylandı ve resmi Taşıt Görev Emri sevk alanına işlendi.", assignment.Id);
     }
 
     public async Task<AssignmentEditViewModel?> GetAssignmentEditModelAsync(int id)

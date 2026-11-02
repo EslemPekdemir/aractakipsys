@@ -68,6 +68,66 @@ public class AssignmentOrderDocument : IDocument
         return cleaned.Trim();
     }
 
+    private (string? DispatcherText, string? ReasonText) GetOffRouteDispatchDisplay()
+    {
+        // "Boş çıktı": kutu HER ZAMAN boş (ıslak imza için)
+        // "Dolu çıktı": Görevde Güzergah Dışı Sevk Kaydı varsa doldurulur; yoksa boş kalır
+        // Kural: Şoför güzergah değişiklikleri bu kutuya ASLA yazılmaz (yalnızca sol taraftaki güzergah alanında kalır)
+        if (_emptyValues || !_model.HasOffRouteDispatch)
+        {
+            return (null, null);
+        }
+
+        // Çoklu kayıt desteği: satır sonu (\r, \n), noktalı virgül (;) veya dikey çizgi (|) ile ayrılmış olabilir
+        var nameParts = (_model.OffRouteDispatcherName ?? "")
+            .Split(new[] { '\r', '\n', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var titleParts = (_model.OffRouteDispatcherTitle ?? "")
+            .Split(new[] { '\r', '\n', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var reasonParts = (_model.OffRouteReason ?? "")
+            .Split(new[] { '\r', '\n', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var count = Math.Max(nameParts.Length, Math.Max(titleParts.Length, reasonParts.Length));
+        if (count == 0)
+        {
+            return (null, null);
+        }
+
+        var lastName = nameParts.Length > 0 ? nameParts[^1] : "";
+        var lastTitle = titleParts.Length > 0 ? titleParts[^1] : "";
+        var lastReason = reasonParts.Length > 0 ? reasonParts[^1] : "";
+
+        // Yetkili Adı Soyadı ve Unvanı
+        string dispatcherText = lastName;
+        if (!string.IsNullOrWhiteSpace(lastTitle))
+        {
+            dispatcherText = string.IsNullOrWhiteSpace(dispatcherText) 
+                ? lastTitle 
+                : $"{dispatcherText} ({lastTitle})";
+        }
+
+        // Birden fazla kayıt varsa en son kaydı bas ve diğerlerini kısaca "(+N kayıt daha)" olarak belirt
+        if (count > 1)
+        {
+            var extraCount = count - 1;
+            var suffix = $" (+{extraCount} kayıt daha)";
+            if (!string.IsNullOrWhiteSpace(dispatcherText))
+            {
+                dispatcherText += suffix;
+            }
+            else if (!string.IsNullOrWhiteSpace(lastReason))
+            {
+                lastReason += suffix;
+            }
+        }
+
+        return (
+            string.IsNullOrWhiteSpace(dispatcherText) ? null : dispatcherText,
+            string.IsNullOrWhiteSpace(lastReason) ? null : lastReason
+        );
+    }
+
     private static byte[]? LoadLogoBytes()
     {
         try
@@ -185,17 +245,41 @@ public class AssignmentOrderDocument : IDocument
                 });
 
                 // 3. BÖLÜM: ALT BÖLÜM (İKİ SÜTUNLU: SOL GÖREVE AİT, SAĞ GÜZERGAH DIŞI + ARACA AİT)
+                // Görevde güzergah değişikliği yapılmış olsa bile sol sütuna görevin İLK (orijinal) güzergahı basılır
+                string initialDestination;
+                string initialRoute;
+
+                var earliestChange = _model.RouteChanges?
+                    .OrderBy(rc => rc.CreatedAt)
+                    .FirstOrDefault();
+
+                if (earliestChange != null)
+                {
+                    initialDestination = !string.IsNullOrWhiteSpace(earliestChange.OldDestination) 
+                        ? earliestChange.OldDestination 
+                        : _model.Destination;
+
+                    initialRoute = !string.IsNullOrWhiteSpace(earliestChange.OldRoute) 
+                        ? earliestChange.OldRoute 
+                        : _model.Route;
+                }
+                else
+                {
+                    initialDestination = _model.Destination;
+                    initialRoute = _model.Route;
+                }
+
                 var destination = !_emptyValues 
-                    ? (!string.IsNullOrWhiteSpace(_model.Destination) 
-                        ? _model.Destination 
+                    ? (!string.IsNullOrWhiteSpace(initialDestination) 
+                        ? initialDestination 
                         : (!string.IsNullOrWhiteSpace(_routeInfo) 
                             ? _routeInfo 
                             : (!string.IsNullOrWhiteSpace(_model.RequestedByDepartment) ? _model.RequestedByDepartment : "Belirtilen Görev Yeri")))
                     : "";
 
                 var routeText = !_emptyValues
-                    ? (!string.IsNullOrWhiteSpace(_model.Route) 
-                        ? _model.Route 
+                    ? (!string.IsNullOrWhiteSpace(initialRoute) 
+                        ? initialRoute 
                         : (!string.IsNullOrWhiteSpace(_routeInfo) ? _routeInfo : "Belirtilen Güzergah"))
                     : "";
 
@@ -239,6 +323,8 @@ public class AssignmentOrderDocument : IDocument
                 var inTime = (showActuals && _model.ActualEndTime.HasValue) 
                     ? _model.ActualEndTime.Value.ToString("HH:mm") 
                     : (!_emptyValues && _model.PlannedEndTime != default ? _model.PlannedEndTime.ToString("HH:mm") : "....................");
+
+                var (offRouteDispatcher, offRouteReason) = GetOffRouteDispatchDisplay();
 
                 formCol.Item().BorderBottom(1).BorderColor(Colors.Black).Table(mainTable =>
                 {
@@ -295,11 +381,27 @@ public class AssignmentOrderDocument : IDocument
                         rightCol.Item().Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Black)
                             .Padding(4).AlignCenter().Text("ACİL DURUMLARDA ARACI GÜZERGAH DIŞINA SEVK EDENİN").Bold().FontSize(7.5f);
 
-                        // 2. Adı Soyadı, Unvanı ve İmzası (TEK SATIR, HER ZAMAN BOŞ)
-                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).MinHeight(32).Text("Adı Soyadı, Unvanı ve İmzası:").Bold().FontSize(8f);
+                        // 2. Adı Soyadı, Unvanı ve İmzası (Dolu çıktıda kayıt varsa basılır, imza alanı boş kalır; boş çıktıda her zaman boş)
+                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).MinHeight(32).Text(t =>
+                        {
+                            t.Span("Adı Soyadı, Unvanı ve İmzası:").Bold().FontSize(8f);
+                            if (!string.IsNullOrWhiteSpace(offRouteDispatcher))
+                            {
+                                t.Span(" ");
+                                t.Span(offRouteDispatcher).FontSize(8.5f);
+                            }
+                        });
 
-                        // 3. Sevk Nedeni (HER ZAMAN BOŞ)
-                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).MinHeight(32).Text("Sevk Nedeni:").Bold().FontSize(8f);
+                        // 3. Sevk Nedeni (Dolu çıktıda kayıt varsa basılır; boş çıktıda her zaman boş)
+                        rightCol.Item().BorderBottom(1).BorderColor(Colors.Black).Padding(4).MinHeight(32).Text(t =>
+                        {
+                            t.Span("Sevk Nedeni:").Bold().FontSize(8f);
+                            if (!string.IsNullOrWhiteSpace(offRouteReason))
+                            {
+                                t.Span(" ");
+                                t.Span(offRouteReason).FontSize(8.5f);
+                            }
+                        });
 
                         // 4. Başlık: ARACA AİT BİLGİLER
                         rightCol.Item().Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Black)
