@@ -76,6 +76,10 @@
                             {
                                 <span class="badge badge-danger ml-1">Süresi Dolmuş</span>
                             }
+                            else if ((Model.InspectionExpiryDate.Date - DateTime.Today).TotalDays <= 30)
+                            {
+                                <span class="badge badge-warning text-dark ml-1">Yaklaşıyor (@((int)(Model.InspectionExpiryDate.Date - DateTime.Today).TotalDays) gün)</span>
+                            }
                         </span>
                     </div>
                     <div class="list-group-item d-flex justify-content-between px-0 py-2 border-0">
@@ -91,6 +95,10 @@
                             @if (Model.InsuranceExpiryDate < DateTime.Today)
                             {
                                 <span class="badge badge-danger ml-1">Süresi Dolmuş</span>
+                            }
+                            else if ((Model.InsuranceExpiryDate.Date - DateTime.Today).TotalDays <= 30)
+                            {
+                                <span class="badge badge-warning text-dark ml-1">Yaklaşıyor (@((int)(Model.InsuranceExpiryDate.Date - DateTime.Today).TotalDays) gün)</span>
                             }
                         </span>
                     </div>

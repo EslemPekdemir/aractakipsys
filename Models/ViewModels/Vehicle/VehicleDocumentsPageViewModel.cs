@@ -7,7 +7,7 @@ namespace aractakipsys.Models.ViewModels.Vehicle;
 public class VehicleDocumentsPageViewModel
 {
     public int? SelectedVehicleId { get; set; }
-    public string ActiveTab { get; set; } = "Inspection"; // Inspection, Insurance, Kasko
+    public string ActiveTab { get; set; } = "Inspection"; // Inspection, Insurance, Kasko, Tire
 
     public List<SelectListItem> VehicleSelectList { get; set; } = new();
 
@@ -18,8 +18,9 @@ public class VehicleDocumentsPageViewModel
     public List<VehicleDocumentItemViewModel> KaskoDocuments { get; set; } = new();
     public List<VehicleTireItemViewModel> TireDocuments { get; set; } = new();
 
-    public VehicleDocumentItemViewModel? CurrentInspection => InspectionDocuments.FirstOrDefault(x => x.IsCurrentValid);
-    public VehicleDocumentItemViewModel? CurrentInsurance => InsuranceDocuments.FirstOrDefault(x => x.IsCurrentValid);
-    public VehicleDocumentItemViewModel? CurrentKasko => KaskoDocuments.FirstOrDefault(x => x.IsCurrentValid);
+    // Üst özet kutularında aracın en son kaydı gösterilir (süresi dolmuşsa da kırmızı etiketle görünür)
+    public VehicleDocumentItemViewModel? CurrentInspection => InspectionDocuments.FirstOrDefault(x => x.IsLatest) ?? InspectionDocuments.FirstOrDefault();
+    public VehicleDocumentItemViewModel? CurrentInsurance => InsuranceDocuments.FirstOrDefault(x => x.IsLatest) ?? InsuranceDocuments.FirstOrDefault();
+    public VehicleDocumentItemViewModel? CurrentKasko => KaskoDocuments.FirstOrDefault(x => x.IsLatest) ?? KaskoDocuments.FirstOrDefault();
     public VehicleTireItemViewModel? CurrentTire => TireDocuments.FirstOrDefault(x => x.IsCurrentTire);
 }

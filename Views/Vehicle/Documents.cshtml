@@ -1,4 +1,5 @@
 @model aractakipsys.Models.ViewModels.Vehicle.VehicleDocumentsPageViewModel
+@using aractakipsys.Models.Enums
 @inject aractakipsys.Services.Interfaces.ISystemDefinitionService SystemDefinitionService
 @{
     Layout = "_AdminLayout";
@@ -108,9 +109,25 @@ else
                             <small class="text-muted d-block font-weight-bold">GÜNCEL MUAYENE</small>
                             @if (Model.CurrentInspection != null)
                             {
-                                <span class="font-weight-bold @(Model.CurrentInspection.IsExpired ? "text-danger" : Model.CurrentInspection.IsExpiringSoon ? "text-warning" : "text-success")">
+                                <span class="font-weight-bold @(Model.CurrentInspection.Status == VehicleDocumentStatus.Expired ? "text-danger" : Model.CurrentInspection.Status == VehicleDocumentStatus.ExpiringSoon ? "text-warning" : Model.CurrentInspection.Status == VehicleDocumentStatus.NotStarted ? "text-info" : "text-success")">
                                     @Model.CurrentInspection.EndDate.ToString("dd.MM.yyyy")
                                 </span>
+                                @if (Model.CurrentInspection.Status == VehicleDocumentStatus.Expired)
+                                {
+                                    <small class="text-danger d-block font-weight-bold">Süresi Dolmuş</small>
+                                }
+                                else if (Model.CurrentInspection.Status == VehicleDocumentStatus.ExpiringSoon)
+                                {
+                                    <small class="text-warning d-block font-weight-bold">@Model.CurrentInspection.DaysRemaining gün kaldı</small>
+                                }
+                                else if (Model.CurrentInspection.Status == VehicleDocumentStatus.NotStarted)
+                                {
+                                    <small class="text-info d-block font-weight-bold">Başlamadı</small>
+                                }
+                                else
+                                {
+                                    <small class="text-success d-block font-weight-bold">Geçerli</small>
+                                }
                             }
                             else
                             {
@@ -122,9 +139,25 @@ else
                             <small class="text-muted d-block font-weight-bold">GÜNCEL SİGORTA</small>
                             @if (Model.CurrentInsurance != null)
                             {
-                                <span class="font-weight-bold @(Model.CurrentInsurance.IsExpired ? "text-danger" : Model.CurrentInsurance.IsExpiringSoon ? "text-warning" : "text-success")">
+                                <span class="font-weight-bold @(Model.CurrentInsurance.Status == VehicleDocumentStatus.Expired ? "text-danger" : Model.CurrentInsurance.Status == VehicleDocumentStatus.ExpiringSoon ? "text-warning" : Model.CurrentInsurance.Status == VehicleDocumentStatus.NotStarted ? "text-info" : "text-success")">
                                     @Model.CurrentInsurance.EndDate.ToString("dd.MM.yyyy")
                                 </span>
+                                @if (Model.CurrentInsurance.Status == VehicleDocumentStatus.Expired)
+                                {
+                                    <small class="text-danger d-block font-weight-bold">Süresi Dolmuş</small>
+                                }
+                                else if (Model.CurrentInsurance.Status == VehicleDocumentStatus.ExpiringSoon)
+                                {
+                                    <small class="text-warning d-block font-weight-bold">@Model.CurrentInsurance.DaysRemaining gün kaldı</small>
+                                }
+                                else if (Model.CurrentInsurance.Status == VehicleDocumentStatus.NotStarted)
+                                {
+                                    <small class="text-info d-block font-weight-bold">Başlamadı</small>
+                                }
+                                else
+                                {
+                                    <small class="text-success d-block font-weight-bold">Geçerli</small>
+                                }
                             }
                             else
                             {
@@ -136,9 +169,25 @@ else
                             <small class="text-muted d-block font-weight-bold">GÜNCEL KASKO</small>
                             @if (Model.CurrentKasko != null)
                             {
-                                <span class="font-weight-bold @(Model.CurrentKasko.IsExpired ? "text-danger" : Model.CurrentKasko.IsExpiringSoon ? "text-warning" : "text-success")">
+                                <span class="font-weight-bold @(Model.CurrentKasko.Status == VehicleDocumentStatus.Expired ? "text-danger" : Model.CurrentKasko.Status == VehicleDocumentStatus.ExpiringSoon ? "text-warning" : Model.CurrentKasko.Status == VehicleDocumentStatus.NotStarted ? "text-info" : "text-success")">
                                     @Model.CurrentKasko.EndDate.ToString("dd.MM.yyyy")
                                 </span>
+                                @if (Model.CurrentKasko.Status == VehicleDocumentStatus.Expired)
+                                {
+                                    <small class="text-danger d-block font-weight-bold">Süresi Dolmuş</small>
+                                }
+                                else if (Model.CurrentKasko.Status == VehicleDocumentStatus.ExpiringSoon)
+                                {
+                                    <small class="text-warning d-block font-weight-bold">@Model.CurrentKasko.DaysRemaining gün kaldı</small>
+                                }
+                                else if (Model.CurrentKasko.Status == VehicleDocumentStatus.NotStarted)
+                                {
+                                    <small class="text-info d-block font-weight-bold">Başlamadı</small>
+                                }
+                                else
+                                {
+                                    <small class="text-success d-block font-weight-bold">Geçerli</small>
+                                }
                             }
                             else
                             {
@@ -261,20 +310,23 @@ else
                                 <tbody>
                                     @foreach (var doc in Model.InspectionDocuments)
                                     {
-                                        <tr class="@(doc.IsCurrentValid ? "table-success font-weight-bold" : "")">
+                                        <tr class="@(doc.Status == VehicleDocumentStatus.Valid ? "table-success font-weight-normal" : doc.Status == VehicleDocumentStatus.Expired ? "table-danger" : doc.Status == VehicleDocumentStatus.ExpiringSoon ? "table-warning" : "")">
                                             <td>
-                                                @if (doc.IsCurrentValid)
-                                                {
-                                                    <span class="badge badge-success px-2 py-1"><i class="fa fa-check-circle mr-1"></i> GÜNCEL GEÇERLİ</span>
-                                                }
-                                                else if (doc.IsExpired)
-                                                {
-                                                    <span class="badge badge-danger px-2 py-1">Süresi Dolmuş</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge badge-light border text-dark px-2 py-1">Geçmiş Kayıt</span>
-                                                }
+                                                <span class="badge @doc.StatusBadgeClass px-2 py-1">
+                                                    @if (doc.Status == VehicleDocumentStatus.Valid)
+                                                    {
+                                                        <i class="fa fa-check-circle mr-1"></i>
+                                                    }
+                                                    else if (doc.Status == VehicleDocumentStatus.ExpiringSoon)
+                                                    {
+                                                        <i class="fa fa-clock-o mr-1"></i>
+                                                    }
+                                                    else if (doc.Status == VehicleDocumentStatus.Expired)
+                                                    {
+                                                        <i class="fa fa-times-circle mr-1"></i>
+                                                    }
+                                                    @doc.StatusDisplayName
+                                                </span>
                                             </td>
                                             <td>@doc.StartDate.ToString("dd.MM.yyyy")</td>
                                             <td>
@@ -369,20 +421,23 @@ else
                                 <tbody>
                                     @foreach (var doc in Model.InsuranceDocuments)
                                     {
-                                        <tr class="@(doc.IsCurrentValid ? "table-success font-weight-bold" : "")">
+                                        <tr class="@(doc.Status == VehicleDocumentStatus.Valid ? "table-success font-weight-normal" : doc.Status == VehicleDocumentStatus.Expired ? "table-danger" : doc.Status == VehicleDocumentStatus.ExpiringSoon ? "table-warning" : "")">
                                             <td>
-                                                @if (doc.IsCurrentValid)
-                                                {
-                                                    <span class="badge badge-success px-2 py-1"><i class="fa fa-check-circle mr-1"></i> GÜNCEL GEÇERLİ</span>
-                                                }
-                                                else if (doc.IsExpired)
-                                                {
-                                                    <span class="badge badge-danger px-2 py-1">Süresi Dolmuş</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge badge-light border text-dark px-2 py-1">Geçmiş Kayıt</span>
-                                                }
+                                                <span class="badge @doc.StatusBadgeClass px-2 py-1">
+                                                    @if (doc.Status == VehicleDocumentStatus.Valid)
+                                                    {
+                                                        <i class="fa fa-check-circle mr-1"></i>
+                                                    }
+                                                    else if (doc.Status == VehicleDocumentStatus.ExpiringSoon)
+                                                    {
+                                                        <i class="fa fa-clock-o mr-1"></i>
+                                                    }
+                                                    else if (doc.Status == VehicleDocumentStatus.Expired)
+                                                    {
+                                                        <i class="fa fa-times-circle mr-1"></i>
+                                                    }
+                                                    @doc.StatusDisplayName
+                                                </span>
                                             </td>
                                             <td>@doc.StartDate.ToString("dd.MM.yyyy")</td>
                                             <td>
@@ -477,20 +532,23 @@ else
                                 <tbody>
                                     @foreach (var doc in Model.KaskoDocuments)
                                     {
-                                        <tr class="@(doc.IsCurrentValid ? "table-success font-weight-bold" : "")">
+                                        <tr class="@(doc.Status == VehicleDocumentStatus.Valid ? "table-success font-weight-normal" : doc.Status == VehicleDocumentStatus.Expired ? "table-danger" : doc.Status == VehicleDocumentStatus.ExpiringSoon ? "table-warning" : "")">
                                             <td>
-                                                @if (doc.IsCurrentValid)
-                                                {
-                                                    <span class="badge badge-success px-2 py-1"><i class="fa fa-check-circle mr-1"></i> GÜNCEL GEÇERLİ</span>
-                                                }
-                                                else if (doc.IsExpired)
-                                                {
-                                                    <span class="badge badge-danger px-2 py-1">Süresi Dolmuş</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge badge-light border text-dark px-2 py-1">Geçmiş Kayıt</span>
-                                                }
+                                                <span class="badge @doc.StatusBadgeClass px-2 py-1">
+                                                    @if (doc.Status == VehicleDocumentStatus.Valid)
+                                                    {
+                                                        <i class="fa fa-check-circle mr-1"></i>
+                                                    }
+                                                    else if (doc.Status == VehicleDocumentStatus.ExpiringSoon)
+                                                    {
+                                                        <i class="fa fa-clock-o mr-1"></i>
+                                                    }
+                                                    else if (doc.Status == VehicleDocumentStatus.Expired)
+                                                    {
+                                                        <i class="fa fa-times-circle mr-1"></i>
+                                                    }
+                                                    @doc.StatusDisplayName
+                                                </span>
                                             </td>
                                             <td>@doc.StartDate.ToString("dd.MM.yyyy")</td>
                                             <td>

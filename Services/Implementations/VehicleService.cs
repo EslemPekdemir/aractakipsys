@@ -726,9 +726,9 @@ public class VehicleService : IVehicleService
 
             var today = DateTime.Today;
 
-            // Muayene listesi
+            // Muayene listesi (En son kayıt en üstte)
             var inspDocs = docs.Where(d => d.DocumentType == VehicleDocumentType.Inspection).ToList();
-            var latestActiveInsp = inspDocs.FirstOrDefault(d => d.EndDate.Date >= today) ?? inspDocs.FirstOrDefault();
+            var latestInsp = inspDocs.FirstOrDefault();
             viewModel.InspectionDocuments = inspDocs.Select(d => new VehicleDocumentItemViewModel
             {
                 Id = d.Id,
@@ -744,12 +744,12 @@ public class VehicleService : IVehicleService
                 Notes = d.Notes,
                 CreatedAt = d.CreatedAt,
                 CreatedBy = d.CreatedBy,
-                IsCurrentValid = latestActiveInsp != null && latestActiveInsp.Id == d.Id
+                IsLatest = latestInsp != null && latestInsp.Id == d.Id
             }).ToList();
 
-            // Trafik Sigortası listesi
+            // Trafik Sigortası listesi (En son kayıt en üstte)
             var insDocs = docs.Where(d => d.DocumentType == VehicleDocumentType.Insurance).ToList();
-            var latestActiveIns = insDocs.FirstOrDefault(d => d.EndDate.Date >= today) ?? insDocs.FirstOrDefault();
+            var latestIns = insDocs.FirstOrDefault();
             viewModel.InsuranceDocuments = insDocs.Select(d => new VehicleDocumentItemViewModel
             {
                 Id = d.Id,
@@ -765,12 +765,12 @@ public class VehicleService : IVehicleService
                 Notes = d.Notes,
                 CreatedAt = d.CreatedAt,
                 CreatedBy = d.CreatedBy,
-                IsCurrentValid = latestActiveIns != null && latestActiveIns.Id == d.Id
+                IsLatest = latestIns != null && latestIns.Id == d.Id
             }).ToList();
 
-            // Kasko listesi
+            // Kasko listesi (En son kayıt en üstte)
             var kaskoDocs = docs.Where(d => d.DocumentType == VehicleDocumentType.Kasko).ToList();
-            var latestActiveKasko = kaskoDocs.FirstOrDefault(d => d.EndDate.Date >= today) ?? kaskoDocs.FirstOrDefault();
+            var latestKasko = kaskoDocs.FirstOrDefault();
             viewModel.KaskoDocuments = kaskoDocs.Select(d => new VehicleDocumentItemViewModel
             {
                 Id = d.Id,
@@ -786,7 +786,7 @@ public class VehicleService : IVehicleService
                 Notes = d.Notes,
                 CreatedAt = d.CreatedAt,
                 CreatedBy = d.CreatedBy,
-                IsCurrentValid = latestActiveKasko != null && latestActiveKasko.Id == d.Id
+                IsLatest = latestKasko != null && latestKasko.Id == d.Id
             }).ToList();
 
             // Lastik listesi (Faz 5-B)
