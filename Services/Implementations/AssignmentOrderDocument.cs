@@ -97,6 +97,11 @@ public class AssignmentOrderDocument : IDocument
         var lastName = nameParts.Length > 0 ? nameParts[^1] : "";
         var lastTitle = titleParts.Length > 0 ? titleParts[^1] : "";
         var lastReason = reasonParts.Length > 0 ? reasonParts[^1] : "";
+        if (!string.IsNullOrWhiteSpace(lastReason))
+        {
+            // Şablondaki "Sevk Nedeni:" başlığıyla mükerrer olmaması için baştaki "Gerekçe:" ön ekini temizle
+            lastReason = System.Text.RegularExpressions.Regex.Replace(lastReason, @"^\s*Gerekçe\s*:\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+        }
 
         // Yetkili Adı Soyadı ve Unvanı
         string dispatcherText = lastName;
