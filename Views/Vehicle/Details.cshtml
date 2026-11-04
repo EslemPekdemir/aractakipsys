@@ -111,9 +111,21 @@
                             <span class="text-muted font-weight-bold">DOT & Kullanım:</span>
                             <span class="text-dark small">
                                 <strong>@Model.CurrentTire.DotDateDisplay</strong> | Kullanım: <strong>@Model.CurrentTire.UsedKmDisplay</strong>
-                                @if (Model.CurrentTire.IsAlert)
+                                @if (Model.CurrentTire.Status == aractakipsys.Models.Enums.TireStatus.Critical)
                                 {
                                     <span class="badge badge-danger ml-1">@Model.CurrentTire.AlertReason</span>
+                                }
+                                else if (Model.CurrentTire.Status == aractakipsys.Models.Enums.TireStatus.Approaching)
+                                {
+                                    <span class="badge badge-warning text-dark ml-1">@Model.CurrentTire.AlertReason</span>
+                                }
+                                else if (Model.CurrentTire.Status == aractakipsys.Models.Enums.TireStatus.MissingData)
+                                {
+                                    <span class="badge badge-secondary ml-1" title="@Model.CurrentTire.AlertReason">Veri Eksik</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-success ml-1">Normal</span>
                                 }
                             </span>
                         </div>

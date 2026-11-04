@@ -183,9 +183,10 @@
                         <label class="small font-weight-bold text-muted mb-1">Durum Kriteri</label>
                         <select name="FilterOption" class="form-control select2" id="selectFilterOption">
                             <option value="All" selected="@(Model.Filter.FilterOption == "All")">-- Tümü (Tüm Lastikler) --</option>
-                            <option value="Expired" selected="@(Model.Filter.FilterOption == "Expired")">Süresi / KM'si Geçenler (Kritik)</option>
-                            <option value="ExpiringSoon" selected="@(Model.Filter.FilterOption == "ExpiringSoon")">Değişimi Yaklaşanlar (30 Gün / KM Eşiği)</option>
-                            <option value="Valid" selected="@(Model.Filter.FilterOption == "Valid")">Sorunsuz / Geçerli Lastikler</option>
+                            <option value="Normal" selected="@(Model.Filter.FilterOption == "Normal" || Model.Filter.FilterOption == "Valid")">Normal / Sorunsuz Lastikler</option>
+                            <option value="Approaching" selected="@(Model.Filter.FilterOption == "Approaching" || Model.Filter.FilterOption == "ExpiringSoon")">Değişimi Yaklaşanlar (30 Gün / KM Eşiği)</option>
+                            <option value="Critical" selected="@(Model.Filter.FilterOption == "Critical" || Model.Filter.FilterOption == "Expired")">Değişim Gerekli (KM / Tarih Aşılmış)</option>
+                            <option value="MissingData" selected="@(Model.Filter.FilterOption == "MissingData")">Veri Eksik (Eşik / KM Girilmemiş)</option>
                         </select>
                     </div>
 
@@ -228,9 +229,9 @@
         </div>
     </div>
 
-    <!-- 4 ÖZET KPI KARTI -->
+    <!-- 5 ÖZET KPI KARTI (4 DURUM + TOPLAM) -->
     <div class="row mb-3 report-kpi-row">
-        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+        <div class="col-6 col-md-4 col-lg mb-2 px-1 px-sm-2">
             <div class="ibox float-e-margins mb-0 h-100 border-left border-primary" style="border-left-width: 4px !important;">
                 <div class="ibox-title border-0">
                     <span class="label label-primary float-right font-weight-bold">Toplam</span>
@@ -238,46 +239,59 @@
                 </div>
                 <div class="ibox-content">
                     <div class="kpi-num text-dark">@Model.TotalCount</div>
-                    <small class="text-muted">Toplam @Model.TotalVehiclesCount farklı araçta</small>
+                    <small class="text-muted">@Model.TotalVehiclesCount farklı araçta</small>
                 </div>
             </div>
         </div>
 
-        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
-            <div class="ibox float-e-margins mb-0 h-100 border-left border-danger" style="border-left-width: 4px !important;">
+        <div class="col-6 col-md-4 col-lg mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-success" style="border-left-width: 4px !important;">
                 <div class="ibox-title border-0">
-                    <span class="label label-danger float-right font-weight-bold">Kritik</span>
-                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Değişimi Geçenler</h5>
+                    <span class="label label-success float-right font-weight-bold">Normal</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Sorunsuz</h5>
                 </div>
                 <div class="ibox-content">
-                    <div class="kpi-num text-danger">@Model.ExpiredCount</div>
-                    <small class="text-muted">KM veya tarihi aşılmış lastikler</small>
+                    <div class="kpi-num text-success">@Model.NormalCount</div>
+                    <small class="text-muted">Eşik girilmiş, güvenli</small>
                 </div>
             </div>
         </div>
 
-        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
+        <div class="col-6 col-md-4 col-lg mb-2 px-1 px-sm-2">
             <div class="ibox float-e-margins mb-0 h-100 border-left border-warning" style="border-left-width: 4px !important;">
                 <div class="ibox-title border-0">
                     <span class="label label-warning text-dark float-right font-weight-bold">Yaklaşan</span>
-                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Değişim Eşiğinde</h5>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Eşik Yaklaştı</h5>
                 </div>
                 <div class="ibox-content">
-                    <div class="kpi-num text-warning">@Model.ExpiringSoonCount</div>
-                    <small class="text-muted">30 gün veya KM eşiği kalmış</small>
+                    <div class="kpi-num text-warning">@Model.ApproachingCount</div>
+                    <small class="text-muted">&le; 30 gün veya &le; 1000 KM</small>
                 </div>
             </div>
         </div>
 
-        <div class="col-6 col-md-6 col-lg-3 mb-2 px-1 px-sm-2">
-            <div class="ibox float-e-margins mb-0 h-100 border-left border-success" style="border-left-width: 4px !important;">
+        <div class="col-6 col-md-6 col-lg mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-danger" style="border-left-width: 4px !important;">
                 <div class="ibox-title border-0">
-                    <span class="label label-success float-right font-weight-bold">Sorunsuz</span>
-                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Geçerli Lastikler</h5>
+                    <span class="label label-danger float-right font-weight-bold">Kritik</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Değişim Gerekli</h5>
                 </div>
                 <div class="ibox-content">
-                    <div class="kpi-num text-success">@Model.ValidCount</div>
-                    <small class="text-muted">Aşınma ve süre problemi yok</small>
+                    <div class="kpi-num text-danger">@Model.CriticalCount</div>
+                    <small class="text-muted">KM veya tarih aşılmış</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg mb-2 px-1 px-sm-2">
+            <div class="ibox float-e-margins mb-0 h-100 border-left border-secondary" style="border-left-width: 4px !important;">
+                <div class="ibox-title border-0">
+                    <span class="label label-default float-right font-weight-bold" style="background-color: #6c757d; color: white;">Eksik</span>
+                    <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Veri Eksik</h5>
+                </div>
+                <div class="ibox-content">
+                    <div class="kpi-num text-secondary">@Model.MissingDataCount</div>
+                    <small class="text-muted">Eşik / takılma KM yok</small>
                 </div>
             </div>
         </div>
@@ -378,10 +392,22 @@
                                         @item.UsedKmDisplay
                                     </td>
                                     <td class="align-middle">
-                                        @if (item.IsAlert)
+                                        @if (item.Status == aractakipsys.Models.Enums.TireStatus.Critical)
                                         {
                                             <span class="badge badge-danger text-white px-2 py-1 font-11">
                                                 <i class="fa fa-exclamation-triangle mr-1"></i> @item.AlertReason
+                                            </span>
+                                        }
+                                        else if (item.Status == aractakipsys.Models.Enums.TireStatus.Approaching)
+                                        {
+                                            <span class="badge badge-warning text-dark px-2 py-1 font-11">
+                                                <i class="fa fa-clock-o mr-1"></i> @item.AlertReason
+                                            </span>
+                                        }
+                                        else if (item.Status == aractakipsys.Models.Enums.TireStatus.MissingData)
+                                        {
+                                            <span class="badge badge-secondary text-white px-2 py-1 font-11" title="@item.AlertReason">
+                                                <i class="fa fa-question-circle mr-1"></i> Veri Eksik
                                             </span>
                                         }
                                         else

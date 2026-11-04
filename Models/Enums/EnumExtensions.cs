@@ -56,4 +56,22 @@ public static class EnumExtensions
         FaultReportStatus.Rejected => "Reddedildi / İptal",
         _ => status.ToString()
     };
+
+    public static string ToTurkishString(this TireStatus status) => status switch
+    {
+        TireStatus.Normal => "Normal",
+        TireStatus.Approaching => "Yaklaşıyor",
+        TireStatus.Critical => "Değişim Gerekli",
+        TireStatus.MissingData => "Veri Eksik",
+        _ => status.ToString()
+    };
+
+    public static string ToBadgeClass(this TireStatus status) => status switch
+    {
+        TireStatus.Normal => "badge-success",
+        TireStatus.Approaching => "badge-warning",
+        TireStatus.Critical => "badge-danger",
+        TireStatus.MissingData => "badge-secondary",
+        _ => "badge-secondary"
+    };
 }

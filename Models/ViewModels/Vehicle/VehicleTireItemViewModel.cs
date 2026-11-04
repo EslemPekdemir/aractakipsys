@@ -1,5 +1,6 @@
 // File: Models/ViewModels/Vehicle/VehicleTireItemViewModel.cs
 using System;
+using aractakipsys.Models.Enums;
 
 namespace aractakipsys.Models.ViewModels.Vehicle;
 
@@ -47,41 +48,78 @@ public class VehicleTireItemViewModel
     // KM Uyarı Eşiği (Varsayılan 1000 KM, appsettings: VehicleSettings:TireKmWarningThreshold üzerinden ayarlanabilir)
     public int KmWarningThreshold { get; set; } = 1000;
 
-    // Uyarı Kontrolü (Değişim tarihine 30 gün kala veya KM eşiği yaklaşınca / geçince)
-    // Eşik: Kalan KM <= KmWarningThreshold veya eksiye düşmüşse; Tarih: <= 30 gün veya geçmişse
-    public bool IsKmAlert => RecommendedReplaceKm.HasValue && (RecommendedReplaceKm.Value - VehicleCurrentKm <= KmWarningThreshold);
-    public bool IsDateAlert => RecommendedReplaceDate.HasValue && ((RecommendedReplaceDate.Value.Date - DateTime.Today).TotalDays <= 30);
-    public bool IsAlert => IsKmAlert || IsDateAlert;
-
     public int? RemainingKm => RecommendedReplaceKm.HasValue ? (RecommendedReplaceKm.Value - VehicleCurrentKm) : null;
     public int? RemainingDays => RecommendedReplaceDate.HasValue ? (int)(RecommendedReplaceDate.Value.Date - DateTime.Today).TotalDays : null;
+
+    // 4'LÜ DURUM MANTIĞI:
+    // 1. Veri Eksik: Hiçbir değişim eşiği (ne KM ne tarih) girilmemiş VEYA Takılma KM girilmediği için Kullanım KM hesaplanamıyor.
+    public bool IsMissingData => !InstalledKm.HasValue || (!RecommendedReplaceKm.HasValue && !RecommendedReplaceDate.HasValue);
+
+    // 2. Değişim Gerekli (Kritik): Eşik girilmiş ve KM veya tavsiye tarihi aşılmış/dolmuş.
+    public bool IsCritical => !IsMissingData && (
+        (RemainingKm.HasValue && RemainingKm.Value <= 0) || 
+        (RemainingDays.HasValue && RemainingDays.Value <= 0));
+
+    // 3. Değişimi Yaklaşıyor: Eşik girilmiş, aşılmamış, ancak 30 gün içinde veya KM uyarı eşiğinde (<= 1000 KM).
+    public bool IsApproaching => !IsMissingData && !IsCritical && (
+        (RemainingKm.HasValue && RemainingKm.Value <= KmWarningThreshold) || 
+        (RemainingDays.HasValue && RemainingDays.Value <= 30));
+
+    // 4. Normal: Eşik girilmiş, aşınma ve süre problemi yok (güvenli sınırda).
+    public bool IsNormal => !IsMissingData && !IsCritical && !IsApproaching;
+
+    /// <summary>
+    /// Tek ortak durum sınıflandırması (Normal, Approaching, Critical, MissingData).
+    /// </summary>
+    public TireStatus Status
+    {
+        get
+        {
+            if (IsMissingData) return TireStatus.MissingData;
+            if (IsCritical) return TireStatus.Critical;
+            if (IsApproaching) return TireStatus.Approaching;
+            return TireStatus.Normal;
+        }
+    }
+
+    public string StatusDisplayName => Status.ToTurkishString();
+    public string StatusBadgeClass => Status.ToBadgeClass();
+
+    // Uyarı Kontrolü (Dashboard ve zil bildirimleri için: YALNIZCA Değişim Gerekli veya Yaklaşanlar; Veri Eksik ve Normal asla alert üretmez)
+    public bool IsAlert => IsCritical || IsApproaching;
+
+    public bool IsKmAlert => !IsMissingData && RecommendedReplaceKm.HasValue && (RemainingKm <= KmWarningThreshold);
+    public bool IsDateAlert => !IsMissingData && RecommendedReplaceDate.HasValue && (RemainingDays <= 30);
 
     public string AlertReason
     {
         get
         {
-            if (IsKmAlert && IsDateAlert)
+            if (IsMissingData)
             {
-                // Hangisi daha acilse veya ikisi birden
-                if (RemainingKm <= 0 && RemainingDays <= 0)
+                if (!InstalledKm.HasValue && !RecommendedReplaceKm.HasValue && !RecommendedReplaceDate.HasValue)
+                    return "Takılma KM ve değişim eşiği girilmemiş";
+                if (!InstalledKm.HasValue)
+                    return "Takılma KM girilmemiş (Kullanım KM bilinmiyor)";
+                return "Değişim eşiği (KM/Tarih) girilmemiş";
+            }
+            if (IsCritical)
+            {
+                if (RemainingKm.HasValue && RemainingKm.Value <= 0 && RemainingDays.HasValue && RemainingDays.Value <= 0)
                     return $"Hem KM ({Math.Abs(RemainingKm.Value):N0} KM aşıldı) hem Tarih ({Math.Abs(RemainingDays.Value)} gün geçti) doldu!";
-                if (RemainingKm <= 0)
+                if (RemainingKm.HasValue && RemainingKm.Value <= 0)
                     return $"Değişim KM'si aşıldı ({Math.Abs(RemainingKm.Value):N0} KM geçti)";
-                if (RemainingDays <= 0)
+                if (RemainingDays.HasValue && RemainingDays.Value <= 0)
                     return $"Değişim tarihi geçti ({Math.Abs(RemainingDays.Value)} gün önce)";
-                return $"Hem KM ({RemainingKm:N0} KM kaldı) hem Süre ({RemainingDays} gün kaldı) yaklaştı";
             }
-            if (IsKmAlert)
+            if (IsApproaching)
             {
-                return RemainingKm <= 0 
-                    ? $"Değişim KM'si aşıldı ({Math.Abs(RemainingKm.Value):N0} KM geçti)" 
-                    : $"Değişim KM'si yaklaştı ({RemainingKm:N0} KM kaldı)";
-            }
-            if (IsDateAlert)
-            {
-                return RemainingDays <= 0 
-                    ? $"Değişim tarihi geçti ({Math.Abs(RemainingDays.Value)} gün önce)" 
-                    : $"Değişim süresi yaklaştı ({RemainingDays} gün kaldı)";
+                if (RemainingKm.HasValue && RemainingKm.Value <= KmWarningThreshold && RemainingDays.HasValue && RemainingDays.Value <= 30)
+                    return $"Hem KM ({RemainingKm:N0} KM kaldı) hem Süre ({RemainingDays} gün kaldı) yaklaştı";
+                if (RemainingKm.HasValue && RemainingKm.Value <= KmWarningThreshold)
+                    return $"Değişim KM'si yaklaştı ({RemainingKm:N0} KM kaldı)";
+                if (RemainingDays.HasValue && RemainingDays.Value <= 30)
+                    return $"Değişim süresi yaklaştı ({RemainingDays} gün kaldı)";
             }
             return string.Empty;
         }

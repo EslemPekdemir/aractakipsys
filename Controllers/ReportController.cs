@@ -1,5 +1,6 @@
 // File: Controllers/ReportController.cs
 using aractakipsys.Models.Entities;
+using aractakipsys.Models.Enums;
 using aractakipsys.Models.ViewModels.Report;
 using aractakipsys.Services.Implementations;
 using aractakipsys.Services.Interfaces;
@@ -296,22 +297,22 @@ public class ReportController : Controller
             allTires = allTires.Where(t => t.InstalledDate.HasValue && t.InstalledDate.Value.Date <= filter.EndDate.Value.Date).ToList();
         }
 
-        // 5. Durum Kriteri Filtresi
-        if (filter.FilterOption == "Expired")
+        // 5. Durum Kriteri Filtresi (Ortak TireStatus Enum Mantığı)
+        if (filter.FilterOption == "Expired" || filter.FilterOption == "Critical")
         {
-            allTires = allTires.Where(x => 
-                (x.RemainingKm.HasValue && x.RemainingKm.Value <= 0) || 
-                (x.RemainingDays.HasValue && x.RemainingDays.Value <= 0)).ToList();
+            allTires = allTires.Where(x => x.Status == TireStatus.Critical).ToList();
         }
-        else if (filter.FilterOption == "ExpiringSoon")
+        else if (filter.FilterOption == "ExpiringSoon" || filter.FilterOption == "Approaching")
         {
-            allTires = allTires.Where(x => 
-                x.IsAlert && 
-                !((x.RemainingKm.HasValue && x.RemainingKm.Value <= 0) || (x.RemainingDays.HasValue && x.RemainingDays.Value <= 0))).ToList();
+            allTires = allTires.Where(x => x.Status == TireStatus.Approaching).ToList();
         }
-        else if (filter.FilterOption == "Valid")
+        else if (filter.FilterOption == "Valid" || filter.FilterOption == "Normal")
         {
-            allTires = allTires.Where(x => !x.IsAlert).ToList();
+            allTires = allTires.Where(x => x.Status == TireStatus.Normal).ToList();
+        }
+        else if (filter.FilterOption == "MissingData")
+        {
+            allTires = allTires.Where(x => x.Status == TireStatus.MissingData).ToList();
         }
 
         var viewModel = new TireReportViewModel

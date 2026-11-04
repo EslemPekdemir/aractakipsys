@@ -150,7 +150,7 @@ else
                             <small class="text-muted d-block font-weight-bold">GÜNCEL LASTİK</small>
                             @if (Model.CurrentTire != null)
                             {
-                                <span class="font-weight-bold @(Model.CurrentTire.IsAlert ? "text-danger" : "text-success")">
+                                <span class="font-weight-bold @(Model.CurrentTire.Status == aractakipsys.Models.Enums.TireStatus.Critical ? "text-danger" : Model.CurrentTire.Status == aractakipsys.Models.Enums.TireStatus.Approaching ? "text-warning" : Model.CurrentTire.Status == aractakipsys.Models.Enums.TireStatus.Normal ? "text-success" : "text-secondary")">
                                     @Model.CurrentTire.Brand (@Model.CurrentTire.SeasonDisplay)
                                 </span>
                                 <small class="text-muted d-block font-italic">@Model.CurrentTire.DotDateDisplay</small>
@@ -594,7 +594,7 @@ else
                                 <tbody>
                                     @foreach (var tire in Model.TireDocuments)
                                     {
-                                        <tr class="@(tire.IsCurrentTire ? "table-success font-weight-normal" : "") @(tire.IsAlert ? "table-danger" : "")">
+                                        <tr class="@(tire.IsCurrentTire ? "table-success font-weight-normal" : "") @(tire.Status == aractakipsys.Models.Enums.TireStatus.Critical ? "table-danger" : tire.Status == aractakipsys.Models.Enums.TireStatus.Approaching ? "table-warning" : "")">
                                             <td>
                                                 @if (tire.IsCurrentTire)
                                                 {
@@ -635,9 +635,17 @@ else
                                                 }
                                             </td>
                                             <td>
-                                                @if (tire.IsAlert)
+                                                @if (tire.Status == aractakipsys.Models.Enums.TireStatus.Critical)
                                                 {
                                                     <span class="badge badge-danger p-1"><i class="fa fa-exclamation-triangle mr-1"></i> @tire.AlertReason</span>
+                                                }
+                                                else if (tire.Status == aractakipsys.Models.Enums.TireStatus.Approaching)
+                                                {
+                                                    <span class="badge badge-warning text-dark p-1"><i class="fa fa-clock-o mr-1"></i> @tire.AlertReason</span>
+                                                }
+                                                else if (tire.Status == aractakipsys.Models.Enums.TireStatus.MissingData)
+                                                {
+                                                    <span class="badge badge-secondary p-1" title="@tire.AlertReason"><i class="fa fa-question-circle mr-1"></i> Veri Eksik</span>
                                                 }
                                                 else
                                                 {
@@ -656,7 +664,7 @@ else
                                                     }
                                                     else
                                                     {
-                                                        <span class="text-muted small">-</span>
+                                                        <span class="badge badge-success p-1"><i class="fa fa-check mr-1"></i> Normal</span>
                                                     }
                                                 }
                                             </td>

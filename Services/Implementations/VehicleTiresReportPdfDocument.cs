@@ -1,4 +1,5 @@
 // File: Services/Implementations/VehicleTiresReportPdfDocument.cs
+using aractakipsys.Models.Enums;
 using aractakipsys.Models.ViewModels.Vehicle;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -40,15 +41,32 @@ public class VehicleTiresReportPdfDocument : IDocument
                             .SemiBold().FontSize(11).FontColor(Colors.Grey.Darken3);
                     });
 
-                    row.ConstantItem(260).Column(statCol =>
+                    row.ConstantItem(300).Column(statCol =>
                     {
                         var total = _items.Count;
-                        var alerts = _items.Count(x => x.IsAlert);
-                        statCol.Item().AlignRight().Text($"Toplam Araç / Lastik: {total} Adet").Bold().FontSize(9);
-                        if (alerts > 0)
+                        var normal = _items.Count(x => x.Status == TireStatus.Normal);
+                        var approaching = _items.Count(x => x.Status == TireStatus.Approaching);
+                        var critical = _items.Count(x => x.Status == TireStatus.Critical);
+                        var missing = _items.Count(x => x.Status == TireStatus.MissingData);
+
+                        statCol.Item().AlignRight().Text($"Toplam Lastik: {total} Adet").Bold().FontSize(9);
+                        statCol.Item().AlignRight().Text($"{total} Lastik: {normal} Normal, {approaching} Yaklaşıyor, {critical} Değişim Gerekli, {missing} Veri Eksik")
+                            .FontSize(7.5f).FontColor(Colors.Grey.Darken2);
+
+                        if (critical > 0)
                         {
-                            statCol.Item().AlignRight().Text($"Değişim / Eşik Uyarısı: {alerts} Araç")
+                            statCol.Item().AlignRight().Text($"Acil Değişim Gerekli: {critical} Lastik")
                                 .Bold().FontColor(Colors.Red.Darken3).FontSize(9);
+                        }
+                        else if (approaching > 0)
+                        {
+                            statCol.Item().AlignRight().Text($"Değişim Eşiği Yaklaştı: {approaching} Lastik")
+                                .Bold().FontColor(Colors.Orange.Darken3).FontSize(9);
+                        }
+                        else if (missing > 0)
+                        {
+                            statCol.Item().AlignRight().Text($"Veri Eksik Lastikler Bulunuyor ({missing} Adet)")
+                                .Bold().FontColor(Colors.Grey.Darken3).FontSize(9);
                         }
                         else
                         {
@@ -96,7 +114,13 @@ public class VehicleTiresReportPdfDocument : IDocument
                 // SATIRLAR
                 foreach (var item in _items)
                 {
-                    var bg = item.IsAlert ? Colors.Red.Lighten5 : Colors.White;
+                    var bg = item.Status switch
+                    {
+                        TireStatus.Critical => Colors.Red.Lighten5,
+                        TireStatus.Approaching => Colors.Orange.Lighten5,
+                        TireStatus.MissingData => Colors.Grey.Lighten5,
+                        _ => Colors.White
+                    };
 
                     table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4)
                         .Text(item.VehiclePlate).Bold();
@@ -127,26 +151,33 @@ public class VehicleTiresReportPdfDocument : IDocument
                         .AlignRight().Text(item.UsedKmDisplay).Bold();
 
                     // Kalan / Durum
-                    var statusText = item.AlertReason;
-                    if (string.IsNullOrEmpty(statusText))
+                    var statusText = item.Status switch
                     {
-                        var remainingParts = new List<string>();
-                        if (item.RemainingKm.HasValue)
-                            remainingParts.Add($"{item.RemainingKm.Value:N0} km");
-                        if (item.RemainingDays.HasValue)
-                            remainingParts.Add($"{item.RemainingDays.Value} gün");
-
-                        statusText = remainingParts.Count > 0 ? string.Join(" / ", remainingParts) : "Normal";
-                    }
+                        TireStatus.Critical => item.AlertReason,
+                        TireStatus.Approaching => item.AlertReason,
+                        TireStatus.MissingData => "Veri Eksik",
+                        TireStatus.Normal => (item.RemainingKm.HasValue || item.RemainingDays.HasValue)
+                            ? $"Normal ({(item.RemainingKm.HasValue ? $"{item.RemainingKm.Value:N0} km" : "")}{(item.RemainingKm.HasValue && item.RemainingDays.HasValue ? " / " : "")}{(item.RemainingDays.HasValue ? $"{item.RemainingDays.Value} gün" : "")})"
+                            : "Normal",
+                        _ => "Bilinmiyor"
+                    };
 
                     var statusCell = table.Cell().Background(bg).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4);
-                    if (item.IsAlert)
+                    if (item.Status == TireStatus.Critical)
                     {
                         statusCell.Text(statusText).Bold().FontColor(Colors.Red.Darken3);
                     }
+                    else if (item.Status == TireStatus.Approaching)
+                    {
+                        statusCell.Text(statusText).Bold().FontColor(Colors.Orange.Darken3);
+                    }
+                    else if (item.Status == TireStatus.MissingData)
+                    {
+                        statusCell.Text(statusText).FontColor(Colors.Grey.Darken2);
+                    }
                     else
                     {
-                        statusCell.Text(statusText).FontColor(Colors.Grey.Darken3);
+                        statusCell.Text(statusText).FontColor(Colors.Green.Darken3);
                     }
                 }
             });

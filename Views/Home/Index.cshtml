@@ -1769,7 +1769,7 @@
                                     </div>
                                     <div>
                                         ${vehicle.currentTire 
-                                            ? `<span class="badge ${vehicle.currentTire.isAlert ? 'badge-danger' : 'badge-info'} px-2 py-1">${escapeHtml(vehicle.currentTire.isAlert ? vehicle.currentTire.alertReason : vehicle.currentTire.seasonDisplay)}</span>` 
+                                            ? `<span class="badge ${vehicle.currentTire.statusBadgeClass || (vehicle.currentTire.isAlert ? 'badge-danger' : 'badge-secondary')} px-2 py-1">${escapeHtml(vehicle.currentTire.statusDisplayName || 'Normal')}</span>` 
                                             : `<span class="badge badge-secondary px-2 py-1">${escapeHtml(vehicle.tireSeason || '-')}</span>`}
                                     </div>
                                 </div>

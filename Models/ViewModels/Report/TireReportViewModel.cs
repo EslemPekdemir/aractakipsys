@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using aractakipsys.Models.Enums;
 using aractakipsys.Models.ViewModels.Vehicle;
 
 namespace aractakipsys.Models.ViewModels.Report;
@@ -12,28 +13,31 @@ public class TireReportViewModel
     public TireReportFilterViewModel Filter { get; set; } = new();
     public List<VehicleTireItemViewModel> Items { get; set; } = new();
 
-    // 4 Özet KPI Kartı Sayaçları
+    // Özet KPI Kartı Sayaçları
     public int TotalCount => Items.Count;
     public int TotalVehiclesCount => Items.Select(x => x.VehicleId).Distinct().Count();
     
-    // Süresi veya KM'si dolmuş kritik lastikler
-    public int ExpiredCount => Items.Count(x => 
-        (x.RemainingKm.HasValue && x.RemainingKm.Value <= 0) || 
-        (x.RemainingDays.HasValue && x.RemainingDays.Value <= 0));
+    // Değişim gerekli kritik lastikler (KM veya tavsiye tarihi aşılmış)
+    public int CriticalCount => Items.Count(x => x.Status == TireStatus.Critical);
+    public int ExpiredCount => CriticalCount;
 
-    // 30 gün içinde dolacak veya KM uyarı eşiğine girmiş yaklaşan lastikler
-    public int ExpiringSoonCount => Items.Count(x => 
-        x.IsAlert && 
-        !((x.RemainingKm.HasValue && x.RemainingKm.Value <= 0) || (x.RemainingDays.HasValue && x.RemainingDays.Value <= 0)));
+    // 30 gün içinde dolacak veya KM uyarı eşiğinde olan yaklaşan lastikler
+    public int ApproachingCount => Items.Count(x => x.Status == TireStatus.Approaching);
+    public int ExpiringSoonCount => ApproachingCount;
 
-    // Sorunsuz geçerli lastikler
-    public int ValidCount => Items.Count(x => !x.IsAlert);
+    // Normal (Eşik girilmiş, aşınma ve süre problemi olmayanlar)
+    public int NormalCount => Items.Count(x => x.Status == TireStatus.Normal);
+    public int ValidCount => NormalCount;
+
+    // Veri Eksik (Eşik girilmemiş veya kullanım KM hesaplanamıyor)
+    public int MissingDataCount => Items.Count(x => x.Status == TireStatus.MissingData);
 
     public string FilterOptionDisplayName => Filter.FilterOption switch
     {
-        "Expired" => "Süresi / KM'si Geçenler (Kritik)",
-        "ExpiringSoon" => "Değişimi Yaklaşanlar (30 Gün / KM Eşiği)",
-        "Valid" => "Sorunsuz / Geçerli Lastikler",
+        "Critical" or "Expired" => "Değişim Gerekli (Kritik / Aşılmış)",
+        "Approaching" or "ExpiringSoon" => "Değişimi Yaklaşanlar (30 Gün / KM Eşiği)",
+        "Normal" or "Valid" => "Normal / Güvenli Lastikler",
+        "MissingData" => "Veri Eksik Olanlar (Eşik / KM Bilgisi Yok)",
         _ => "Tüm Lastikler"
     };
 }
