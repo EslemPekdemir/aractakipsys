@@ -15,7 +15,6 @@ public interface IDriverService
     Task<DriverAssignmentDetailViewModel?> GetAssignmentDetailAsync(int assignmentId, string userId);
     Task<AjaxResultViewModel> StartAssignmentAsync(int assignmentId, string userId, StartAssignmentRequest request);
     Task<AjaxResultViewModel> EndAssignmentAsync(int assignmentId, string userId, EndAssignmentRequest request);
-    Task<AjaxResultViewModel> CreateSelfAssignmentAsync(string userId, EmergencySelfAssignmentRequest request);
     Task<AjaxResultViewModel> SaveVehicleChecksAsync(int assignmentId, string userId, DriverVehicleChecksRequest request);
     Task<(bool IsAuthorized, AjaxResultViewModel Result)> ChangeRouteAsync(int assignmentId, string userId, ChangeRouteRequest request);
 

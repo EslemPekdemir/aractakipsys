@@ -142,6 +142,7 @@ Seyir halindeki aracın gecikmesi veya görevin uzaması durumunda idari tutarl�
   - En üstte: Varsa devam eden görev (`InProgress`) büyük ve vurgulu mavi kart olarak yer alır.
   - Ortada: Bugünkü planlanan görevler (`Planned`).
   - En altta: Geçmiş tamamlanan görevler (akordeon / collapse, varsayılan kapalı).
+  - *Not:* "Gece Vardiyası / Acil Görev Başlat" butonu ve modalı gereksiz bulunduğu için şoför ana ekranından kaldırılmıştır; şoförler sadece amirleri tarafından tanımlanan planlı görevleri başlatıp bitirebilir.
 - **Görev Detay ve Operasyon Ekranı (`/Surucu/Detay/{id}`):**
   - **Başlangıcı Bildir Butonu:** Durum `Planned` iken ekranın altında tam genişlikte yeşil büyük dokunmatik buton (`min-height: 48px`). Tıklandığında Başlangıç KM modalı açılır.
   - **Bitişi Bildir Butonu:** Durum `InProgress` iken aynı yerde büyük buton. Tıklandığında Bitiş KM + Teslim Notu modalı açılır.

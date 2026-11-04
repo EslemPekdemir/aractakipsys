@@ -203,41 +203,6 @@ public class SurucuController : Controller
     }
 
     /// <summary>
-    /// Şoförün Gece Vardiyası / Acil Durumda Kendine Görev Atayıp Başlatması (AJAX)
-    /// POST: /Surucu/AcilGorevBaslat
-    /// </summary>
-    [HttpPost("AcilGorevBaslat")]
-    [ValidateAntiForgeryToken]
-    [Produces("application/json")]
-    public async Task<IActionResult> EmergencySelfAssignment([FromBody] EmergencySelfAssignmentRequest request)
-    {
-        if (!ModelState.IsValid)
-        {
-            var firstError = ModelState.Values
-                .SelectMany(v => v.Errors)
-                .Select(e => e.ErrorMessage)
-                .FirstOrDefault() ?? "Lütfen formu eksiksiz doldurunuz.";
-
-            return Json(AjaxResultViewModel.Fail(firstError));
-        }
-
-        var userId = GetCurrentUserId();
-        if (string.IsNullOrEmpty(userId))
-        {
-            return Json(AjaxResultViewModel.Fail("Oturum süreniz dolmuş. Lütfen tekrar giriş yapınız."));
-        }
-
-        var activeDelegation = await _roleDelegationService.GetActiveDelegationForUserAsync(userId);
-        if (activeDelegation != null)
-        {
-            return Json(AjaxResultViewModel.Fail("Vekâleten Ulaşım Şefliği yürüttüğünüz süre boyunca kendinize şoför görevi atayamazsınız."));
-        }
-
-        var result = await _driverService.CreateSelfAssignmentAsync(userId, request);
-        return Json(result);
-    }
-
-    /// <summary>
     /// Şoför Şifre Değiştirme Ekranı
     /// GET: /Surucu/ChangePassword
     /// </summary>

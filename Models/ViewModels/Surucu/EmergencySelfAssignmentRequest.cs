@@ -1,8 +1,13 @@
 // File: Models/ViewModels/Surucu/EmergencySelfAssignmentRequest.cs
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace aractakipsys.Models.ViewModels.Surucu;
 
+/// <summary>
+/// KULLANIMDAN KALDIRILDI: Gece vardiyası / acil kendi kendine görev başlatma özelliği kaldırılmıştır.
+/// </summary>
+[Obsolete("Gece Vardiyası / Acil Görev Başlat özelliği kullanımdan kaldırıldı.")]
 public class EmergencySelfAssignmentRequest
 {
     [Required(ErrorMessage = "Lütfen kullanılacak aracı seçiniz.")]

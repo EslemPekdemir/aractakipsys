@@ -175,6 +175,8 @@ protected override void OnModelCreating(ModelBuilder builder)
 - `Kullanici`/`Admin` Başlat/Bitir yaparsa: Mevcut mantık aynen çalışır — `Status` anında değişir, `Vehicle.Status`/`CurrentKm` güncellenir, `*ApprovedByUserId` kendi Id'siyle set edilir.
 - `Kullanici`/`Admin`, şoförün bildirdiği (`*ReportedBySelf = true` ama `*ApprovedByUserId = null`) bir kaydı **onayla** dediğinde: O an `Status` gerçekten değişir, `Vehicle` güncellenir, `*ApprovedByUserId` set edilir. Şoförün girdiği saat/KM/not değerleri **korunur**, üzerine yazılmaz (onaylayan sadece doğruluğunu teyit eder).
 
+> **Bilgi Notu (Özellik Kaldırma):** Şoförlerin mesai dışı kendi kendine acil görev başlatma (Gece Vardiyası) akışı kaldırılmıştır. Bu özellik ayrı bir entity/tablo veya şema kolonu kullanmadığı için veri tabanında hiçbir tablo/kolon düşürülmemiştir; geçmişte bu yolla tamamlanmış tüm görev kayıtları veri kaybı olmaksızın korunur.
+
 ### 3.2 enum AssignmentStatus
 `Planned` (Planlandı) → `InProgress` (Devam Ediyor) → `Completed` (Tamamlandı)
 `Planned` → `Cancelled` (İptal Edildi)

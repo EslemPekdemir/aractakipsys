@@ -118,6 +118,7 @@
 | **StartAssignment** (bildirim) | POST (AJAX) | `/Surucu/Baslat/{id}` | Driver | Body: `{ startKm }`. Sadece `Status = Planned` (veya zaten kendi bildirmişse mükerrer engeli). `ActualStartTime`, `StartKm` set edilir, `StartReportedBySelf = true`. **`Status`/`Vehicle` DEĞİŞMEZ.** Yanıt: "Bilgileriniz kaydedildi, Şef onayı bekleniyor." Buton metni arayüzde **"Başlangıcı Bildir"**. |
 | **EndAssignment** (bildirim) | POST (AJAX) | `/Surucu/Bitir/{id}` | Driver | Body: `{ endKm, driverReturnNotes }`. Şart: `Status == InProgress` **VEYA** `StartReportedBySelf == true` (Şef henüz onaylamamış olsa bile şoför gece bitişi bildirebilsin diye). `ActualEndTime`, `EndKm`, `DriverReturnNotes` set edilir, `EndReportedBySelf = true`. **`Status`/`Vehicle` DEĞİŞMEZ.** Buton metni **"Bitişi Bildir"**. Ekranda "⏳ Şef onayı bekliyor" bilgisi + girilen not/KM salt okunur gösterilir. |
 | **ChangePassword** | GET/POST | `/Surucu/ChangePassword` | Driver | Şoför mobil şifre değiştirme (ilk giriş zorunlu veya isteğe bağlı). |
+| *EmergencySelfAssignment (Kaldırıldı)* | *POST* | *`/Surucu/AcilGorevBaslat`* | *-* | *Kullanımdan kaldırıldı (404 döner). Şoförün otoparktan araç seçip kendi kendine görev başlatma özelliği iptal edilmiştir.* |
 
 ---
 

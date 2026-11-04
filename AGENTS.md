@@ -65,7 +65,7 @@ Sistemde 5 rol tanımlıdır:
 - **DaireBaskani (Daire Başkanı):** Yönetim yetkili. Admin gibi tüm operasyonel ekranları (Araçlar, Görevler, Şoförler, Bakım, Arıza, Raporlar, Talep Seçenekleri, AuditLog) görür ve veri değiştirebilir. **Kullanıcı Yönetimi Güvenliği:** Yalnızca `Kullanici` (Şef) ve `Driver` (Şoför) hesaplarını yönetebilir; `Admin`, `DaireBaskani` veya `GenelSekreter` hesaplarına (şifre sıfırlama, rol değiştirme, dondurma, silme) sunucu tarafında dokunamaz, bu rollere sahip yeni hesap oluşturamaz.
 - **GenelSekreter (Genel Sekreter):** Üst denetim yetkili / Salt Okunur (Read-Only). Dashboard, takvim, raporlar, listeler, detaylar, imzalı/arşivli belgeler ve Denetim Kayıtları (AuditLog) dahil tüm ekranları görür; PDF indirebilir/önizleyebilir. Hiçbir kayıt ekleyemez, değiştiremez, onaylayamaz veya silemez (`ReadOnlyRoleFilter` merkezi güvenlik kalkanı ile POST/PUT/PATCH/DELETE engellenir; salt okuma yapan rapor ve müsaitlik POST'ları istisnadır). **Kullanıcı Yönetimi (SefController) Genel Sekreter'e salt okunur (izleme) olarak açıktır; kişi ekleyemez, düzenleyemez, şifre sıfırlayamaz, donduramaz veya silemez.**
 - **Kullanici (Ulaşım / Birim Şefi):** Operasyonel birim yöneticisi. Araç, şoför, görev, bakım ve arıza kayıtlarını yönetir, talepleri onaylar/reddeder. Talep seçenekleri ve kullanıcı yönetimine erişemez.
-- **Driver (Şoför):** Mobil saha kullanıcısı. Yalnızca kendisine atanmış görevleri, araç bilgilerini görür; görev başlangıç/bitiş KM ve araç kontrollerini kaydeder.
+- **Driver (Şoför):** Mobil saha kullanıcısı. Yalnızca kendisine atanmış görevleri, araç bilgilerini görür; görev başlangıç/bitiş KM ve araç kontrollerini kaydeder. Kendi kendine acil görev atama / gece vardiyası başlatma özelliği kaldırılmıştır; şoförler sadece yetkili şef tarafından adlarına atanmış planlı görevleri işleyebilir.
 - Her Controller/Action'da `[Authorize(Roles = "...")]` etiketini merkezi `AppRoles` sabitleriyle kullan.
 - **Yatay Yetki Kontrolü (Çok Önemli):** Şoför ekranı/API'sinde şoför *sadece kendisine atanmış* araç ve görevleri görebilir (`Where(x => x.DriverId == currentUserId)` mantığı zorunlu).
 
@@ -130,3 +130,4 @@ Sistemde 5 rol tanımlıdır:
 4. ❌ Herhangi bir şifre veya hassas veriyi koda gömmek.
 5. ❌ Görev kapsamı dışında, istenmeyen dosyalarda sessizce "iyileştirme" yapmak.
 6. ❌ Ücretlendirme/ödeme mantığı eklemek — bu sistemde kiralama bedeli yoktur, böyle bir alan istenmedikçe eklenmez.
+7. ❌ Şoförlerin kendi kendilerine görev başlatma / otoparktan araç seçme özelliği eklemek — "Gece Vardiyası / Acil Görev Başlat" özelliği gereksiz bulunarak kalıcı olarak kaldırılmıştır.

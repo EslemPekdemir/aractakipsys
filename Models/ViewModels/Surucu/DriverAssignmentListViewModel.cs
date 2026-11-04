@@ -30,7 +30,8 @@ public class DriverAssignmentListViewModel
     public List<AssignmentCardViewModel> CompletedAssignments { get; set; } = new();
     public List<AssignmentCardViewModel> PastAssignments { get => CompletedAssignments; set => CompletedAssignments = value; }
 
-    // Gece vardiyası / acil görev için otoparktaki müsait araçlar
+    // KULLANIMDAN KALDIRILDI: Gece vardiyası / acil görev için otoparktaki müsait araçlar listesi kaldırılmıştır.
+    [Obsolete("Gece Vardiyası / Acil Görev Başlat özelliği kaldırılmıştır.")]
     public List<SelectableVehicleViewModel> AvailableVehicles { get; set; } = new();
 
     public bool HasAnyAssignments =>
