@@ -53,7 +53,7 @@
                 </div>
                 <div class="ibox-content p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover table-striped mb-0">
+                        <table class="table table-hover table-striped mb-0" id="departmentsTable">
                             <thead>
                                 <tr class="bg-light">
                                     <th style="width: 50px;">Sıra</th>
@@ -73,7 +73,7 @@
                                 {
                                     foreach (var dept in Model.Departments)
                                     {
-                                        <tr class="@(!dept.IsActive ? "text-muted bg-light" : "")">
+                                        <tr class="dept-row @(!dept.IsActive ? "text-muted bg-light" : "")">
                                             <td class="align-middle font-weight-bold">@dept.DisplayOrder</td>
                                             <td class="align-middle font-weight-bold text-dark">
                                                 @dept.Name
@@ -114,6 +114,11 @@
                             </tbody>
                         </table>
                     </div>
+                    <!-- BİRİM SAYFALAMA (15 KAYIT) -->
+                    <div class="p-3 border-top d-flex justify-content-between align-items-center flex-wrap" id="deptPaginationWrapper" style="gap: 10px;">
+                        <span class="text-muted small" id="deptPageInfo"></span>
+                        <ul class="pagination pagination-sm m-0" id="deptPaginationList"></ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -131,7 +136,7 @@
                 </div>
                 <div class="ibox-content p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover table-striped mb-0">
+                        <table class="table table-hover table-striped mb-0" id="vehicleTypesTable">
                             <thead>
                                 <tr class="bg-light">
                                     <th style="width: 50px;">Sıra</th>
@@ -151,7 +156,7 @@
                                 {
                                     foreach (var vt in Model.VehicleTypes)
                                     {
-                                        <tr class="@(!vt.IsActive ? "text-muted bg-light" : "")">
+                                        <tr class="vt-row @(!vt.IsActive ? "text-muted bg-light" : "")">
                                             <td class="align-middle font-weight-bold">@vt.DisplayOrder</td>
                                             <td class="align-middle font-weight-bold text-dark">
                                                 @vt.Name
@@ -191,6 +196,11 @@
                                 }
                             </tbody>
                         </table>
+                    </div>
+                    <!-- ARAÇ TÜRÜ SAYFALAMA (15 KAYIT) -->
+                    <div class="p-3 border-top d-flex justify-content-between align-items-center flex-wrap" id="vtPaginationWrapper" style="gap: 10px;">
+                        <span class="text-muted small" id="vtPageInfo"></span>
+                        <ul class="pagination pagination-sm m-0" id="vtPaginationList"></ul>
                     </div>
                 </div>
             </div>
@@ -303,5 +313,111 @@
             $('#vtModalTitle').text(id ? 'Araç Türü Düzenle' : 'Yeni Araç Türü Ekle');
             $('#vehicleTypeModal').modal('show');
         }
+
+        // Tablo İstemci Taraflı Sayfalama Yöneticisi (15 Kayıt)
+        function initTablePagination(tableId, rowClass, wrapperId, infoId, listId, storageKey, pageSize) {
+            pageSize = pageSize || 15;
+            var $table = $('#' + tableId);
+            var $rows = $table.find('tbody tr.' + rowClass);
+            var totalItems = $rows.length;
+
+            if (totalItems === 0) {
+                $('#' + wrapperId).hide();
+                return;
+            }
+
+            var totalPages = Math.ceil(totalItems / pageSize);
+
+            if (totalPages <= 1) {
+                $('#' + infoId).html('Toplam <strong>' + totalItems + '</strong> kayıt gösteriliyor.');
+                $('#' + listId).empty();
+                $('#' + wrapperId).show();
+                $rows.show();
+                return;
+            }
+
+            var savedPage = parseInt(sessionStorage.getItem(storageKey) || '1', 10);
+            if (isNaN(savedPage) || savedPage < 1) savedPage = 1;
+            if (savedPage > totalPages) savedPage = totalPages;
+
+            function renderPage(page) {
+                sessionStorage.setItem(storageKey, page);
+
+                var startIdx = (page - 1) * pageSize;
+                var endIdx = Math.min(startIdx + pageSize, totalItems);
+
+                $rows.hide();
+                $rows.slice(startIdx, endIdx).show();
+
+                $('#' + infoId).html('Toplam <strong>' + totalItems + '</strong> kayıttan <strong>' + (startIdx + 1) + ' - ' + endIdx + '</strong> arası gösteriliyor <span class="text-muted">(Sayfa ' + page + ' / ' + totalPages + ')</span>');
+
+                var paginationHtml = '';
+
+                // Önceki Butonu
+                if (page > 1) {
+                    paginationHtml += '<li class="page-item"><a class="page-link" href="javascript:void(0)" data-page="' + (page - 1) + '">&laquo; Önceki</a></li>';
+                } else {
+                    paginationHtml += '<li class="page-item disabled"><span class="page-link">&laquo; Önceki</span></li>';
+                }
+
+                // Sayfa Numaraları (Maksimum 5'li kayan pencere)
+                var startPage = Math.max(1, page - 2);
+                var endPage = Math.min(totalPages, page + 2);
+
+                if (page <= 3) {
+                    endPage = Math.min(totalPages, 5);
+                }
+                if (page >= totalPages - 2) {
+                    startPage = Math.max(1, totalPages - 4);
+                }
+
+                if (startPage > 1) {
+                    paginationHtml += '<li class="page-item ' + (1 === page ? 'active' : '') + '"><a class="page-link" href="javascript:void(0)" data-page="1">1</a></li>';
+                    if (startPage > 2) {
+                        paginationHtml += '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>';
+                    }
+                }
+
+                for (var p = startPage; p <= endPage; p++) {
+                    if (p === page) {
+                        paginationHtml += '<li class="page-item active"><span class="page-link">' + p + '</span></li>';
+                    } else {
+                        paginationHtml += '<li class="page-item"><a class="page-link" href="javascript:void(0)" data-page="' + p + '">' + p + '</a></li>';
+                    }
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                        paginationHtml += '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>';
+                    }
+                    paginationHtml += '<li class="page-item ' + (totalPages === page ? 'active' : '') + '"><a class="page-link" href="javascript:void(0)" data-page="' + totalPages + '">' + totalPages + '</a></li>';
+                }
+
+                // Sonraki Butonu
+                if (page < totalPages) {
+                    paginationHtml += '<li class="page-item"><a class="page-link" href="javascript:void(0)" data-page="' + (page + 1) + '">Sonraki &raquo;</a></li>';
+                } else {
+                    paginationHtml += '<li class="page-item disabled"><span class="page-link">Sonraki &raquo;</span></li>';
+                }
+
+                var $list = $('#' + listId);
+                $list.html(paginationHtml);
+
+                $list.find('a[data-page]').on('click', function (e) {
+                    e.preventDefault();
+                    var target = parseInt($(this).data('page'), 10);
+                    renderPage(target);
+                });
+
+                $('#' + wrapperId).show();
+            }
+
+            renderPage(savedPage);
+        }
+
+        $(document).ready(function () {
+            initTablePagination('departmentsTable', 'dept-row', 'deptPaginationWrapper', 'deptPageInfo', 'deptPaginationList', 'options_dept_page', 15);
+            initTablePagination('vehicleTypesTable', 'vt-row', 'vtPaginationWrapper', 'vtPageInfo', 'vtPaginationList', 'options_vt_page', 15);
+        });
     </script>
 }

@@ -1,5 +1,6 @@
 // File: Services/Implementations/VehicleRequestService.cs
 using System.Text.RegularExpressions;
+using aractakipsys.Common;
 using aractakipsys.Data;
 using aractakipsys.Models;
 using aractakipsys.Models.Entities;
@@ -339,10 +340,13 @@ public class VehicleRequestService : IVehicleRequestService
         var contactPersons = new List<SelectableContactPersonViewModel>();
         try
         {
+            // İletişim Kişisi Listesi: Yalnızca Ulaşım Şefleri (Kullanici) ve Şoförler (Driver) seçilebilir;
+            // Admin, Daire Başkanı ve Genel Sekreter gibi yönetici hesapları bu listeden hariç tutulur.
             var usersWithRoles = await (from u in _context.Users
                                         join ur in _context.UserRoles on u.Id equals ur.UserId
                                         join r in _context.Roles on ur.RoleId equals r.Id
                                         where u.IsActive && !string.IsNullOrEmpty(u.FullName)
+                                              && (r.Name == AppRoles.Kullanici || r.Name == AppRoles.Driver)
                                         select new
                                         {
                                             u.Id,
@@ -353,13 +357,13 @@ public class VehicleRequestService : IVehicleRequestService
                                         }).Distinct().ToListAsync();
 
             contactPersons = usersWithRoles
-                .OrderBy(u => u.RoleName == "Admin" ? 1 : (u.RoleName == "Kullanici" ? 2 : 3))
+                .OrderBy(u => u.RoleName == AppRoles.Kullanici ? 1 : 2)
                 .ThenBy(u => u.FullName)
                 .Select(u => new SelectableContactPersonViewModel
                 {
                     UserId = u.Id,
                     FullName = u.FullName,
-                    RoleName = u.RoleName == "Kullanici" ? "Ulaşım Şefi" : (u.RoleName == "Admin" ? "Yönetici" : "Şoför"),
+                    RoleName = u.RoleName == AppRoles.Kullanici ? "Ulaşım Şefi" : "Şoför",
                     PhoneNumber = u.PhoneNumber,
                     Email = u.Email
                 })
@@ -370,7 +374,7 @@ public class VehicleRequestService : IVehicleRequestService
             _logger.LogWarning(ex, "İletişim kişileri listesi çekilirken hata oluştu.");
         }
 
-        // Varsayılan iletişim kişisi: İlk Ulaşım Şefi veya Admin
+        // Varsayılan iletişim kişisi: İlk Ulaşım Şefi veya ilk şoför
         var defaultContactId = contactPersons.FirstOrDefault(c => c.RoleName == "Ulaşım Şefi")?.UserId 
             ?? contactPersons.FirstOrDefault()?.UserId ?? string.Empty;
 

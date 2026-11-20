@@ -32,8 +32,12 @@
                     <small class="text-muted">Tüm zorunlu alanları eksiksiz doldurunuz</small>
                 </div>
                 <div class="ibox-content p-4">
-                    <form asp-action="Create" method="post" id="sefCreateForm">
+                    <form asp-action="Create" method="post" id="sefCreateForm" autocomplete="off">
                         @Html.AntiForgeryToken()
+
+                        <!-- Tarayici otomatik sifre/kullanici doldurmasini saptirmak icin gizli sahte alanlar -->
+                        <input type="text" style="display:none" aria-hidden="true" autocomplete="username" />
+                        <input type="password" style="display:none" aria-hidden="true" autocomplete="new-password" />
 
                         @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
                         {
@@ -94,7 +98,7 @@
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fa fa-at"></i></span>
                                     </div>
-                                    <input asp-for="UserName" class="form-control" placeholder="Örn: ahmet.sef" required />
+                                    <input asp-for="UserName" class="form-control" value="@(ViewData.ModelState.IsValid ? "" : Model.UserName)" placeholder="ornek: ahmet.yilmaz" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" onmousedown="this.removeAttribute('readonly');" required />
                                 </div>
                                 <small class="text-muted font-11">* Giriş yaparken kullanılacaktır.</small>
                                 <span asp-validation-for="UserName" class="text-danger small font-weight-bold d-block"></span>
@@ -109,7 +113,7 @@
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fa fa-envelope"></i></span>
                                     </div>
-                                    <input asp-for="Email" type="email" class="form-control" placeholder="ornek@duzce.edu.tr" required />
+                                    <input asp-for="Email" type="email" class="form-control" value="@(ViewData.ModelState.IsValid ? "" : Model.Email)" placeholder="ahmet@duzce.edu.tr" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" onmousedown="this.removeAttribute('readonly');" required />
                                 </div>
                                 <small class="text-muted font-11">* @@duzce.edu.tr uzantılı olmalıdır.</small>
                                 <span asp-validation-for="Email" class="text-danger small font-weight-bold d-block"></span>
@@ -142,7 +146,7 @@
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fa fa-lock"></i></span>
                                     </div>
-                                    <input asp-for="Password" type="password" class="form-control" placeholder="En az 10 karakter" required minlength="10" />
+                                    <input asp-for="Password" type="password" class="form-control" placeholder="En az 10 karakter" autocomplete="new-password" required minlength="10" />
                                 </div>
                                 <span asp-validation-for="Password" class="text-danger small font-weight-bold"></span>
                             </div>
@@ -156,7 +160,7 @@
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fa fa-lock"></i></span>
                                     </div>
-                                    <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Şifreyi tekrar giriniz" required minlength="10" />
+                                    <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Şifreyi tekrar giriniz" autocomplete="new-password" required minlength="10" />
                                 </div>
                                 <span asp-validation-for="ConfirmPassword" class="text-danger small font-weight-bold"></span>
                             </div>
@@ -190,4 +194,39 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var uInput = document.getElementById("UserName");
+            var eInput = document.getElementById("Email");
+            var form = document.getElementById("sefCreateForm");
+
+            // Form gonderilirken readonly kisitlamasi kalmasin
+            if (form) {
+                form.addEventListener("submit", function () {
+                    if (uInput) uInput.removeAttribute("readonly");
+                    if (eInput) eInput.removeAttribute("readonly");
+                });
+            }
+
+            @if (ViewData.ModelState.IsValid)
+            {
+                <text>
+                function clearAutofill() {
+                    // Sayfa ilk acilisinda tarayici sifre yoneticisi doldurmalarini temizle
+                    if (uInput && (uInput.value === "admin" || uInput.value === "admin@duzce.edu.tr" || uInput.hasAttribute("readonly"))) {
+                        uInput.value = "";
+                    }
+                    if (eInput && (eInput.value === "admin@duzce.edu.tr" || eInput.hasAttribute("readonly"))) {
+                        eInput.value = "";
+                    }
+                }
+
+                clearAutofill();
+                setTimeout(clearAutofill, 50);
+                setTimeout(clearAutofill, 200);
+                setTimeout(clearAutofill, 500);
+                </text>
+            }
+        });
+    </script>
 }

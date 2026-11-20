@@ -39,9 +39,10 @@ public interface IAssignmentService
     // Harcırah & Maliyet Bilgilerini Sonradan Revize Etme (Fatura / Muhasebe Düzeltmesi)
     Task<(bool Success, string Message)> UpdateFinancialDetailsAsync(AssignmentFinancialRevisionViewModel model, string userId);
 
-    // İmzalı Belge İşlemleri (Aşama H)
-    Task<(bool Success, string? ErrorMessage)> UploadSignedDocumentAsync(int assignmentId, Microsoft.AspNetCore.Http.IFormFile file, string userId);
-    Task<(byte[]? FileContents, string? ContentType, string? OriginalFileName)?> GetSignedDocumentFileAsync(int assignmentId);
+    // İmzalı Belge İşlemleri (Aşama H + Çoklu Belge Desteği)
+    Task<(bool Success, string? ErrorMessage)> UploadSignedDocumentAsync(int assignmentId, Microsoft.AspNetCore.Http.IFormFile file, string userId, int? driverId = null, string? description = null);
+    Task<(bool Success, string? ErrorMessage)> DeleteSignedDocumentAsync(int assignmentId, int documentId, string userId);
+    Task<(byte[]? FileContents, string? ContentType, string? OriginalFileName)?> GetSignedDocumentFileAsync(int assignmentId, int? documentId = null);
     Task<SignedDocumentArchiveViewModel> GetSignedDocumentArchiveAsync(SignedDocumentArchiveFilterViewModel filter);
 
     // Acil Güzergah Dışı Sevk Kaydı (Faz 3)

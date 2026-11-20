@@ -96,13 +96,14 @@ public class AssignmentDetailsViewModel
     public bool IsMultiDay => (PlannedEndTime - PlannedStartTime).TotalHours > 24;
     public bool HasAccommodationOrPerDiem => AccommodationNights.HasValue || AccommodationCost.HasValue || PerDiemDays.HasValue || PerDiemHours.HasValue || PerDiemAmount.HasValue || !string.IsNullOrWhiteSpace(ExpenseNotes);
 
-    // İmzalı Belge Alanları (Aşama H)
+    // İmzalı Belge Alanları (Aşama H + Çoklu Belge Desteği)
     public string? SignedDocumentPath { get; set; }
     public string? SignedDocumentOriginalFileName { get; set; }
     public DateTime? SignedDocumentUploadedAt { get; set; }
     public string? SignedDocumentUploadedByUserId { get; set; }
     public string? SignedDocumentUploadedByUserName { get; set; }
-    public bool HasSignedDocument => !string.IsNullOrWhiteSpace(SignedDocumentPath);
+    public List<AssignmentSignedDocumentItemViewModel> SignedDocuments { get; set; } = new();
+    public bool HasSignedDocument => SignedDocuments.Any() || !string.IsNullOrWhiteSpace(SignedDocumentPath);
 
     // Güzergah Dışı Sevk Alanları (Faz 3)
     public string? OffRouteDispatcherName { get; set; }
@@ -167,4 +168,36 @@ public class AssignedDriverDetailItemViewModel
     public DateTime LicenseExpiryDate { get; set; }
     public bool IsPrimary { get; set; }
 }
+
+public class AssignmentSignedDocumentItemViewModel
+{
+    public int Id { get; set; }
+    public int AssignmentId { get; set; }
+    public int? DriverId { get; set; }
+    public string? DriverFullName { get; set; }
+    public string OriginalFileName { get; set; } = string.Empty;
+    public long FileSizeBytes { get; set; }
+    public string? Description { get; set; }
+    public DateTime UploadedAt { get; set; }
+    public string? UploadedByUserName { get; set; }
+
+    public string FileExtension => string.IsNullOrEmpty(OriginalFileName)
+        ? string.Empty
+        : System.IO.Path.GetExtension(OriginalFileName).ToLowerInvariant();
+
+    public bool IsPdf => string.Equals(FileExtension, ".pdf", StringComparison.OrdinalIgnoreCase);
+    public bool IsImage => FileExtension is ".png" or ".jpg" or ".jpeg";
+
+    public string FileSizeDisplay
+    {
+        get
+        {
+            if (FileSizeBytes <= 0) return string.Empty;
+            if (FileSizeBytes < 1024) return $"{FileSizeBytes} B";
+            if (FileSizeBytes < 1024 * 1024) return $"{FileSizeBytes / 1024.0:F1} KB";
+            return $"{FileSizeBytes / (1024.0 * 1024.0):F2} MB";
+        }
+    }
+}
+
 

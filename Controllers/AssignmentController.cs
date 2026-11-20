@@ -475,14 +475,19 @@ public class AssignmentController : Controller
     }
 
     /// <summary>
-    /// Fiziki olarak imzalanmış görevlendirme belgesini sisteme yükler.
+    /// Fiziki olarak imzalanmış görevlendirme belgesini sisteme ekler (çoklu belge destekli).
     /// POST: /Assignment/UploadSignedDocument/{id}
     /// </summary>
     [HttpPost("UploadSignedDocument/{id:int}")]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(10 * 1024 * 1024)] // Kestrel düzeyinde 10 MB sınır
     [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)] // Form düzeyinde 10 MB sınır
-    public async Task<IActionResult> UploadSignedDocument(int id, IFormFile? signedDocument, string? returnUrl = null)
+    public async Task<IActionResult> UploadSignedDocument(
+        int id,
+        IFormFile? signedDocument,
+        [FromForm] int? driverId = null,
+        [FromForm] string? description = null,
+        string? returnUrl = null)
     {
         if (signedDocument == null || signedDocument.Length == 0)
         {
@@ -495,7 +500,7 @@ public class AssignmentController : Controller
         }
 
         var userId = GetCurrentUserId();
-        var result = await _assignmentService.UploadSignedDocumentAsync(id, signedDocument, userId);
+        var result = await _assignmentService.UploadSignedDocumentAsync(id, signedDocument, userId, driverId, description);
 
         if (!result.Success)
         {
@@ -516,13 +521,40 @@ public class AssignmentController : Controller
     }
 
     /// <summary>
+    /// Yüklenmiş bir imzalı görevlendirme belgesini yumuşak siler (Soft-Delete).
+    /// POST: /Assignment/DeleteSignedDocument/{id}/{documentId}
+    /// </summary>
+    [HttpPost("DeleteSignedDocument/{id:int}/{documentId:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteSignedDocument(int id, int documentId, string? returnUrl = null)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _assignmentService.DeleteSignedDocumentAsync(id, documentId, userId);
+
+        if (!result.Success)
+        {
+            TempData["ErrorMessage"] = result.ErrorMessage;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = "İmzalı belge kaydı başarıyla silindi.";
+        }
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>
     /// Güvenli dizinde saklanan imzalı görevlendirme belgesini indirir (attachment).
-    /// GET: /Assignment/DownloadSignedDocument/{id}
+    /// GET: /Assignment/DownloadSignedDocument/{id}?documentId=...
     /// </summary>
     [HttpGet("DownloadSignedDocument/{id:int}")]
-    public async Task<IActionResult> DownloadSignedDocument(int id)
+    public async Task<IActionResult> DownloadSignedDocument(int id, [FromQuery] int? documentId = null)
     {
-        var document = await _assignmentService.GetSignedDocumentFileAsync(id);
+        var document = await _assignmentService.GetSignedDocumentFileAsync(id, documentId);
 
         if (document == null || document.Value.FileContents == null)
         {
@@ -537,12 +569,12 @@ public class AssignmentController : Controller
 
     /// <summary>
     /// İmzalı görevlendirme belgesini yeni sekmede doğrudan görüntüler (inline preview).
-    /// GET: /Assignment/ViewSignedDocument/{id}
+    /// GET: /Assignment/ViewSignedDocument/{id}?documentId=...
     /// </summary>
     [HttpGet("ViewSignedDocument/{id:int}")]
-    public async Task<IActionResult> ViewSignedDocument(int id)
+    public async Task<IActionResult> ViewSignedDocument(int id, [FromQuery] int? documentId = null)
     {
-        var document = await _assignmentService.GetSignedDocumentFileAsync(id);
+        var document = await _assignmentService.GetSignedDocumentFileAsync(id, documentId);
 
         if (document == null || document.Value.FileContents == null)
         {

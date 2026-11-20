@@ -30,6 +30,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RequestVehicleType> RequestVehicleTypes { get; set; } = null!;
     public DbSet<RoleDelegation> RoleDelegations { get; set; } = null!;
     public DbSet<SystemDefinition> SystemDefinitions { get; set; } = null!;
+    public DbSet<AssignmentDocument> AssignmentDocuments { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

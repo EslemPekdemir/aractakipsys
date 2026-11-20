@@ -144,4 +144,5 @@ public class Assignment : BaseAuditableEntity
     public ApplicationUser? SignedDocumentUploadedByUser { get; set; }
     public ApplicationUser? OffRouteReportedByUser { get; set; }
     public ICollection<AssignmentRouteChange> RouteChanges { get; set; } = new List<AssignmentRouteChange>();
+    public ICollection<AssignmentDocument> SignedDocuments { get; set; } = new List<AssignmentDocument>();
 }

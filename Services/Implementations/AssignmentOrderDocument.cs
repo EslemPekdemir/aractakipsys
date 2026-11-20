@@ -78,58 +78,36 @@ public class AssignmentOrderDocument : IDocument
             return (null, null);
         }
 
-        // Çoklu kayıt desteği: satır sonu (\r, \n), noktalı virgül (;) veya dikey çizgi (|) ile ayrılmış olabilir
-        var nameParts = (_model.OffRouteDispatcherName ?? "")
-            .Split(new[] { '\r', '\n', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        var titleParts = (_model.OffRouteDispatcherTitle ?? "")
-            .Split(new[] { '\r', '\n', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        var reasonParts = (_model.OffRouteReason ?? "")
-            .Split(new[] { '\r', '\n', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        var count = Math.Max(nameParts.Length, Math.Max(titleParts.Length, reasonParts.Length));
-        if (count == 0)
-        {
-            return (null, null);
-        }
-
-        var lastName = nameParts.Length > 0 ? nameParts[^1] : "";
-        var lastTitle = titleParts.Length > 0 ? titleParts[^1] : "";
-        var lastReason = reasonParts.Length > 0 ? reasonParts[^1] : "";
-        if (!string.IsNullOrWhiteSpace(lastReason))
-        {
-            // Şablondaki "Sevk Nedeni:" başlığıyla mükerrer olmaması için baştaki "Gerekçe:" ön ekini temizle
-            lastReason = System.Text.RegularExpressions.Regex.Replace(lastReason, @"^\s*Gerekçe\s*:\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
-        }
+        var dispatcherName = _model.OffRouteDispatcherName?.Trim() ?? "";
+        var dispatcherTitle = _model.OffRouteDispatcherTitle?.Trim() ?? "";
+        var rawReason = _model.OffRouteReason?.Trim() ?? "";
 
         // Yetkili Adı Soyadı ve Unvanı
-        string dispatcherText = lastName;
-        if (!string.IsNullOrWhiteSpace(lastTitle))
+        string? dispatcherText = null;
+        if (!string.IsNullOrWhiteSpace(dispatcherName) && !string.IsNullOrWhiteSpace(dispatcherTitle))
         {
-            dispatcherText = string.IsNullOrWhiteSpace(dispatcherText) 
-                ? lastTitle 
-                : $"{dispatcherText} ({lastTitle})";
+            dispatcherText = $"{dispatcherName} ({dispatcherTitle})";
+        }
+        else if (!string.IsNullOrWhiteSpace(dispatcherName))
+        {
+            dispatcherText = dispatcherName;
+        }
+        else if (!string.IsNullOrWhiteSpace(dispatcherTitle))
+        {
+            dispatcherText = dispatcherTitle;
         }
 
-        // Birden fazla kayıt varsa en son kaydı bas ve diğerlerini kısaca "(+N kayıt daha)" olarak belirt
-        if (count > 1)
+        // Sevk Nedeni
+        string? reasonText = null;
+        if (!string.IsNullOrWhiteSpace(rawReason))
         {
-            var extraCount = count - 1;
-            var suffix = $" (+{extraCount} kayıt daha)";
-            if (!string.IsNullOrWhiteSpace(dispatcherText))
-            {
-                dispatcherText += suffix;
-            }
-            else if (!string.IsNullOrWhiteSpace(lastReason))
-            {
-                lastReason += suffix;
-            }
+            // Şablondaki "Sevk Nedeni:" başlığıyla mükerrer olmaması için baştaki "Gerekçe:" ön ekini temizle
+            reasonText = System.Text.RegularExpressions.Regex.Replace(rawReason, @"^\s*Gerekçe\s*:\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
         }
 
         return (
             string.IsNullOrWhiteSpace(dispatcherText) ? null : dispatcherText,
-            string.IsNullOrWhiteSpace(lastReason) ? null : lastReason
+            string.IsNullOrWhiteSpace(reasonText) ? null : reasonText
         );
     }
 

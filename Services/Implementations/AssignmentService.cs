@@ -182,6 +182,11 @@ public class AssignmentService : IAssignmentService
             .Include(a => a.StartApprovedByUser)
             .Include(a => a.EndApprovedByUser)
             .Include(a => a.SignedDocumentUploadedByUser)
+            .Include(a => a.SignedDocuments)
+                .ThenInclude(sd => sd.Driver)
+                    .ThenInclude(d => d!.User)
+            .Include(a => a.SignedDocuments)
+                .ThenInclude(sd => sd.UploadedByUser)
             .Include(a => a.OffRouteReportedByUser)
             .Include(a => a.RouteChanges)
             .FirstOrDefaultAsync(a => a.Id == id);
@@ -263,6 +268,36 @@ public class AssignmentService : IAssignmentService
 
         var primaryDriver = assignedDrivers.FirstOrDefault(d => d.IsPrimary) ?? assignedDrivers.FirstOrDefault();
 
+        var signedDocuments = a.SignedDocuments
+            .Where(sd => !sd.IsDeleted)
+            .OrderByDescending(sd => sd.UploadedAt)
+            .Select(sd => new AssignmentSignedDocumentItemViewModel
+            {
+                Id = sd.Id,
+                AssignmentId = sd.AssignmentId,
+                DriverId = sd.DriverId,
+                DriverFullName = sd.Driver?.User?.FullName,
+                OriginalFileName = sd.OriginalFileName,
+                FileSizeBytes = sd.FileSizeBytes,
+                Description = sd.Description,
+                UploadedAt = sd.UploadedAt,
+                UploadedByUserName = sd.UploadedByUser?.FullName ?? sd.UploadedByUser?.UserName
+            })
+            .ToList();
+
+        // Geriye dönük uyumluluk: Yeni tabloda kayıt yoksa ancak eski tekil alanda belge varsa listede göster
+        if (signedDocuments.Count == 0 && !string.IsNullOrWhiteSpace(a.SignedDocumentPath))
+        {
+            signedDocuments.Add(new AssignmentSignedDocumentItemViewModel
+            {
+                Id = 0,
+                AssignmentId = a.Id,
+                OriginalFileName = a.SignedDocumentOriginalFileName ?? Path.GetFileName(a.SignedDocumentPath),
+                UploadedAt = a.SignedDocumentUploadedAt ?? a.UpdatedAt ?? a.CreatedAt,
+                UploadedByUserName = a.SignedDocumentUploadedByUser?.FullName
+            });
+        }
+
         return new AssignmentDetailsViewModel
         {
             Id = a.Id,
@@ -328,6 +363,7 @@ public class AssignmentService : IAssignmentService
             SignedDocumentUploadedAt = a.SignedDocumentUploadedAt,
             SignedDocumentUploadedByUserId = a.SignedDocumentUploadedByUserId,
             SignedDocumentUploadedByUserName = a.SignedDocumentUploadedByUser?.FullName,
+            SignedDocuments = signedDocuments,
             OffRouteDispatcherName = a.OffRouteDispatcherName,
             OffRouteDispatcherTitle = a.OffRouteDispatcherTitle,
             OffRouteReason = a.OffRouteReason,
@@ -1839,15 +1875,20 @@ public class AssignmentService : IAssignmentService
         }
 
         // Kural: Başlatılacak şoförün üzerinde hâlihazırda InProgress olan başka bir görev varsa doğrudan başlatılamaz!
-        var hasActiveAssignmentOnDriverDirect = await _context.Assignments
-            .AnyAsync(a => !a.IsDeleted &&
-                           a.DriverId == assignment.DriverId &&
-                           a.Id != assignment.Id &&
-                           a.Status == AssignmentStatus.InProgress);
-
-        if (hasActiveAssignmentOnDriverDirect)
+        // Yalnızca kurum şoförleri (DriverId.HasValue) için kontrol edilir; dış şoförlerde DriverId NULL olduğundan kontrol atlanır.
+        if (assignment.DriverId.HasValue)
         {
-            return (false, "Bu şoför şu anda başka bir görevde seyirdedir, önce mevcut görevi tamamlayın.");
+            var hasActiveAssignmentOnDriverDirect = await _context.Assignments
+                .AnyAsync(a => !a.IsDeleted &&
+                               a.DriverId != null &&
+                               a.DriverId == assignment.DriverId.Value &&
+                               a.Id != assignment.Id &&
+                               a.Status == AssignmentStatus.InProgress);
+
+            if (hasActiveAssignmentOnDriverDirect)
+            {
+                return (false, "Bu şoför şu anda başka bir görevde seyirdedir, önce mevcut görevi tamamlayın.");
+            }
         }
 
         var vehicleStatusCheck = ValidateVehicleOperationalStatus(assignment.Vehicle);

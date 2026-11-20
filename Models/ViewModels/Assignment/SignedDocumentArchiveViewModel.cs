@@ -41,7 +41,10 @@ public class SignedDocumentItemViewModel
     public DateTime PlannedStartTime { get; set; }
     public DateTime PlannedEndTime { get; set; }
     public AssignmentStatus Status { get; set; }
-    public bool HasDocument => !string.IsNullOrWhiteSpace(DocumentPath);
+    public int? DocumentId { get; set; }
+    public int DocumentCount { get; set; }
+    public List<AssignmentSignedDocumentItemViewModel> Documents { get; set; } = new();
+    public bool HasDocument => Documents.Any() || !string.IsNullOrWhiteSpace(DocumentPath);
     public string? DocumentOriginalFileName { get; set; }
     public string? DocumentPath { get; set; }
     public DateTime? UploadedAt { get; set; }
