@@ -17,7 +17,7 @@ namespace aractakipsys.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.19")
+                .HasAnnotation("ProductVersion", "9.0.22")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -473,6 +473,73 @@ namespace aractakipsys.Migrations
                     b.HasIndex("VehicleId", "PlannedStartTime", "PlannedEndTime");
 
                     b.ToTable("Assignments");
+                });
+
+            modelBuilder.Entity("aractakipsys.Models.Entities.AssignmentDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<int?>("DriverId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UploadedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("UploadedAt");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("AssignmentDocuments");
                 });
 
             modelBuilder.Entity("aractakipsys.Models.Entities.AssignmentDriver", b =>
@@ -1558,6 +1625,31 @@ namespace aractakipsys.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("aractakipsys.Models.Entities.AssignmentDocument", b =>
+                {
+                    b.HasOne("aractakipsys.Models.Entities.Assignment", "Assignment")
+                        .WithMany("SignedDocuments")
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("aractakipsys.Models.Entities.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("aractakipsys.Models.Entities.ApplicationUser", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("aractakipsys.Models.Entities.AssignmentDriver", b =>
                 {
                     b.HasOne("aractakipsys.Models.Entities.Assignment", "Assignment")
@@ -1762,6 +1854,8 @@ namespace aractakipsys.Migrations
                     b.Navigation("AssignmentDrivers");
 
                     b.Navigation("RouteChanges");
+
+                    b.Navigation("SignedDocuments");
                 });
 
             modelBuilder.Entity("aractakipsys.Models.Entities.Driver", b =>

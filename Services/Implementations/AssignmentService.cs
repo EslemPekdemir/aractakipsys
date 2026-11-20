@@ -2321,9 +2321,16 @@ public class AssignmentService : IAssignmentService
         return true;
     }
 
-    public async Task<(bool Success, string? ErrorMessage)> UploadSignedDocumentAsync(int assignmentId, Microsoft.AspNetCore.Http.IFormFile file, string userId)
+    public async Task<(bool Success, string? ErrorMessage)> UploadSignedDocumentAsync(
+        int assignmentId,
+        Microsoft.AspNetCore.Http.IFormFile file,
+        string userId,
+        int? driverId = null,
+        string? description = null)
     {
-        var assignment = await _context.Assignments.FirstOrDefaultAsync(a => a.Id == assignmentId);
+        var assignment = await _context.Assignments
+            .Include(a => a.AssignmentDrivers)
+            .FirstOrDefaultAsync(a => a.Id == assignmentId);
         if (assignment == null)
         {
             return (false, "Görev kaydı bulunamadı.");
@@ -2334,30 +2341,23 @@ public class AssignmentService : IAssignmentService
             return (false, validationError);
         }
 
+        // Opsiyonel şoför ilişkisi doğrulaması: yalnızca bu göreve atanmış şoförlerden biri seçilebilir
+        int? validDriverId = null;
+        if (driverId.HasValue)
+        {
+            var isAssignedDriver = assignment.DriverId == driverId.Value ||
+                                   assignment.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == driverId.Value);
+            if (!isAssignedDriver)
+            {
+                return (false, "Seçilen şoför bu göreve atanmamış.");
+            }
+            validDriverId = driverId.Value;
+        }
+
         var uploadDir = Path.Combine(_environment.ContentRootPath, "App_Data", "AssignmentDocuments");
         if (!Directory.Exists(uploadDir))
         {
             Directory.CreateDirectory(uploadDir);
-        }
-
-        // Varsa eski dosyayı diskten temizle
-        if (!string.IsNullOrWhiteSpace(assignment.SignedDocumentPath))
-        {
-            var oldFullPath = Path.IsPathRooted(assignment.SignedDocumentPath)
-                ? assignment.SignedDocumentPath
-                : Path.Combine(_environment.ContentRootPath, assignment.SignedDocumentPath);
-
-            if (File.Exists(oldFullPath))
-            {
-                try
-                {
-                    File.Delete(oldFullPath);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Eski imzalı belge diskten silinemedi: {Path}", oldFullPath);
-                }
-            }
         }
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -2370,53 +2370,192 @@ public class AssignmentService : IAssignmentService
             await file.CopyToAsync(fileStream);
         }
 
-        var oldValues = new
+        var nowUtc = DateTime.UtcNow;
+        var cleanOriginalName = Path.GetFileName(file.FileName);
+        var cleanDescription = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        if (cleanDescription != null && cleanDescription.Length > 250)
         {
-            assignment.SignedDocumentPath,
-            assignment.SignedDocumentOriginalFileName,
-            assignment.SignedDocumentUploadedAt,
-            assignment.SignedDocumentUploadedByUserId
+            cleanDescription = cleanDescription[..250];
+        }
+
+        var doc = new AssignmentDocument
+        {
+            AssignmentId = assignment.Id,
+            DriverId = validDriverId,
+            FilePath = relativePath,
+            OriginalFileName = cleanOriginalName,
+            FileSizeBytes = file.Length,
+            Description = cleanDescription,
+            UploadedAt = nowUtc,
+            UploadedByUserId = userId,
+            CreatedAt = nowUtc,
+            CreatedBy = userId
         };
 
+        _context.AssignmentDocuments.Add(doc);
+
+        // Eski tekil özet alanlarını en son yüklenen belgeyle senkron tut (geriye dönük uyumluluk)
         assignment.SignedDocumentPath = relativePath;
-        assignment.SignedDocumentOriginalFileName = Path.GetFileName(file.FileName);
-        assignment.SignedDocumentUploadedAt = DateTime.UtcNow;
+        assignment.SignedDocumentOriginalFileName = cleanOriginalName;
+        assignment.SignedDocumentUploadedAt = nowUtc;
         assignment.SignedDocumentUploadedByUserId = userId;
-        assignment.UpdatedAt = DateTime.UtcNow;
+        assignment.UpdatedAt = nowUtc;
 
         await _context.SaveChangesAsync();
 
         // Audit Log
         await _auditLogService.LogAsync(
-            entityName: "Assignment",
-            entityId: assignment.Id,
-            action: AuditAction.Update,
+            entityName: nameof(AssignmentDocument),
+            entityId: doc.Id,
+            action: AuditAction.Create,
             changedByUserId: userId,
-            oldValues: oldValues,
+            oldValues: null,
             newValues: new
             {
-                assignment.SignedDocumentPath,
-                assignment.SignedDocumentOriginalFileName,
-                assignment.SignedDocumentUploadedAt,
-                assignment.SignedDocumentUploadedByUserId
+                doc.AssignmentId,
+                doc.DriverId,
+                doc.FilePath,
+                doc.OriginalFileName,
+                doc.FileSizeBytes,
+                doc.Description,
+                doc.UploadedAt,
+                doc.UploadedByUserId
             }
         );
 
-        _logger.LogInformation("Görev #{AssignmentId} için imzalı belge başarıyla yüklendi: {FileName}", assignmentId, uniqueFileName);
+        _logger.LogInformation("Görev #{AssignmentId} için imzalı belge eklendi (DocId: {DocId}): {FileName}", assignmentId, doc.Id, uniqueFileName);
         return (true, null);
     }
 
-    public async Task<(byte[]? FileContents, string? ContentType, string? OriginalFileName)?> GetSignedDocumentFileAsync(int assignmentId)
+    public async Task<(bool Success, string? ErrorMessage)> DeleteSignedDocumentAsync(int assignmentId, int documentId, string userId)
     {
+        var doc = await _context.AssignmentDocuments
+            .FirstOrDefaultAsync(d => d.Id == documentId && d.AssignmentId == assignmentId);
+
+        if (doc == null)
+        {
+            return (false, "Silinecek imzalı belge kaydı bulunamadı.");
+        }
+
         var assignment = await _context.Assignments.FirstOrDefaultAsync(a => a.Id == assignmentId);
-        if (assignment == null || string.IsNullOrWhiteSpace(assignment.SignedDocumentPath))
+        if (assignment == null)
+        {
+            return (false, "Görev kaydı bulunamadı.");
+        }
+
+        var oldValues = new
+        {
+            doc.Id,
+            doc.AssignmentId,
+            doc.DriverId,
+            doc.FilePath,
+            doc.OriginalFileName,
+            doc.Description,
+            doc.UploadedAt
+        };
+
+        var nowUtc = DateTime.UtcNow;
+        doc.IsDeleted = true;
+        doc.UpdatedAt = nowUtc;
+        doc.UpdatedBy = userId;
+
+        await _context.SaveChangesAsync();
+
+        // Kalan en güncel aktif belge varsa Assignment üzerindeki özet alanlarını güncelle; yoksa temizle
+        var latestRemaining = await _context.AssignmentDocuments
+            .Where(d => d.AssignmentId == assignmentId)
+            .OrderByDescending(d => d.UploadedAt)
+            .FirstOrDefaultAsync();
+
+        if (latestRemaining != null)
+        {
+            assignment.SignedDocumentPath = latestRemaining.FilePath;
+            assignment.SignedDocumentOriginalFileName = latestRemaining.OriginalFileName;
+            assignment.SignedDocumentUploadedAt = latestRemaining.UploadedAt;
+            assignment.SignedDocumentUploadedByUserId = latestRemaining.UploadedByUserId;
+        }
+        else
+        {
+            assignment.SignedDocumentPath = null;
+            assignment.SignedDocumentOriginalFileName = null;
+            assignment.SignedDocumentUploadedAt = null;
+            assignment.SignedDocumentUploadedByUserId = null;
+        }
+        assignment.UpdatedAt = nowUtc;
+        await _context.SaveChangesAsync();
+
+        await _auditLogService.LogAsync(
+            entityName: nameof(AssignmentDocument),
+            entityId: doc.Id,
+            action: AuditAction.Delete,
+            changedByUserId: userId,
+            oldValues: oldValues,
+            newValues: new { IsDeleted = true }
+        );
+
+        _logger.LogInformation("Görev #{AssignmentId} için imzalı belge silindi (DocId: {DocId}, UserId: {UserId})", assignmentId, documentId, userId);
+        return (true, null);
+    }
+
+    public async Task<(byte[]? FileContents, string? ContentType, string? OriginalFileName)?> GetSignedDocumentFileAsync(int assignmentId, int? documentId = null)
+    {
+        string? filePath = null;
+        string? originalFileName = null;
+
+        if (documentId.HasValue && documentId.Value > 0)
+        {
+            var doc = await _context.AssignmentDocuments.AsNoTracking()
+                .FirstOrDefaultAsync(d => d.Id == documentId.Value && d.AssignmentId == assignmentId);
+
+            if (doc == null)
+            {
+                return null;
+            }
+
+            filePath = doc.FilePath;
+            originalFileName = doc.OriginalFileName;
+        }
+        else
+        {
+            var latestDoc = await _context.AssignmentDocuments.AsNoTracking()
+                .Where(d => d.AssignmentId == assignmentId)
+                .OrderByDescending(d => d.UploadedAt)
+                .FirstOrDefaultAsync();
+
+            if (latestDoc != null)
+            {
+                filePath = latestDoc.FilePath;
+                originalFileName = latestDoc.OriginalFileName;
+            }
+            else
+            {
+                var assignment = await _context.Assignments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == assignmentId);
+                if (assignment == null || string.IsNullOrWhiteSpace(assignment.SignedDocumentPath))
+                {
+                    return null;
+                }
+
+                filePath = assignment.SignedDocumentPath;
+                originalFileName = assignment.SignedDocumentOriginalFileName;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(filePath))
         {
             return null;
         }
 
-        var fullPath = Path.IsPathRooted(assignment.SignedDocumentPath)
-            ? assignment.SignedDocumentPath
-            : Path.Combine(_environment.ContentRootPath, assignment.SignedDocumentPath);
+        var allowedRoot = Path.GetFullPath(Path.Combine(_environment.ContentRootPath, "App_Data", "AssignmentDocuments"));
+        var fullPath = Path.GetFullPath(Path.IsPathRooted(filePath)
+            ? filePath
+            : Path.Combine(_environment.ContentRootPath, filePath));
+
+        // Dizin aşımı (Path Traversal) güvenlik kontrolü
+        if (!fullPath.StartsWith(allowedRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Yetkisiz dosya yolu erişimi engellendi: {FullPath}", fullPath);
+            return null;
+        }
 
         if (!File.Exists(fullPath))
         {
@@ -2434,10 +2573,10 @@ public class AssignmentService : IAssignmentService
             _ => "application/octet-stream"
         };
 
-        var originalName = assignment.SignedDocumentOriginalFileName
+        var downloadName = originalFileName
             ?? $"Imzali_Belge_Gorev_{assignmentId}{ext}";
 
-        return (bytes, contentType, originalName);
+        return (bytes, contentType, downloadName);
     }
 
     public async Task<SignedDocumentArchiveViewModel> GetSignedDocumentArchiveAsync(SignedDocumentArchiveFilterViewModel filter)
@@ -2474,11 +2613,11 @@ public class AssignmentService : IAssignmentService
 
         // KPI İstatistikleri (Tüm görevler üzerinden)
         var totalAssignments = await _context.Assignments.CountAsync();
-        var totalUploaded = await _context.Assignments.CountAsync(a => !string.IsNullOrEmpty(a.SignedDocumentPath));
-        var totalMissing = await _context.Assignments.CountAsync(a => string.IsNullOrEmpty(a.SignedDocumentPath) && a.Status == AssignmentStatus.Completed);
-        
+        var totalUploaded = await _context.Assignments.CountAsync(a => a.SignedDocuments.Any() || !string.IsNullOrEmpty(a.SignedDocumentPath));
+        var totalMissing = await _context.Assignments.CountAsync(a => !a.SignedDocuments.Any() && string.IsNullOrEmpty(a.SignedDocumentPath) && a.Status == AssignmentStatus.Completed);
+
         var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        var uploadedThisMonth = await _context.Assignments.CountAsync(a => !string.IsNullOrEmpty(a.SignedDocumentPath) && a.SignedDocumentUploadedAt >= startOfMonth);
+        var uploadedThisMonth = await _context.AssignmentDocuments.CountAsync(d => d.UploadedAt >= startOfMonth);
 
         model.TotalAssignmentsCount = totalAssignments;
         model.TotalUploadedCount = totalUploaded;
@@ -2488,17 +2627,20 @@ public class AssignmentService : IAssignmentService
         // Filtrelenmiş Ana Sorgu
         var query = _context.Assignments.AsNoTracking()
             .Include(a => a.Vehicle)
-            .Include(a => a.Driver).ThenInclude(d => d.User)
+            .Include(a => a.Driver).ThenInclude(d => d!.User)
+            .Include(a => a.AssignmentDrivers).ThenInclude(ad => ad.Driver).ThenInclude(d => d.User)
+            .Include(a => a.SignedDocuments).ThenInclude(sd => sd.Driver).ThenInclude(d => d!.User)
+            .Include(a => a.SignedDocuments).ThenInclude(sd => sd.UploadedByUser)
             .AsQueryable();
 
         // 1. Belge Filtresi
         switch (filter.DocumentFilter)
         {
             case SignedDocumentFilterType.Uploaded:
-                query = query.Where(a => !string.IsNullOrEmpty(a.SignedDocumentPath));
+                query = query.Where(a => a.SignedDocuments.Any() || !string.IsNullOrEmpty(a.SignedDocumentPath));
                 break;
             case SignedDocumentFilterType.Missing:
-                query = query.Where(a => string.IsNullOrEmpty(a.SignedDocumentPath));
+                query = query.Where(a => !a.SignedDocuments.Any() && string.IsNullOrEmpty(a.SignedDocumentPath));
                 break;
             case SignedDocumentFilterType.All:
             default:
@@ -2511,10 +2653,11 @@ public class AssignmentService : IAssignmentService
             query = query.Where(a => a.VehicleId == filter.VehicleId.Value);
         }
 
-        // 3. Şoför Filtresi
+        // 3. Şoför Filtresi (çoklu şoför destekli)
         if (filter.DriverId.HasValue)
         {
-            query = query.Where(a => a.DriverId == filter.DriverId.Value);
+            query = query.Where(a => a.DriverId == filter.DriverId.Value ||
+                                     a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == filter.DriverId.Value));
         }
 
         // 4. Tarih Filtreleri (PlannedStartTime bazlı)
@@ -2539,9 +2682,11 @@ public class AssignmentService : IAssignmentService
                 a.Vehicle.Brand.ToLower().Contains(term) ||
                 a.Vehicle.Model.ToLower().Contains(term) ||
                 (a.Driver != null && a.Driver.User.FullName.ToLower().Contains(term)) ||
-                a.RequestedByDepartment.ToLower().Contains(term) ||
+                a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.Driver.User.FullName.ToLower().Contains(term)) ||
+                (a.RequestedByDepartment != null && a.RequestedByDepartment.ToLower().Contains(term)) ||
                 a.Purpose.ToLower().Contains(term) ||
-                (a.SignedDocumentOriginalFileName != null && a.SignedDocumentOriginalFileName.ToLower().Contains(term))
+                (a.SignedDocumentOriginalFileName != null && a.SignedDocumentOriginalFileName.ToLower().Contains(term)) ||
+                a.SignedDocuments.Any(d => d.OriginalFileName.ToLower().Contains(term) || (d.Description != null && d.Description.ToLower().Contains(term)))
             );
         }
 
@@ -2566,34 +2711,85 @@ public class AssignmentService : IAssignmentService
             .Take(pageSize)
             .ToListAsync();
 
-        // Yükleyen kullanıcıların FullName'lerini topluca çekme
+        // Eski tekil alanlar için yükleyen kullanıcıların FullName'lerini topluca çekme
         var uploaderUserIds = pagedAssignments
             .Where(a => !string.IsNullOrEmpty(a.SignedDocumentUploadedByUserId))
             .Select(a => a.SignedDocumentUploadedByUserId!)
             .Distinct()
             .ToList();
 
-        var uploaderNames = await _context.Users.AsNoTracking()
-            .Where(u => uploaderUserIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.FullName);
+        var uploaderNames = uploaderUserIds.Any()
+            ? await _context.Users.AsNoTracking()
+                .Where(u => uploaderUserIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.FullName)
+            : new Dictionary<string, string>();
 
-        model.Items = pagedAssignments.Select(a => new SignedDocumentItemViewModel
+        model.Items = pagedAssignments.Select(a =>
         {
-            AssignmentId = a.Id,
-            VehiclePlate = a.Vehicle.PlateNumber,
-            VehicleBrandModel = $"{a.Vehicle.Brand} {a.Vehicle.Model}",
-            DriverFullName = a.Driver?.User?.FullName ?? "-",
-            RequestedByDepartment = a.RequestedByDepartment,
-            Purpose = a.Purpose,
-            PlannedStartTime = a.PlannedStartTime,
-            PlannedEndTime = a.PlannedEndTime,
-            Status = a.Status,
-            DocumentOriginalFileName = a.SignedDocumentOriginalFileName,
-            DocumentPath = a.SignedDocumentPath,
-            UploadedAt = a.SignedDocumentUploadedAt,
-            UploadedByFullName = (!string.IsNullOrEmpty(a.SignedDocumentUploadedByUserId) && uploaderNames.TryGetValue(a.SignedDocumentUploadedByUserId, out var name)) 
-                ? name 
-                : null
+            var docs = a.SignedDocuments
+                .Where(sd => !sd.IsDeleted)
+                .OrderByDescending(sd => sd.UploadedAt)
+                .Select(sd => new AssignmentSignedDocumentItemViewModel
+                {
+                    Id = sd.Id,
+                    AssignmentId = sd.AssignmentId,
+                    DriverId = sd.DriverId,
+                    DriverFullName = sd.Driver?.User?.FullName,
+                    OriginalFileName = sd.OriginalFileName,
+                    FileSizeBytes = sd.FileSizeBytes,
+                    Description = sd.Description,
+                    UploadedAt = sd.UploadedAt,
+                    UploadedByUserName = sd.UploadedByUser?.FullName ?? sd.UploadedByUser?.UserName
+                })
+                .ToList();
+
+            if (docs.Count == 0 && !string.IsNullOrWhiteSpace(a.SignedDocumentPath))
+            {
+                var legacyUploader = (!string.IsNullOrEmpty(a.SignedDocumentUploadedByUserId) && uploaderNames.TryGetValue(a.SignedDocumentUploadedByUserId, out var uName))
+                    ? uName
+                    : null;
+                docs.Add(new AssignmentSignedDocumentItemViewModel
+                {
+                    Id = 0,
+                    AssignmentId = a.Id,
+                    OriginalFileName = a.SignedDocumentOriginalFileName ?? Path.GetFileName(a.SignedDocumentPath),
+                    UploadedAt = a.SignedDocumentUploadedAt ?? a.UpdatedAt ?? a.CreatedAt,
+                    UploadedByUserName = legacyUploader
+                });
+            }
+
+            var latestDoc = docs.FirstOrDefault();
+            var driverNamesList = a.AssignmentDrivers
+                .Where(ad => !ad.IsDeleted)
+                .OrderByDescending(ad => ad.IsPrimary)
+                .Select(ad => ad.Driver.User.FullName)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToList();
+
+            var displayDriver = driverNamesList.Count > 0
+                ? string.Join(", ", driverNamesList)
+                : (a.Driver?.User?.FullName ?? (a.IsExternalDriver ? a.ExternalDriverFullName ?? "Dış Şoför" : (a.IsDriverless ? "Şoförsüz" : "-")));
+
+            return new SignedDocumentItemViewModel
+            {
+                AssignmentId = a.Id,
+                VehiclePlate = a.Vehicle.PlateNumber,
+                VehicleBrandModel = $"{a.Vehicle.Brand} {a.Vehicle.Model}",
+                DriverFullName = displayDriver,
+                RequestedByDepartment = a.RequestedByDepartment ?? string.Empty,
+                Purpose = a.Purpose,
+                PlannedStartTime = a.PlannedStartTime,
+                PlannedEndTime = a.PlannedEndTime,
+                Status = a.Status,
+                DocumentId = latestDoc?.Id > 0 ? latestDoc.Id : null,
+                DocumentCount = docs.Count,
+                Documents = docs,
+                DocumentOriginalFileName = latestDoc?.OriginalFileName ?? a.SignedDocumentOriginalFileName,
+                DocumentPath = a.SignedDocumentPath,
+                UploadedAt = latestDoc?.UploadedAt ?? a.SignedDocumentUploadedAt,
+                UploadedByFullName = latestDoc?.UploadedByUserName
+                    ?? ((!string.IsNullOrEmpty(a.SignedDocumentUploadedByUserId) && uploaderNames.TryGetValue(a.SignedDocumentUploadedByUserId, out var name)) ? name : null)
+            };
         }).ToList();
 
         return model;

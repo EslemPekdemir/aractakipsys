@@ -572,59 +572,120 @@
             </div>
         }
 
-        <!-- İMZALI GÖREVLENDİRME BELGESİ KARTI (AŞAMA H) -->
+        <!-- İMZALI GÖREVLENDİRME BELGELERİ KARTI (ÇOKLU BELGE DESTEĞİ) -->
+        @{
+            var canManageSignedDocs = !User.IsInRole("GenelSekreter");
+            var signedDocCount = Model.SignedDocuments.Count;
+        }
         <div class="ibox float-e-margins mb-4">
-            <div class="ibox-title d-flex justify-content-between align-items-center">
-                <h5><i class="fa fa-file-text-o mr-1 text-primary"></i> İmzalı Görevlendirme Belgesi</h5>
-                @if (Model.HasSignedDocument)
+            <div class="ibox-title d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
+                <div class="d-flex align-items-center">
+                    <h5 class="mb-0"><i class="fa fa-file-text-o mr-1 text-primary"></i> İmzalı Görevlendirme Belgeleri</h5>
+                    @if (signedDocCount > 0)
+                    {
+                        <span class="label label-primary font-weight-bold ml-2">
+                            <i class="fa fa-check mr-1"></i> @signedDocCount Belge Yüklendi
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="label label-warning font-weight-bold ml-2">
+                            <i class="fa fa-clock-o mr-1"></i> Belge Bekleniyor
+                        </span>
+                    }
+                </div>
+                @if (canManageSignedDocs)
                 {
-                    <span class="label label-primary font-weight-bold"><i class="fa fa-check mr-1"></i> Belge Yüklendi</span>
-                }
-                else
-                {
-                    <span class="label label-warning font-weight-bold"><i class="fa fa-clock-o mr-1"></i> Belge Bekleniyor</span>
+                    <button type="button" class="btn btn-primary btn-xs font-weight-bold shadow-sm" data-toggle="modal" data-target="#uploadSignedDocumentModal">
+                        <i class="fa fa-plus mr-1"></i> Yeni Belge Yükle
+                    </button>
                 }
             </div>
             <div class="ibox-content p-4">
-                @if (Model.HasSignedDocument)
+                @if (Model.SignedDocuments.Any())
                 {
-                    <div class="alert alert-info border-left border-info d-flex align-items-center justify-content-between flex-wrap mb-3 p-3" style="border-left-width: 4px !important;">
-                        <div class="d-flex align-items-center mb-2 mb-md-0">
-                            <i class="fa fa-file-pdf-o text-danger mr-3" style="font-size: 2.2rem;"></i>
-                            <div>
-                                <h5 class="font-weight-bold text-dark mb-1">@Model.SignedDocumentOriginalFileName</h5>
-                                <p class="text-muted mb-0 small">
-                                    <strong>Yükleyen:</strong> @(string.IsNullOrWhiteSpace(Model.SignedDocumentUploadedByUserName) ? "Yetkili" : Model.SignedDocumentUploadedByUserName) &nbsp;|&nbsp;
-                                    <strong>Tarih:</strong> @Model.SignedDocumentUploadedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
-                                </p>
+                    <div class="d-flex flex-column" style="gap: 10px;">
+                        @foreach (var doc in Model.SignedDocuments)
+                        {
+                            var docQuery = doc.Id > 0 ? $"?documentId={doc.Id}" : "";
+                            <div class="border rounded p-3 d-flex align-items-center justify-content-between flex-wrap" style="background-color: #f8fafc; border-left: 4px solid #1c84c6 !important; gap: 10px;">
+                                <div class="d-flex align-items-start" style="min-width: 0; flex: 1 1 240px;">
+                                    @if (doc.IsPdf)
+                                    {
+                                        <i class="fa fa-file-pdf-o text-danger mr-3 mt-1" style="font-size: 2rem;"></i>
+                                    }
+                                    else if (doc.IsImage)
+                                    {
+                                        <i class="fa fa-file-image-o text-success mr-3 mt-1" style="font-size: 2rem;"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fa fa-file-text-o text-primary mr-3 mt-1" style="font-size: 2rem;"></i>
+                                    }
+                                    <div style="min-width: 0;">
+                                        <div class="d-flex align-items-center flex-wrap mb-1" style="gap: 6px;">
+                                            <strong class="text-dark" style="word-break: break-word;">@doc.OriginalFileName</strong>
+                                            @if (!string.IsNullOrWhiteSpace(doc.DriverFullName))
+                                            {
+                                                <span class="badge badge-info px-2 py-1" style="font-size: 0.72rem;">
+                                                    <i class="fa fa-user mr-1"></i> @doc.DriverFullName
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-secondary px-2 py-1" style="font-size: 0.72rem;">
+                                                    <i class="fa fa-file-o mr-1"></i> Genel Görev Belgesi
+                                                </span>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(doc.FileSizeDisplay))
+                                            {
+                                                <small class="text-muted">(@doc.FileSizeDisplay)</small>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(doc.Description))
+                                        {
+                                            <div class="small text-secondary mb-1">
+                                                <i class="fa fa-comment-o mr-1"></i> @doc.Description
+                                            </div>
+                                        }
+                                        <p class="text-muted mb-0 small">
+                                            <strong>Yükleyen:</strong> @(string.IsNullOrWhiteSpace(doc.UploadedByUserName) ? "Yetkili" : doc.UploadedByUserName) &nbsp;|&nbsp;
+                                            <strong>Tarih:</strong> @doc.UploadedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center flex-wrap" style="gap: 6px;">
+                                    <a href="/Assignment/ViewSignedDocument/@Model.Id@docQuery" class="btn btn-outline-info btn-xs font-weight-bold" target="_blank" title="Yeni Sekmede Önizle">
+                                        <i class="fa fa-eye mr-1"></i> Önizle
+                                    </a>
+                                    <a href="/Assignment/DownloadSignedDocument/@Model.Id@docQuery" class="btn btn-primary btn-xs font-weight-bold" target="_blank" title="Belgeyi İndir">
+                                        <i class="fa fa-download mr-1"></i> İndir
+                                    </a>
+                                    @if (canManageSignedDocs && doc.Id > 0)
+                                    {
+                                        <form asp-action="DeleteSignedDocument" asp-route-id="@Model.Id" asp-route-documentId="@doc.Id" method="post" class="d-inline m-0" onsubmit="return confirm('Bu imzalı belgeyi silmek istediğinize emin misiniz?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-danger btn-xs font-weight-bold" title="Belgeyi Sil">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <a href="/Assignment/DownloadSignedDocument/@Model.Id" class="btn btn-primary btn-sm font-weight-bold" target="_blank">
-                                <i class="fa fa-download mr-1"></i> Yüklenen Belgeyi İndir
-                            </a>
-                        </div>
+                        }
                     </div>
 
-                    <!-- Belgeyi Değiştir Collapse -->
-                    <div class="text-right">
-                        <button class="btn btn-outline-secondary btn-xs font-weight-bold" type="button" data-toggle="collapse" data-target="#replaceDocumentSection" aria-expanded="false">
-                            <i class="fa fa-refresh mr-1"></i> Yeni Belge Yükle (Değiştir)
-                        </button>
-                    </div>
-
-                    <div class="collapse mt-3 pt-3 border-top" id="replaceDocumentSection">
-                        <form asp-action="UploadSignedDocument" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" onsubmit="return validateSignedDocForm(this);">
-                            @Html.AntiForgeryToken()
-                            <div class="form-group mb-2">
-                                <label class="font-weight-bold text-dark small">Yeni İmzalı Belge Seç (PDF, JPG, JPEG, PNG - Max 10MB):</label>
-                                <input type="file" name="signedDocument" class="form-control-file border rounded p-2" accept=".pdf,.jpg,.jpeg,.png" required />
-                            </div>
-                            <button type="submit" class="btn btn-warning btn-sm font-weight-bold">
-                                <i class="fa fa-upload mr-1"></i> Yeni Belgeyi Kaydet ve Güncelle
+                    @if (canManageSignedDocs)
+                    {
+                        <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center flex-wrap" style="gap: 8px;">
+                            <small class="text-muted">
+                                <i class="fa fa-info-circle mr-1 text-info"></i> Çok şoförlü görevlerde her şoförün imzalı belgesini ayrı ayrı ekleyebilirsiniz.
+                            </small>
+                            <button type="button" class="btn btn-outline-primary btn-xs font-weight-bold" data-toggle="modal" data-target="#uploadSignedDocumentModal">
+                                <i class="fa fa-plus-circle mr-1"></i> Ekstra Belge Yükle
                             </button>
-                        </form>
-                    </div>
+                        </div>
+                    }
                 }
                 else
                 {
@@ -632,18 +693,14 @@
                         <i class="fa fa-cloud-upload text-muted mb-2" style="font-size: 2.8rem;"></i>
                         <h5 class="font-weight-bold text-dark mb-1">Fiziki İmzalı Belge Henüz Yüklenmedi</h5>
                         <p class="text-muted small mb-3">
-                            Resmi görevlendirme belgesinin çıktısını alıp imzalattıktan sonra taratarak veya net bir fotoğrafını çekerek sisteme yükleyebilirsiniz.
+                            Resmi görevlendirme belgesinin çıktısını alıp imzalattıktan sonra taratarak veya net bir fotoğrafını çekerek sisteme yükleyebilirsiniz. Çok şoförlü görevlerde her şoför için ayrı ayrı belge ekleyebilirsiniz.
                         </p>
-                        <form asp-action="UploadSignedDocument" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" class="d-inline-block text-left" style="max-width: 420px; width: 100%;" onsubmit="return validateSignedDocForm(this);">
-                            @Html.AntiForgeryToken()
-                            <div class="form-group mb-2">
-                                <input type="file" name="signedDocument" class="form-control-file border rounded p-2" accept=".pdf,.jpg,.jpeg,.png" required />
-                                <small class="form-text text-muted">Formatlar: PDF, JPG, JPEG, PNG (En fazla 10 MB)</small>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block font-weight-bold">
-                                <i class="fa fa-upload mr-1"></i> İmzalı Belgeyi Yükle
+                        @if (canManageSignedDocs)
+                        {
+                            <button type="button" class="btn btn-primary btn-sm font-weight-bold px-4 shadow-sm" data-toggle="modal" data-target="#uploadSignedDocumentModal">
+                                <i class="fa fa-plus mr-1"></i> İmzalı Belge Yükle
                             </button>
-                        </form>
+                        }
                     </div>
                 }
             </div>
@@ -1717,6 +1774,67 @@
     </div>
 </div>
 
+<!-- YENİ İMZALI BELGE YÜKLEME MODALI (ÇOKLU BELGE DESTEĞİ) -->
+<div class="modal fade" id="uploadSignedDocumentModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fa fa-upload mr-2"></i> İmzalı Görevlendirme Belgesi Ekle
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Kapat">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form asp-action="UploadSignedDocument" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" onsubmit="return validateSignedDocForm(this);">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <i class="fa fa-info-circle mr-1"></i> Mevcut belgeler korunur; seçeceğiniz yeni evrak bu görevin belge listesine <strong>ek olarak</strong> kaydedilir.
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold text-dark">Belge İlişkisi / Şoför (Opsiyonel)</label>
+                        <select name="driverId" class="form-control">
+                            <option value="">Genel Görev Belgesi (Tüm Görev)</option>
+                            @if (Model.AssignedDrivers != null && Model.AssignedDrivers.Any())
+                            {
+                                foreach (var d in Model.AssignedDrivers)
+                                {
+                                    var roleLabel = d.IsPrimary ? "Birincil Şoför" : "Ek Şoför";
+                                    <option value="@d.DriverId">@d.FullName (@roleLabel)</option>
+                                }
+                            }
+                            else if (Model.DriverId.HasValue && !string.IsNullOrWhiteSpace(Model.DriverFullName))
+                            {
+                                <option value="@Model.DriverId.Value">@Model.DriverFullName</option>
+                            }
+                        </select>
+                        <small class="form-text text-muted">Birden fazla şoförlü görevlerde belgenin hangi şoföre ait olduğunu seçebilirsiniz.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold text-dark">Açıklama / Belge Notu (Opsiyonel)</label>
+                        <input type="text" name="description" maxlength="250" class="form-control" placeholder="Örn: Islak imzalı görev emri, ek harcırah belgesi..." />
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold text-dark">Belge Dosyası <span class="text-danger">*</span></label>
+                        <input type="file" name="signedDocument" class="form-control-file border rounded p-2" accept=".pdf,.jpg,.jpeg,.png" required />
+                        <small class="form-text text-muted">İzin verilen formatlar: <strong>PDF, JPG, JPEG, PNG</strong> (Maks. 10 MB)</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-primary btn-sm font-weight-bold px-4">
+                        <i class="fa fa-cloud-upload mr-1"></i> Belgeyi Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     function openCancelModal(assignmentId, plate, driverName) {
@@ -2300,6 +2418,7 @@
 
     $(function () {
         $('#offRouteDispatchModal').appendTo('body');
+        $('#uploadSignedDocumentModal').appendTo('body');
     });
 </script>
 }
