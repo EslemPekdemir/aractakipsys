@@ -2611,20 +2611,126 @@ public class AssignmentService : IAssignmentService
             .ToListAsync();
         model.DriverList = drivers;
 
-        // KPI İstatistikleri (Tüm görevler üzerinden)
+        // KPI İstatistikleri
         var totalAssignments = await _context.Assignments.CountAsync();
-        var totalUploaded = await _context.Assignments.CountAsync(a => a.SignedDocuments.Any() || !string.IsNullOrEmpty(a.SignedDocumentPath));
+        var assignmentsWithDocs = await _context.Assignments.CountAsync(a => a.SignedDocuments.Any() || !string.IsNullOrEmpty(a.SignedDocumentPath));
+        var totalUploadedDocs = await _context.AssignmentDocuments.CountAsync(d => !d.Assignment.IsDeleted);
         var totalMissing = await _context.Assignments.CountAsync(a => !a.SignedDocuments.Any() && string.IsNullOrEmpty(a.SignedDocumentPath) && a.Status == AssignmentStatus.Completed);
 
         var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        var uploadedThisMonth = await _context.AssignmentDocuments.CountAsync(d => d.UploadedAt >= startOfMonth);
+        var uploadedThisMonth = await _context.AssignmentDocuments.CountAsync(d => !d.Assignment.IsDeleted && d.UploadedAt >= startOfMonth);
 
         model.TotalAssignmentsCount = totalAssignments;
-        model.TotalUploadedCount = totalUploaded;
+        model.TotalUploadedCount = totalUploadedDocs;
+        model.AssignmentsWithDocumentCount = assignmentsWithDocs;
         model.TotalMissingCount = totalMissing;
         model.UploadedThisMonthCount = uploadedThisMonth;
 
-        // Filtrelenmiş Ana Sorgu
+        var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;
+        var pageSize = filter.PageSize < 1 ? 10 : filter.PageSize;
+
+        static string GetAssignmentDisplayDrivers(Assignment a)
+        {
+            var driverNamesList = a.AssignmentDrivers
+                .Where(ad => !ad.IsDeleted)
+                .OrderByDescending(ad => ad.IsPrimary)
+                .Select(ad => ad.Driver.User.FullName)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToList();
+
+            return driverNamesList.Count > 0
+                ? string.Join(", ", driverNamesList)
+                : (a.Driver?.User?.FullName ?? (a.IsExternalDriver ? a.ExternalDriverFullName ?? "Dış Şoför" : (a.IsDriverless ? "Şoförsüz" : "-")));
+        }
+
+        // 1. YÜKLENENLER (ARŞİV): Her yüklenen belge ayrı bir satır olarak alt alta listelenir
+        if (filter.DocumentFilter == SignedDocumentFilterType.Uploaded)
+        {
+            var docQuery = _context.AssignmentDocuments.AsNoTracking()
+                .Include(d => d.Driver).ThenInclude(dr => dr!.User)
+                .Include(d => d.UploadedByUser)
+                .Include(d => d.Assignment).ThenInclude(a => a.Vehicle)
+                .Include(d => d.Assignment).ThenInclude(a => a.Driver).ThenInclude(dr => dr!.User)
+                .Include(d => d.Assignment).ThenInclude(a => a.AssignmentDrivers).ThenInclude(ad => ad.Driver).ThenInclude(dr => dr.User)
+                .Where(d => !d.Assignment.IsDeleted)
+                .AsQueryable();
+
+            if (filter.VehicleId.HasValue)
+            {
+                docQuery = docQuery.Where(d => d.Assignment.VehicleId == filter.VehicleId.Value);
+            }
+
+            if (filter.DriverId.HasValue)
+            {
+                docQuery = docQuery.Where(d =>
+                    d.DriverId == filter.DriverId.Value ||
+                    (d.DriverId == null && (d.Assignment.DriverId == filter.DriverId.Value ||
+                                            d.Assignment.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == filter.DriverId.Value))));
+            }
+
+            if (filter.StartDate.HasValue)
+            {
+                var startUtc = filter.StartDate.Value.Date;
+                docQuery = docQuery.Where(d => d.Assignment.PlannedStartTime >= startUtc);
+            }
+
+            if (filter.EndDate.HasValue)
+            {
+                var endUtc = filter.EndDate.Value.Date.AddDays(1).AddTicks(-1);
+                docQuery = docQuery.Where(d => d.Assignment.PlannedStartTime <= endUtc);
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
+            {
+                var term = filter.SearchTerm.Trim().ToLower();
+                docQuery = docQuery.Where(d =>
+                    d.Assignment.Vehicle.PlateNumber.ToLower().Contains(term) ||
+                    d.Assignment.Vehicle.Brand.ToLower().Contains(term) ||
+                    d.Assignment.Vehicle.Model.ToLower().Contains(term) ||
+                    (d.Driver != null && d.Driver.User.FullName.ToLower().Contains(term)) ||
+                    (d.Assignment.Driver != null && d.Assignment.Driver.User.FullName.ToLower().Contains(term)) ||
+                    d.Assignment.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.Driver.User.FullName.ToLower().Contains(term)) ||
+                    (d.Assignment.RequestedByDepartment != null && d.Assignment.RequestedByDepartment.ToLower().Contains(term)) ||
+                    d.Assignment.Purpose.ToLower().Contains(term) ||
+                    d.OriginalFileName.ToLower().Contains(term) ||
+                    (d.Description != null && d.Description.ToLower().Contains(term))
+                );
+            }
+
+            filter.TotalCount = await docQuery.CountAsync();
+
+            var pagedDocs = await docQuery
+                .OrderByDescending(d => d.UploadedAt)
+                .ThenByDescending(d => d.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            model.Items = pagedDocs.Select(d => new SignedDocumentItemViewModel
+            {
+                AssignmentId = d.AssignmentId,
+                VehiclePlate = d.Assignment.Vehicle.PlateNumber,
+                VehicleBrandModel = $"{d.Assignment.Vehicle.Brand} {d.Assignment.Vehicle.Model}",
+                DriverFullName = !string.IsNullOrWhiteSpace(d.Driver?.User?.FullName)
+                    ? d.Driver.User.FullName
+                    : GetAssignmentDisplayDrivers(d.Assignment),
+                RequestedByDepartment = d.Assignment.RequestedByDepartment ?? string.Empty,
+                Purpose = d.Assignment.Purpose,
+                PlannedStartTime = d.Assignment.PlannedStartTime,
+                PlannedEndTime = d.Assignment.PlannedEndTime,
+                Status = d.Assignment.Status,
+                DocumentId = d.Id,
+                DocumentCount = 1,
+                DocumentOriginalFileName = d.OriginalFileName,
+                DocumentPath = d.FilePath,
+                UploadedAt = d.UploadedAt,
+                UploadedByFullName = d.UploadedByUser?.FullName ?? d.UploadedByUser?.UserName
+            }).ToList();
+
+            return model;
+        }
+
+        // 2. BELGESİ EKSİK veya TÜMÜ
         var query = _context.Assignments.AsNoTracking()
             .Include(a => a.Vehicle)
             .Include(a => a.Driver).ThenInclude(d => d!.User)
@@ -2633,34 +2739,22 @@ public class AssignmentService : IAssignmentService
             .Include(a => a.SignedDocuments).ThenInclude(sd => sd.UploadedByUser)
             .AsQueryable();
 
-        // 1. Belge Filtresi
-        switch (filter.DocumentFilter)
+        if (filter.DocumentFilter == SignedDocumentFilterType.Missing)
         {
-            case SignedDocumentFilterType.Uploaded:
-                query = query.Where(a => a.SignedDocuments.Any() || !string.IsNullOrEmpty(a.SignedDocumentPath));
-                break;
-            case SignedDocumentFilterType.Missing:
-                query = query.Where(a => !a.SignedDocuments.Any() && string.IsNullOrEmpty(a.SignedDocumentPath));
-                break;
-            case SignedDocumentFilterType.All:
-            default:
-                break;
+            query = query.Where(a => !a.SignedDocuments.Any() && string.IsNullOrEmpty(a.SignedDocumentPath));
         }
 
-        // 2. Araç Filtresi
         if (filter.VehicleId.HasValue)
         {
             query = query.Where(a => a.VehicleId == filter.VehicleId.Value);
         }
 
-        // 3. Şoför Filtresi (çoklu şoför destekli)
         if (filter.DriverId.HasValue)
         {
             query = query.Where(a => a.DriverId == filter.DriverId.Value ||
                                      a.AssignmentDrivers.Any(ad => !ad.IsDeleted && ad.DriverId == filter.DriverId.Value));
         }
 
-        // 4. Tarih Filtreleri (PlannedStartTime bazlı)
         if (filter.StartDate.HasValue)
         {
             var startUtc = filter.StartDate.Value.Date;
@@ -2673,7 +2767,6 @@ public class AssignmentService : IAssignmentService
             query = query.Where(a => a.PlannedStartTime <= endUtc);
         }
 
-        // 5. Arama Terimi (Plaka, Şoför adı, Birim, Amaç, Orijinal Dosya Adı)
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
             var term = filter.SearchTerm.Trim().ToLower();
@@ -2690,107 +2783,92 @@ public class AssignmentService : IAssignmentService
             );
         }
 
-        filter.TotalCount = await query.CountAsync();
-
-        // Sıralama: Yüklenenler filtresinde yükleme tarihine göre, aksi halde görev tarihine göre
-        if (filter.DocumentFilter == SignedDocumentFilterType.Uploaded)
+        if (filter.DocumentFilter == SignedDocumentFilterType.Missing)
         {
-            query = query.OrderByDescending(a => a.SignedDocumentUploadedAt ?? a.PlannedStartTime);
-        }
-        else
-        {
-            query = query.OrderByDescending(a => a.PlannedStartTime);
-        }
+            filter.TotalCount = await query.CountAsync();
+            var pagedMissing = await query
+                .OrderByDescending(a => a.PlannedStartTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
-        // Sayfalama
-        var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;
-        var pageSize = filter.PageSize < 1 ? 10 : filter.PageSize;
-
-        var pagedAssignments = await query
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
-        // Eski tekil alanlar için yükleyen kullanıcıların FullName'lerini topluca çekme
-        var uploaderUserIds = pagedAssignments
-            .Where(a => !string.IsNullOrEmpty(a.SignedDocumentUploadedByUserId))
-            .Select(a => a.SignedDocumentUploadedByUserId!)
-            .Distinct()
-            .ToList();
-
-        var uploaderNames = uploaderUserIds.Any()
-            ? await _context.Users.AsNoTracking()
-                .Where(u => uploaderUserIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id, u => u.FullName)
-            : new Dictionary<string, string>();
-
-        model.Items = pagedAssignments.Select(a =>
-        {
-            var docs = a.SignedDocuments
-                .Where(sd => !sd.IsDeleted)
-                .OrderByDescending(sd => sd.UploadedAt)
-                .Select(sd => new AssignmentSignedDocumentItemViewModel
-                {
-                    Id = sd.Id,
-                    AssignmentId = sd.AssignmentId,
-                    DriverId = sd.DriverId,
-                    DriverFullName = sd.Driver?.User?.FullName,
-                    OriginalFileName = sd.OriginalFileName,
-                    FileSizeBytes = sd.FileSizeBytes,
-                    Description = sd.Description,
-                    UploadedAt = sd.UploadedAt,
-                    UploadedByUserName = sd.UploadedByUser?.FullName ?? sd.UploadedByUser?.UserName
-                })
-                .ToList();
-
-            if (docs.Count == 0 && !string.IsNullOrWhiteSpace(a.SignedDocumentPath))
-            {
-                var legacyUploader = (!string.IsNullOrEmpty(a.SignedDocumentUploadedByUserId) && uploaderNames.TryGetValue(a.SignedDocumentUploadedByUserId, out var uName))
-                    ? uName
-                    : null;
-                docs.Add(new AssignmentSignedDocumentItemViewModel
-                {
-                    Id = 0,
-                    AssignmentId = a.Id,
-                    OriginalFileName = a.SignedDocumentOriginalFileName ?? Path.GetFileName(a.SignedDocumentPath),
-                    UploadedAt = a.SignedDocumentUploadedAt ?? a.UpdatedAt ?? a.CreatedAt,
-                    UploadedByUserName = legacyUploader
-                });
-            }
-
-            var latestDoc = docs.FirstOrDefault();
-            var driverNamesList = a.AssignmentDrivers
-                .Where(ad => !ad.IsDeleted)
-                .OrderByDescending(ad => ad.IsPrimary)
-                .Select(ad => ad.Driver.User.FullName)
-                .Where(n => !string.IsNullOrWhiteSpace(n))
-                .ToList();
-
-            var displayDriver = driverNamesList.Count > 0
-                ? string.Join(", ", driverNamesList)
-                : (a.Driver?.User?.FullName ?? (a.IsExternalDriver ? a.ExternalDriverFullName ?? "Dış Şoför" : (a.IsDriverless ? "Şoförsüz" : "-")));
-
-            return new SignedDocumentItemViewModel
+            model.Items = pagedMissing.Select(a => new SignedDocumentItemViewModel
             {
                 AssignmentId = a.Id,
                 VehiclePlate = a.Vehicle.PlateNumber,
                 VehicleBrandModel = $"{a.Vehicle.Brand} {a.Vehicle.Model}",
-                DriverFullName = displayDriver,
+                DriverFullName = GetAssignmentDisplayDrivers(a),
                 RequestedByDepartment = a.RequestedByDepartment ?? string.Empty,
                 Purpose = a.Purpose,
                 PlannedStartTime = a.PlannedStartTime,
                 PlannedEndTime = a.PlannedEndTime,
-                Status = a.Status,
-                DocumentId = latestDoc?.Id > 0 ? latestDoc.Id : null,
-                DocumentCount = docs.Count,
-                Documents = docs,
-                DocumentOriginalFileName = latestDoc?.OriginalFileName ?? a.SignedDocumentOriginalFileName,
-                DocumentPath = a.SignedDocumentPath,
-                UploadedAt = latestDoc?.UploadedAt ?? a.SignedDocumentUploadedAt,
-                UploadedByFullName = latestDoc?.UploadedByUserName
-                    ?? ((!string.IsNullOrEmpty(a.SignedDocumentUploadedByUserId) && uploaderNames.TryGetValue(a.SignedDocumentUploadedByUserId, out var name)) ? name : null)
-            };
-        }).ToList();
+                Status = a.Status
+            }).ToList();
+
+            return model;
+        }
+
+        // SignedDocumentFilterType.All: Çoklu belgeleri alt alta satırlara aç
+        var allAssignments = await query
+            .OrderByDescending(a => a.PlannedStartTime)
+            .ToListAsync();
+
+        var allExpandedItems = new List<SignedDocumentItemViewModel>();
+        foreach (var a in allAssignments)
+        {
+            var activeDocs = a.SignedDocuments
+                .Where(sd => !sd.IsDeleted)
+                .OrderByDescending(sd => sd.UploadedAt)
+                .ToList();
+
+            if (activeDocs.Count > 0)
+            {
+                foreach (var d in activeDocs)
+                {
+                    allExpandedItems.Add(new SignedDocumentItemViewModel
+                    {
+                        AssignmentId = a.Id,
+                        VehiclePlate = a.Vehicle.PlateNumber,
+                        VehicleBrandModel = $"{a.Vehicle.Brand} {a.Vehicle.Model}",
+                        DriverFullName = !string.IsNullOrWhiteSpace(d.Driver?.User?.FullName)
+                            ? d.Driver.User.FullName
+                            : GetAssignmentDisplayDrivers(a),
+                        RequestedByDepartment = a.RequestedByDepartment ?? string.Empty,
+                        Purpose = a.Purpose,
+                        PlannedStartTime = a.PlannedStartTime,
+                        PlannedEndTime = a.PlannedEndTime,
+                        Status = a.Status,
+                        DocumentId = d.Id,
+                        DocumentCount = 1,
+                        DocumentOriginalFileName = d.OriginalFileName,
+                        DocumentPath = d.FilePath,
+                        UploadedAt = d.UploadedAt,
+                        UploadedByFullName = d.UploadedByUser?.FullName ?? d.UploadedByUser?.UserName
+                    });
+                }
+            }
+            else
+            {
+                allExpandedItems.Add(new SignedDocumentItemViewModel
+                {
+                    AssignmentId = a.Id,
+                    VehiclePlate = a.Vehicle.PlateNumber,
+                    VehicleBrandModel = $"{a.Vehicle.Brand} {a.Vehicle.Model}",
+                    DriverFullName = GetAssignmentDisplayDrivers(a),
+                    RequestedByDepartment = a.RequestedByDepartment ?? string.Empty,
+                    Purpose = a.Purpose,
+                    PlannedStartTime = a.PlannedStartTime,
+                    PlannedEndTime = a.PlannedEndTime,
+                    Status = a.Status
+                });
+            }
+        }
+
+        filter.TotalCount = allExpandedItems.Count;
+        model.Items = allExpandedItems
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
 
         return model;
     }

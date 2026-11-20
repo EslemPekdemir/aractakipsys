@@ -84,12 +84,13 @@ public class SignedDocumentArchiveViewModel
 
     // KPI Sayaçları
     public int TotalUploadedCount { get; set; }
+    public int AssignmentsWithDocumentCount { get; set; }
     public int TotalMissingCount { get; set; }
     public int TotalAssignmentsCount { get; set; }
     public int UploadedThisMonthCount { get; set; }
 
     public int UploadRatePercentage => TotalAssignmentsCount > 0 
-        ? (int)Math.Round((double)TotalUploadedCount * 100 / TotalAssignmentsCount) 
+        ? (int)Math.Round((double)(AssignmentsWithDocumentCount > 0 ? AssignmentsWithDocumentCount : TotalUploadedCount) * 100 / TotalAssignmentsCount) 
         : 0;
 
     // Filtre Dropdown Listeleri

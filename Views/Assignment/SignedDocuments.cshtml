@@ -309,10 +309,11 @@
                                 <td class="align-middle text-right text-nowrap">
                                     @if (item.HasDocument)
                                     {
-                                        <a href="/Assignment/ViewSignedDocument/@item.AssignmentId" target="_blank" class="btn btn-outline-info btn-xs mr-1" title="Yeni Sekmede Önizle">
+                                        var docQuery = item.DocumentId.HasValue ? $"?documentId={item.DocumentId.Value}" : "";
+                                        <a href="/Assignment/ViewSignedDocument/@item.AssignmentId@docQuery" target="_blank" class="btn btn-outline-info btn-xs mr-1" title="Yeni Sekmede Önizle">
                                             <i class="fa fa-eye"></i> Önizle
                                         </a>
-                                        <a href="/Assignment/DownloadSignedDocument/@item.AssignmentId" class="btn btn-outline-success btn-xs mr-1" title="Belgeyi İndir">
+                                        <a href="/Assignment/DownloadSignedDocument/@item.AssignmentId@docQuery" class="btn btn-outline-success btn-xs mr-1" title="Belgeyi İndir">
                                             <i class="fa fa-download"></i> İndir
                                         </a>
                                         <button type="button" class="btn btn-outline-secondary btn-xs" title="Belgeyi Değiştir" onclick="openUploadModal(@item.AssignmentId, '@item.VehiclePlate', '@item.DriverFullName')">
@@ -410,10 +411,13 @@
                                     </div>
 
                                     <div class="d-flex" style="gap: 6px;">
-                                        <a href="/Assignment/ViewSignedDocument/@item.AssignmentId" target="_blank" class="btn btn-outline-info btn-sm flex-fill text-center font-weight-bold">
+                                        @{
+                                            var mobileDocQuery = item.DocumentId.HasValue ? $"?documentId={item.DocumentId.Value}" : "";
+                                        }
+                                        <a href="/Assignment/ViewSignedDocument/@item.AssignmentId@mobileDocQuery" target="_blank" class="btn btn-outline-info btn-sm flex-fill text-center font-weight-bold">
                                             <i class="fa fa-eye mr-1"></i> Önizle
                                         </a>
-                                        <a href="/Assignment/DownloadSignedDocument/@item.AssignmentId" class="btn btn-outline-success btn-sm flex-fill text-center font-weight-bold">
+                                        <a href="/Assignment/DownloadSignedDocument/@item.AssignmentId@mobileDocQuery" class="btn btn-outline-success btn-sm flex-fill text-center font-weight-bold">
                                             <i class="fa fa-download mr-1"></i> İndir
                                         </a>
                                         <button type="button" class="btn btn-outline-secondary btn-sm px-3" title="Belgeyi Değiştir" onclick="openUploadModal(@item.AssignmentId, '@item.VehiclePlate', '@item.DriverFullName')">
