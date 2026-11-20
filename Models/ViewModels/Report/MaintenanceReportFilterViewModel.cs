@@ -31,6 +31,9 @@ public class MaintenanceReportFilterViewModel
     /// </summary>
     public bool HasSearched { get; set; } = false;
 
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+
     // Dropdown Seçenekleri (Select2)
     public List<SelectListItem> VehicleList { get; set; } = new();
     public List<SelectListItem> MaintenanceTypeList { get; set; } = new();

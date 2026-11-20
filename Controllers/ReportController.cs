@@ -61,7 +61,7 @@ public class ReportController : Controller
         }
 
         // 4. Rapor Verilerini Getir
-        var report = await _reportService.GetUsageReportAsync(filter);
+        var report = await _reportService.GetUsageReportAsync(filter, paged: true);
         return View(report);
     }
 
@@ -75,8 +75,8 @@ public class ReportController : Controller
             return RedirectToAction(nameof(Index), filter);
         }
 
-        // Rapor verilerini çek
-        var report = await _reportService.GetUsageReportAsync(filter);
+        // Rapor verilerini çek (PDF çıktısı tüm filtrelenmiş kayıtları içermelidir)
+        var report = await _reportService.GetUsageReportAsync(filter, paged: false);
 
         if (report.Items.Count == 0)
         {
@@ -122,7 +122,7 @@ public class ReportController : Controller
         }
 
         // 3. Rapor Verilerini Getir
-        var report = await _reportService.GetMaintenanceReportAsync(filter);
+        var report = await _reportService.GetMaintenanceReportAsync(filter, paged: true);
         return View(report);
     }
 
@@ -130,7 +130,7 @@ public class ReportController : Controller
     public async Task<IActionResult> ExportMaintenancePdf([FromQuery] MaintenanceReportFilterViewModel filter, [FromQuery] bool preview = false)
     {
         filter.HasSearched = true;
-        var report = await _reportService.GetMaintenanceReportAsync(filter);
+        var report = await _reportService.GetMaintenanceReportAsync(filter, paged: false);
 
         if (report.Items.Count == 0)
         {
@@ -315,10 +315,39 @@ public class ReportController : Controller
             allTires = allTires.Where(x => x.Status == TireStatus.MissingData).ToList();
         }
 
+        // 6. Sayfalama öncesi tüm filtrelenmiş kayıtların KPI toplamlarını hesapla
+        var totalCount = allTires.Count;
+        var totalVehiclesCount = allTires.Select(x => x.VehicleId).Distinct().Count();
+        var criticalCount = allTires.Count(x => x.Status == TireStatus.Critical);
+        var approachingCount = allTires.Count(x => x.Status == TireStatus.Approaching);
+        var normalCount = allTires.Count(x => x.Status == TireStatus.Normal);
+        var missingDataCount = allTires.Count(x => x.Status == TireStatus.MissingData);
+
+        var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;
+        var pageSize = filter.PageSize < 1 ? 10 : filter.PageSize;
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+        if (totalPages > 0 && pageNumber > totalPages)
+        {
+            pageNumber = totalPages;
+        }
+
+        var displayItems = allTires
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
         var viewModel = new TireReportViewModel
         {
             Filter = filter,
-            Items = allTires
+            Items = displayItems,
+            TotalCount = totalCount,
+            TotalVehiclesCount = totalVehiclesCount,
+            CriticalCount = criticalCount,
+            ApproachingCount = approachingCount,
+            NormalCount = normalCount,
+            MissingDataCount = missingDataCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize
         };
 
         return View(viewModel);

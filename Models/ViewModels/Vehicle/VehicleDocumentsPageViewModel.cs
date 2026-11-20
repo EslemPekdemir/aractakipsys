@@ -7,6 +7,8 @@ namespace aractakipsys.Models.ViewModels.Vehicle;
 public class VehicleDocumentsPageViewModel
 {
     public int? SelectedVehicleId { get; set; }
+    public bool IsAllVehicles { get; set; }
+    public int TotalVehicleCount { get; set; }
     public string ActiveTab { get; set; } = "Inspection"; // Inspection, Insurance, Kasko, Tire
 
     public List<SelectListItem> VehicleSelectList { get; set; } = new();

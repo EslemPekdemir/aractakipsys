@@ -10,7 +10,7 @@ public class VehicleRequestReportFilterViewModel
     public DateTime? EndDate { get; set; }
     public bool HasSearched { get; set; } = false;
     public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 7;
+    public int PageSize { get; set; } = 10;
 }
 
 public class VehicleRequestReportItemViewModel
@@ -36,8 +36,8 @@ public class VehicleRequestReportViewModel
 
     public int TotalCount { get; set; }
     public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 7;
-    public int TotalPages => (int)Math.Ceiling((double)TotalCount / (PageSize > 0 ? PageSize : 7));
+    public int PageSize { get; set; } = 10;
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / (PageSize > 0 ? PageSize : 10));
     public bool HasPreviousPage => PageNumber > 1;
     public bool HasNextPage => PageNumber < TotalPages;
 }

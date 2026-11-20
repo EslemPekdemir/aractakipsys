@@ -49,7 +49,7 @@ public class ReportService : IReportService
         return filter;
     }
 
-    public async Task<UsageReportViewModel> GetUsageReportAsync(ReportFilterViewModel filter)
+    public async Task<UsageReportViewModel> GetUsageReportAsync(ReportFilterViewModel filter, bool paged = true)
     {
         // Filtre dropdownlarını hazırla
         await PrepareFilterOptionsAsync(filter);
@@ -201,8 +201,39 @@ public class ReportService : IReportService
             }
         }
 
-        // Şoför bazında grupla
-        var driverGroups = reportItems
+        // Tüm filtrelenmiş kayıtlar üzerinden genel toplamları hesapla (sayfalama yapılsa da KPI ve genel toplam korunur)
+        var distinctAssignments = reportItems
+            .GroupBy(x => x.AssignmentId)
+            .Select(g => g.First())
+            .ToList();
+
+        var totalTrips = distinctAssignments.Count;
+        var totalDistanceKm = distinctAssignments.Sum(x => x.DistanceKm);
+        var totalDurationMinutes = distinctAssignments.Sum(x => x.DurationMinutes);
+        var distinctVehicleCount = reportItems.Select(x => x.PlateNumber).Distinct().Count();
+
+        // Şoför bazında tutarlı sıralama (aynı şoförün seferleri sayfalarda bölünmeden ardışık ilerler)
+        var orderedItems = reportItems
+            .OrderBy(x => x.DriverFullName)
+            .ThenBy(x => x.DriverDepartment)
+            .ThenByDescending(x => x.TripDate)
+            .ToList();
+
+        var totalCount = orderedItems.Count;
+        var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;
+        var pageSize = filter.PageSize < 1 ? 10 : filter.PageSize;
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+        if (totalPages > 0 && pageNumber > totalPages)
+        {
+            pageNumber = totalPages;
+        }
+
+        var displayItems = paged
+            ? orderedItems.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList()
+            : orderedItems;
+
+        // Gösterilecek sayfa kayıtlarını şoför bazında grupla
+        var driverGroups = displayItems
             .GroupBy(x => new { x.DriverFullName, x.DriverDepartment })
             .OrderBy(g => g.Key.DriverFullName)
             .Select(g => new UsageReportDriverGroupViewModel
@@ -218,8 +249,15 @@ public class ReportService : IReportService
         var report = new UsageReportViewModel
         {
             Filter = filter,
-            Items = reportItems,
+            Items = displayItems,
             DriverGroups = driverGroups,
+            TotalCount = totalCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalTrips = totalTrips,
+            TotalDistanceKm = totalDistanceKm,
+            TotalDurationMinutes = totalDurationMinutes,
+            DistinctVehicleCount = distinctVehicleCount,
             SelectedVehicleName = filter.VehicleId.HasValue
                 ? filter.VehicleList.FirstOrDefault(v => v.Value == filter.VehicleId.Value.ToString())?.Text
                 : "Tüm Araçlar",
@@ -295,7 +333,7 @@ public class ReportService : IReportService
         return filter;
     }
 
-    public async Task<MaintenanceReportViewModel> GetMaintenanceReportAsync(MaintenanceReportFilterViewModel filter)
+    public async Task<MaintenanceReportViewModel> GetMaintenanceReportAsync(MaintenanceReportFilterViewModel filter, bool paged = true)
     {
         await PrepareMaintenanceFilterOptionsAsync(filter);
 
@@ -360,10 +398,37 @@ public class ReportService : IReportService
             Cost = m.Cost
         }).ToList();
 
+        // Sayfalama öncesi tüm filtrelenmiş kayıtların KPI ve genel toplamlarını hesapla
+        var totalCount = items.Count;
+        var totalDaysInService = items.Sum(x => x.DurationDays);
+        var ongoingCount = items.Count(x => x.IsOngoing);
+        var completedCount = items.Count(x => !x.IsOngoing);
+        var totalCost = items.Where(x => x.Cost.HasValue).Sum(x => x.Cost!.Value);
+
+        var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;
+        var pageSize = filter.PageSize < 1 ? 10 : filter.PageSize;
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+        if (totalPages > 0 && pageNumber > totalPages)
+        {
+            pageNumber = totalPages;
+        }
+
+        var displayItems = paged
+            ? items.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList()
+            : items;
+
         var report = new MaintenanceReportViewModel
         {
             Filter = filter,
-            Items = items,
+            Items = displayItems,
+            TotalCount = totalCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalMaintenances = totalCount,
+            TotalDaysInService = totalDaysInService,
+            OngoingCount = ongoingCount,
+            CompletedCount = completedCount,
+            TotalCost = totalCost,
             SelectedVehicleName = filter.VehicleId.HasValue
                 ? filter.VehicleList.FirstOrDefault(v => v.Value == filter.VehicleId.Value.ToString())?.Text
                 : "Tüm Araçlar"
@@ -762,7 +827,12 @@ public class ReportService : IReportService
 
         var totalCount = grouped.Count;
         var pageNumber = filter.PageNumber < 1 ? 1 : filter.PageNumber;
-        var pageSize = filter.PageSize < 1 ? 7 : filter.PageSize;
+        var pageSize = filter.PageSize < 1 ? 10 : filter.PageSize;
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+        if (totalPages > 0 && pageNumber > totalPages)
+        {
+            pageNumber = totalPages;
+        }
 
         var displayItems = paged
             ? grouped.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList()

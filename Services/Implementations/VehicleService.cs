@@ -698,126 +698,145 @@ public class VehicleService : IVehicleService
             .OrderBy(v => v.PlateNumber)
             .ToListAsync();
 
-        var selectedId = vehicleId ?? vehicles.FirstOrDefault()?.Id;
+        var isAllVehicles = vehicleId.HasValue && vehicleId.Value == 0;
+        var selectedId = isAllVehicles ? 0 : (vehicleId ?? vehicles.FirstOrDefault()?.Id);
         var tab = string.IsNullOrWhiteSpace(activeTab) ? "Inspection" : activeTab;
+
+        var selectList = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
+        {
+            new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+            {
+                Value = "0",
+                Text = $"Tümü (Tüm Araçlar - {vehicles.Count} Araç)",
+                Selected = isAllVehicles
+            }
+        };
+
+        selectList.AddRange(vehicles.Select(v => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+        {
+            Value = v.Id.ToString(),
+            Text = $"{v.PlateNumber} - {v.Brand} {v.Model} ({v.StatusDisplayName})",
+            Selected = !isAllVehicles && v.Id == selectedId
+        }));
 
         var viewModel = new VehicleDocumentsPageViewModel
         {
             SelectedVehicleId = selectedId,
+            IsAllVehicles = isAllVehicles,
+            TotalVehicleCount = vehicles.Count,
             ActiveTab = tab,
-            VehicleSelectList = vehicles.Select(v => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
-            {
-                Value = v.Id.ToString(),
-                Text = $"{v.PlateNumber} - {v.Brand} {v.Model} ({v.StatusDisplayName})",
-                Selected = v.Id == selectedId
-            }).ToList()
+            VehicleSelectList = selectList
         };
 
-        if (selectedId.HasValue)
+        if (isAllVehicles || selectedId.HasValue)
         {
-            var vehicle = vehicles.FirstOrDefault(v => v.Id == selectedId.Value);
-            viewModel.SelectedVehicle = vehicle;
+            var vehicleLookup = vehicles.ToDictionary(v => v.Id);
+            if (!isAllVehicles && selectedId.HasValue && vehicleLookup.TryGetValue(selectedId.Value, out var singleVehicle))
+            {
+                viewModel.SelectedVehicle = singleVehicle;
+            }
 
-            var docs = await _context.VehicleDocuments
-                .Where(d => d.VehicleId == selectedId.Value && !d.IsDeleted)
+            var docsQuery = _context.VehicleDocuments
+                .Where(d => !d.IsDeleted);
+
+            if (!isAllVehicles && selectedId.HasValue)
+            {
+                docsQuery = docsQuery.Where(d => d.VehicleId == selectedId.Value);
+            }
+            else
+            {
+                var activeVehicleIds = vehicleLookup.Keys.ToList();
+                docsQuery = docsQuery.Where(d => activeVehicleIds.Contains(d.VehicleId));
+            }
+
+            var docs = await docsQuery
                 .OrderByDescending(d => d.EndDate)
                 .ThenByDescending(d => d.Id)
                 .ToListAsync();
 
-            var today = DateTime.Today;
-
-            // Muayene listesi (En son kayıt en üstte)
-            var inspDocs = docs.Where(d => d.DocumentType == VehicleDocumentType.Inspection).ToList();
-            var latestInsp = inspDocs.FirstOrDefault();
-            viewModel.InspectionDocuments = inspDocs.Select(d => new VehicleDocumentItemViewModel
+            List<VehicleDocumentItemViewModel> MapDocumentsByType(VehicleDocumentType docType)
             {
-                Id = d.Id,
-                VehicleId = d.VehicleId,
-                PlateNumber = vehicle?.PlateNumber ?? "",
-                BrandModel = vehicle != null ? $"{vehicle.Brand} {vehicle.Model}" : "",
-                DocumentType = d.DocumentType,
-                StartDate = d.StartDate,
-                EndDate = d.EndDate,
-                Cost = d.Cost,
-                PolicyOrStationNumber = d.PolicyOrStationNumber,
-                CompanyName = d.CompanyName,
-                Notes = d.Notes,
-                CreatedAt = d.CreatedAt,
-                CreatedBy = d.CreatedBy,
-                IsLatest = latestInsp != null && latestInsp.Id == d.Id
-            }).ToList();
+                var typedDocs = docs.Where(d => d.DocumentType == docType).ToList();
+                // Her aracın kendi en güncel (EndDate / Id en yüksek) kaydını belirle
+                var latestDocIdByVehicle = typedDocs
+                    .GroupBy(d => d.VehicleId)
+                    .ToDictionary(g => g.Key, g => g.First().Id);
 
-            // Trafik Sigortası listesi (En son kayıt en üstte)
-            var insDocs = docs.Where(d => d.DocumentType == VehicleDocumentType.Insurance).ToList();
-            var latestIns = insDocs.FirstOrDefault();
-            viewModel.InsuranceDocuments = insDocs.Select(d => new VehicleDocumentItemViewModel
-            {
-                Id = d.Id,
-                VehicleId = d.VehicleId,
-                PlateNumber = vehicle?.PlateNumber ?? "",
-                BrandModel = vehicle != null ? $"{vehicle.Brand} {vehicle.Model}" : "",
-                DocumentType = d.DocumentType,
-                StartDate = d.StartDate,
-                EndDate = d.EndDate,
-                Cost = d.Cost,
-                PolicyOrStationNumber = d.PolicyOrStationNumber,
-                CompanyName = d.CompanyName,
-                Notes = d.Notes,
-                CreatedAt = d.CreatedAt,
-                CreatedBy = d.CreatedBy,
-                IsLatest = latestIns != null && latestIns.Id == d.Id
-            }).ToList();
+                return typedDocs.Select(d =>
+                {
+                    vehicleLookup.TryGetValue(d.VehicleId, out var veh);
+                    return new VehicleDocumentItemViewModel
+                    {
+                        Id = d.Id,
+                        VehicleId = d.VehicleId,
+                        PlateNumber = veh?.PlateNumber ?? "",
+                        BrandModel = veh != null ? $"{veh.Brand} {veh.Model}" : "",
+                        DocumentType = d.DocumentType,
+                        StartDate = d.StartDate,
+                        EndDate = d.EndDate,
+                        Cost = d.Cost,
+                        PolicyOrStationNumber = d.PolicyOrStationNumber,
+                        CompanyName = d.CompanyName,
+                        Notes = d.Notes,
+                        CreatedAt = d.CreatedAt,
+                        CreatedBy = d.CreatedBy,
+                        IsLatest = latestDocIdByVehicle.TryGetValue(d.VehicleId, out var latestId) && latestId == d.Id
+                    };
+                }).ToList();
+            }
 
-            // Kasko listesi (En son kayıt en üstte)
-            var kaskoDocs = docs.Where(d => d.DocumentType == VehicleDocumentType.Kasko).ToList();
-            var latestKasko = kaskoDocs.FirstOrDefault();
-            viewModel.KaskoDocuments = kaskoDocs.Select(d => new VehicleDocumentItemViewModel
-            {
-                Id = d.Id,
-                VehicleId = d.VehicleId,
-                PlateNumber = vehicle?.PlateNumber ?? "",
-                BrandModel = vehicle != null ? $"{vehicle.Brand} {vehicle.Model}" : "",
-                DocumentType = d.DocumentType,
-                StartDate = d.StartDate,
-                EndDate = d.EndDate,
-                Cost = d.Cost,
-                PolicyOrStationNumber = d.PolicyOrStationNumber,
-                CompanyName = d.CompanyName,
-                Notes = d.Notes,
-                CreatedAt = d.CreatedAt,
-                CreatedBy = d.CreatedBy,
-                IsLatest = latestKasko != null && latestKasko.Id == d.Id
-            }).ToList();
+            viewModel.InspectionDocuments = MapDocumentsByType(VehicleDocumentType.Inspection);
+            viewModel.InsuranceDocuments = MapDocumentsByType(VehicleDocumentType.Insurance);
+            viewModel.KaskoDocuments = MapDocumentsByType(VehicleDocumentType.Kasko);
 
             // Lastik listesi (Faz 5-B)
-            var tires = await _context.VehicleTires
-                .Where(t => t.VehicleId == selectedId.Value && !t.IsDeleted)
+            var tiresQuery = _context.VehicleTires
+                .Where(t => !t.IsDeleted);
+
+            if (!isAllVehicles && selectedId.HasValue)
+            {
+                tiresQuery = tiresQuery.Where(t => t.VehicleId == selectedId.Value);
+            }
+            else
+            {
+                var activeVehicleIds = vehicleLookup.Keys.ToList();
+                tiresQuery = tiresQuery.Where(t => activeVehicleIds.Contains(t.VehicleId));
+            }
+
+            var tires = await tiresQuery
                 .OrderByDescending(t => t.InstalledDate ?? t.CreatedAt)
                 .ThenByDescending(t => t.Id)
                 .ToListAsync();
 
-            var latestTire = tires.FirstOrDefault();
+            var latestTireIdByVehicle = tires
+                .GroupBy(t => t.VehicleId)
+                .ToDictionary(g => g.Key, g => g.First().Id);
+
             var tireKmThreshold = _configuration.GetValue<int?>("VehicleSettings:TireKmWarningThreshold") ?? 1000;
-            viewModel.TireDocuments = tires.Select(t => new VehicleTireItemViewModel
+            viewModel.TireDocuments = tires.Select(t =>
             {
-                Id = t.Id,
-                VehicleId = t.VehicleId,
-                PlateNumber = vehicle?.PlateNumber ?? "",
-                Brand = t.Brand,
-                Size = t.Size,
-                DotDate = t.DotDate,
-                ProductionYear = t.ProductionYear,
-                Season = t.Season,
-                InstalledDate = t.InstalledDate,
-                InstalledKm = t.InstalledKm,
-                RecommendedReplaceKm = t.RecommendedReplaceKm,
-                RecommendedReplaceDate = t.RecommendedReplaceDate,
-                Cost = t.Cost,
-                Notes = t.Notes,
-                CreatedAt = t.CreatedAt,
-                VehicleCurrentKm = vehicle?.CurrentKm ?? 0,
-                KmWarningThreshold = tireKmThreshold,
-                IsCurrentTire = latestTire != null && latestTire.Id == t.Id
+                vehicleLookup.TryGetValue(t.VehicleId, out var veh);
+                return new VehicleTireItemViewModel
+                {
+                    Id = t.Id,
+                    VehicleId = t.VehicleId,
+                    PlateNumber = veh?.PlateNumber ?? "",
+                    Brand = t.Brand,
+                    Size = t.Size,
+                    DotDate = t.DotDate,
+                    ProductionYear = t.ProductionYear,
+                    Season = t.Season,
+                    InstalledDate = t.InstalledDate,
+                    InstalledKm = t.InstalledKm,
+                    RecommendedReplaceKm = t.RecommendedReplaceKm,
+                    RecommendedReplaceDate = t.RecommendedReplaceDate,
+                    Cost = t.Cost,
+                    Notes = t.Notes,
+                    CreatedAt = t.CreatedAt,
+                    VehicleCurrentKm = veh?.CurrentKm ?? 0,
+                    KmWarningThreshold = tireKmThreshold,
+                    IsCurrentTire = latestTireIdByVehicle.TryGetValue(t.VehicleId, out var latestId) && latestId == t.Id
+                };
             }).ToList();
         }
 

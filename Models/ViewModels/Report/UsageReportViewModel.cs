@@ -20,12 +20,51 @@ public class UsageReportViewModel
         .GroupBy(x => x.AssignmentId)
         .Select(g => g.First());
 
-    public int TotalTrips => DistinctAssignments.Count();
-    public int TotalDistanceKm => DistinctAssignments.Sum(x => x.DistanceKm);
-    public int TotalDurationMinutes => DistinctAssignments.Sum(x => x.DurationMinutes);
+    private int? _totalTrips;
+    private int? _totalDistanceKm;
+    private int? _totalDurationMinutes;
+    private int? _distinctVehicleCount;
+    private int? _totalCount;
+
+    public int TotalTrips
+    {
+        get => _totalTrips ?? DistinctAssignments.Count();
+        set => _totalTrips = value;
+    }
+
+    public int TotalDistanceKm
+    {
+        get => _totalDistanceKm ?? DistinctAssignments.Sum(x => x.DistanceKm);
+        set => _totalDistanceKm = value;
+    }
+
+    public int TotalDurationMinutes
+    {
+        get => _totalDurationMinutes ?? DistinctAssignments.Sum(x => x.DurationMinutes);
+        set => _totalDurationMinutes = value;
+    }
+
+    public int DistinctVehicleCount
+    {
+        get => _distinctVehicleCount ?? Items.Select(x => x.PlateNumber).Distinct().Count();
+        set => _distinctVehicleCount = value;
+    }
+
     public string TotalDurationFormatted => DurationHelper.FormatDuration(TimeSpan.FromMinutes(TotalDurationMinutes));
 
     public double AverageDistanceKm => TotalTrips > 0 ? Math.Round((double)TotalDistanceKm / TotalTrips, 1) : 0;
+
+    // Sayfalama Özellikleri
+    public int TotalCount
+    {
+        get => _totalCount ?? Items.Count;
+        set => _totalCount = value;
+    }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / (PageSize > 0 ? PageSize : 10));
+    public bool HasPreviousPage => PageNumber > 1;
+    public bool HasNextPage => PageNumber < TotalPages;
 
     // Rapor Başlık & Filtre Özet Bilgileri
     public string? SelectedVehicleName { get; set; }

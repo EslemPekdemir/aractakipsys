@@ -341,7 +341,7 @@
                         <h5 class="text-muted text-uppercase mb-0 font-weight-bold">Görev Yapan Araç</h5>
                     </div>
                     <div class="ibox-content">
-                        <div class="kpi-num text-warning">@Model.Items.Select(x => x.PlateNumber).Distinct().Count()</div>
+                        <div class="kpi-num text-warning">@Model.DistinctVehicleCount</div>
                         <small class="text-muted">Seferde kullanılan araç sayısı</small>
                     </div>
                 </div>
@@ -485,6 +485,89 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <!-- SAYFALAMA (PAGINATION) BARI -->
+                <div class="p-3 border-top d-flex flex-wrap justify-content-between align-items-center" style="gap: 10px;">
+                    <span class="text-muted small">
+                        Toplam <strong>@Model.TotalCount</strong> kayıttan
+                        <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)</strong> arası gösteriliyor.
+                    </span>
+
+                    @if (Model.TotalPages > 1)
+                    {
+                        <ul class="pagination pagination-sm m-0">
+                            @* Önceki Butonu *@
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new {
+                                    PageNumber = Model.PageNumber - 1,
+                                    PageSize = Model.PageSize,
+                                    VehicleId = Model.Filter.VehicleId,
+                                    DriverId = Model.Filter.DriverId,
+                                    DateRangePreset = Model.Filter.DateRangePreset,
+                                    StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"),
+                                    EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"),
+                                    HasSearched = true
+                                })">&laquo; Önceki</a>
+                            </li>
+
+                            @{
+                                int curPage = Model.PageNumber;
+                                int totPages = Model.TotalPages;
+                                int maxButtons = 10;
+
+                                int startP = Math.Max(1, curPage - (maxButtons / 2));
+                                int endP = Math.Min(totPages, startP + maxButtons - 1);
+                                if (endP - startP + 1 < maxButtons)
+                                {
+                                    startP = Math.Max(1, endP - maxButtons + 1);
+                                }
+                            }
+
+                            @if (startP > 1)
+                            {
+                                <li class="page-item @(curPage == 1 ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", new { PageNumber = 1, PageSize = Model.PageSize, VehicleId = Model.Filter.VehicleId, DriverId = Model.Filter.DriverId, DateRangePreset = Model.Filter.DateRangePreset, StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), HasSearched = true })">1</a>
+                                </li>
+                                if (startP > 2)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                }
+                            }
+
+                            @for (int p = startP; p <= endP; p++)
+                            {
+                                <li class="page-item @(p == curPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", new { PageNumber = p, PageSize = Model.PageSize, VehicleId = Model.Filter.VehicleId, DriverId = Model.Filter.DriverId, DateRangePreset = Model.Filter.DateRangePreset, StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), HasSearched = true })">@p</a>
+                                </li>
+                            }
+
+                            @if (endP < totPages)
+                            {
+                                if (endP < totPages - 1)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                                }
+                                <li class="page-item @(curPage == totPages ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Index", new { PageNumber = totPages, PageSize = Model.PageSize, VehicleId = Model.Filter.VehicleId, DriverId = Model.Filter.DriverId, DateRangePreset = Model.Filter.DateRangePreset, StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"), HasSearched = true })">@totPages</a>
+                                </li>
+                            }
+
+                            @* Sonraki Butonu *@
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new {
+                                    PageNumber = Model.PageNumber + 1,
+                                    PageSize = Model.PageSize,
+                                    VehicleId = Model.Filter.VehicleId,
+                                    DriverId = Model.Filter.DriverId,
+                                    DateRangePreset = Model.Filter.DateRangePreset,
+                                    StartDate = Model.Filter.StartDate?.ToString("yyyy-MM-dd"),
+                                    EndDate = Model.Filter.EndDate?.ToString("yyyy-MM-dd"),
+                                    HasSearched = true
+                                })">Sonraki &raquo;</a>
+                            </li>
+                        </ul>
+                    }
                 </div>
             </div>
         </div>

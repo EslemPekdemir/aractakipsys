@@ -13,7 +13,7 @@ public interface IReportService
     /// <summary>
     /// Belirtilen filtrelere göre sadece tamamlanmış (Completed) seferleri getirir ve kullanım raporunu üretir.
     /// </summary>
-    Task<UsageReportViewModel> GetUsageReportAsync(ReportFilterViewModel filter);
+    Task<UsageReportViewModel> GetUsageReportAsync(ReportFilterViewModel filter, bool paged = true);
 
     /// <summary>
     /// Bakım raporu filtre seçeneklerini hazırlar.
@@ -23,7 +23,7 @@ public interface IReportService
     /// <summary>
     /// Belirtilen filtrelere göre araçların bakım ve tamir geçmişi raporunu üretir.
     /// </summary>
-    Task<MaintenanceReportViewModel> GetMaintenanceReportAsync(MaintenanceReportFilterViewModel filter);
+    Task<MaintenanceReportViewModel> GetMaintenanceReportAsync(MaintenanceReportFilterViewModel filter, bool paged = true);
 
     /// <summary>
     /// Filodaki araçların sigorta ve muayene bitiş tarihlerine göre durum raporunu üretir.

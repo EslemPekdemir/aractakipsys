@@ -13,24 +13,63 @@ public class TireReportViewModel
     public TireReportFilterViewModel Filter { get; set; } = new();
     public List<VehicleTireItemViewModel> Items { get; set; } = new();
 
-    // Özet KPI Kartı Sayaçları
-    public int TotalCount => Items.Count;
-    public int TotalVehiclesCount => Items.Select(x => x.VehicleId).Distinct().Count();
+    private int? _totalCount;
+    private int? _totalVehiclesCount;
+    private int? _criticalCount;
+    private int? _approachingCount;
+    private int? _normalCount;
+    private int? _missingDataCount;
+
+    // Özet KPI Kartı Sayaçları (Sayfalamadan bağımsız tüm filtrelenmiş kayıtların toplamları)
+    public int TotalCount
+    {
+        get => _totalCount ?? Items.Count;
+        set => _totalCount = value;
+    }
+
+    public int TotalVehiclesCount
+    {
+        get => _totalVehiclesCount ?? Items.Select(x => x.VehicleId).Distinct().Count();
+        set => _totalVehiclesCount = value;
+    }
     
     // Değişim gerekli kritik lastikler (KM veya tavsiye tarihi aşılmış)
-    public int CriticalCount => Items.Count(x => x.Status == TireStatus.Critical);
+    public int CriticalCount
+    {
+        get => _criticalCount ?? Items.Count(x => x.Status == TireStatus.Critical);
+        set => _criticalCount = value;
+    }
     public int ExpiredCount => CriticalCount;
 
     // 30 gün içinde dolacak veya KM uyarı eşiğinde olan yaklaşan lastikler
-    public int ApproachingCount => Items.Count(x => x.Status == TireStatus.Approaching);
+    public int ApproachingCount
+    {
+        get => _approachingCount ?? Items.Count(x => x.Status == TireStatus.Approaching);
+        set => _approachingCount = value;
+    }
     public int ExpiringSoonCount => ApproachingCount;
 
     // Normal (Eşik girilmiş, aşınma ve süre problemi olmayanlar)
-    public int NormalCount => Items.Count(x => x.Status == TireStatus.Normal);
+    public int NormalCount
+    {
+        get => _normalCount ?? Items.Count(x => x.Status == TireStatus.Normal);
+        set => _normalCount = value;
+    }
     public int ValidCount => NormalCount;
 
     // Veri Eksik (Eşik girilmemiş veya kullanım KM hesaplanamıyor)
-    public int MissingDataCount => Items.Count(x => x.Status == TireStatus.MissingData);
+    public int MissingDataCount
+    {
+        get => _missingDataCount ?? Items.Count(x => x.Status == TireStatus.MissingData);
+        set => _missingDataCount = value;
+    }
+
+    // Sayfalama Özellikleri
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public int TotalPages => (int)Math.Ceiling((double)TotalCount / (PageSize > 0 ? PageSize : 10));
+    public bool HasPreviousPage => PageNumber > 1;
+    public bool HasNextPage => PageNumber < TotalPages;
 
     public string FilterOptionDisplayName => Filter.FilterOption switch
     {
@@ -49,6 +88,8 @@ public class TireReportFilterViewModel
     public string? SearchTerm { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
 
     public List<SelectListItem> VehicleList { get; set; } = new();
 }

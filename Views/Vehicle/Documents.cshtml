@@ -18,7 +18,7 @@
         </ol>
     </div>
     <div class="col-lg-4 text-right d-flex align-items-center justify-content-end">
-        @if (Model.SelectedVehicle != null)
+        @if (Model.SelectedVehicle != null || (Model.IsAllVehicles && Model.TotalVehicleCount > 0))
         {
             <button type="button" class="btn btn-primary shadow-sm" data-toggle="modal" data-target="#addDocumentModal">
                 <i class="fa fa-plus mr-1"></i> Yeni Belge Kaydı Ekle
@@ -56,7 +56,7 @@
                 <i class="fa fa-car mr-1 text-primary"></i> İşlem Yapılacak Aracı Seçin:
             </div>
             <div class="col-12 col-md-6 mb-2 mb-md-0">
-                <select name="vehicleId" class="form-control select2" onchange="$('#vehicleSelectForm').submit();">
+                <select name="vehicleId" id="vehicleDocumentSelect" class="form-control select2 vdoc-vehicle-select">
                     @foreach (var item in Model.VehicleSelectList)
                     {
                         <option value="@item.Value" selected="@(item.Selected ? "selected" : null)">@item.Text</option>
@@ -75,7 +75,7 @@
     </div>
 </div>
 
-@if (Model.SelectedVehicle == null)
+@if (!Model.IsAllVehicles && Model.SelectedVehicle == null)
 {
     <div class="card shadow-sm text-center py-5">
         <div class="card-body">
@@ -87,6 +87,47 @@
 }
 else
 {
+    @if (Model.IsAllVehicles)
+    {
+        <!-- TÜM ARAÇLAR ÖZET KÜNYESİ -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm border-0" style="border-radius: 10px; border-left: 5px solid #1ab394 !important;">
+                    <div class="card-body py-3 px-4 d-flex justify-content-between align-items-center flex-wrap" style="gap: 15px;">
+                        <div>
+                            <h4 class="font-weight-bold text-primary mb-1">
+                                Tüm Araçlar
+                                <span class="text-dark font-weight-normal ml-2" style="font-size: 1.05rem;">(@Model.TotalVehicleCount Aktif Araç)</span>
+                            </h4>
+                            <div class="text-muted small">
+                                Filodaki tüm araçlara ait muayene, trafik sigortası, kasko ve lastik kayıtları birlikte listelenmektedir.
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                            <div class="text-center p-2 rounded bg-light border" style="min-width: 120px;">
+                                <small class="text-muted d-block font-weight-bold">MUAYENE</small>
+                                <span class="font-weight-bold text-primary">@Model.InspectionDocuments.Count Kayıt</span>
+                            </div>
+                            <div class="text-center p-2 rounded bg-light border" style="min-width: 120px;">
+                                <small class="text-muted d-block font-weight-bold">SİGORTA</small>
+                                <span class="font-weight-bold text-primary">@Model.InsuranceDocuments.Count Kayıt</span>
+                            </div>
+                            <div class="text-center p-2 rounded bg-light border" style="min-width: 120px;">
+                                <small class="text-muted d-block font-weight-bold">KASKO</small>
+                                <span class="font-weight-bold text-primary">@Model.KaskoDocuments.Count Kayıt</span>
+                            </div>
+                            <div class="text-center p-2 rounded bg-light border" style="min-width: 120px;">
+                                <small class="text-muted d-block font-weight-bold">LASTİK</small>
+                                <span class="font-weight-bold text-primary">@Model.TireDocuments.Count Kayıt</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (Model.SelectedVehicle != null)
+    {
     <!-- SEÇİLİ ARAÇ ÖZET KÜNYESİ -->
     <div class="row mb-4">
         <div class="col-12">
@@ -214,6 +255,7 @@ else
             </div>
         </div>
     </div>
+    }
 
     <!-- 4 SEKMELİ BELGE ALANI: Muayene | Trafik Sigortası | Kasko | Lastik -->
     <div class="card shadow-sm border-0" style="border-radius: 10px;">
@@ -294,10 +336,14 @@ else
                     }
                     else
                     {
-                        <div class="table-responsive">
+                        <div class="table-responsive vdoc-tab-table-scroll">
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="bg-light text-secondary font-weight-bold small">
                                     <tr>
+                                        @if (Model.IsAllVehicles)
+                                        {
+                                            <th>ARAÇ</th>
+                                        }
                                         <th>DURUM</th>
                                         <th>BAŞLANGIÇ</th>
                                         <th>BİTİŞ (GEÇERLİLİK)</th>
@@ -311,6 +357,13 @@ else
                                     @foreach (var doc in Model.InspectionDocuments)
                                     {
                                         <tr class="@(doc.Status == VehicleDocumentStatus.Valid ? "table-success font-weight-normal" : doc.Status == VehicleDocumentStatus.Expired ? "table-danger" : doc.Status == VehicleDocumentStatus.ExpiringSoon ? "table-warning" : "")">
+                                            @if (Model.IsAllVehicles)
+                                            {
+                                                <td class="text-nowrap">
+                                                    <a href="/Vehicle/Documents?vehicleId=@doc.VehicleId&activeTab=Inspection" class="font-weight-bold text-primary">@doc.PlateNumber</a>
+                                                    <small class="text-muted d-block">@doc.BrandModel</small>
+                                                </td>
+                                            }
                                             <td>
                                                 <span class="badge @doc.StatusBadgeClass px-2 py-1">
                                                     @if (doc.Status == VehicleDocumentStatus.Valid)
@@ -350,6 +403,7 @@ else
                                             <td class="text-right text-nowrap">
                                                 <button type="button" class="btn btn-xs btn-outline-primary mr-1 btn-action-mutate btn-edit-document" 
                                                         data-id="@doc.Id"
+                                                        data-vehicle-id="@doc.VehicleId"
                                                         data-doc-type="@doc.DocumentType"
                                                         data-start-date="@doc.StartDate.ToString("yyyy-MM-dd")"
                                                         data-end-date="@doc.EndDate.ToString("yyyy-MM-dd")"
@@ -405,10 +459,14 @@ else
                     }
                     else
                     {
-                        <div class="table-responsive">
+                        <div class="table-responsive vdoc-tab-table-scroll">
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="bg-light text-secondary font-weight-bold small">
                                     <tr>
+                                        @if (Model.IsAllVehicles)
+                                        {
+                                            <th>ARAÇ</th>
+                                        }
                                         <th>DURUM</th>
                                         <th>BAŞLANGIÇ</th>
                                         <th>BİTİŞ (POLİÇE SONU)</th>
@@ -422,6 +480,13 @@ else
                                     @foreach (var doc in Model.InsuranceDocuments)
                                     {
                                         <tr class="@(doc.Status == VehicleDocumentStatus.Valid ? "table-success font-weight-normal" : doc.Status == VehicleDocumentStatus.Expired ? "table-danger" : doc.Status == VehicleDocumentStatus.ExpiringSoon ? "table-warning" : "")">
+                                            @if (Model.IsAllVehicles)
+                                            {
+                                                <td class="text-nowrap">
+                                                    <a href="/Vehicle/Documents?vehicleId=@doc.VehicleId&activeTab=Insurance" class="font-weight-bold text-primary">@doc.PlateNumber</a>
+                                                    <small class="text-muted d-block">@doc.BrandModel</small>
+                                                </td>
+                                            }
                                             <td>
                                                 <span class="badge @doc.StatusBadgeClass px-2 py-1">
                                                     @if (doc.Status == VehicleDocumentStatus.Valid)
@@ -461,6 +526,7 @@ else
                                             <td class="text-right text-nowrap">
                                                 <button type="button" class="btn btn-xs btn-outline-primary mr-1 btn-action-mutate btn-edit-document" 
                                                         data-id="@doc.Id"
+                                                        data-vehicle-id="@doc.VehicleId"
                                                         data-doc-type="@doc.DocumentType"
                                                         data-start-date="@doc.StartDate.ToString("yyyy-MM-dd")"
                                                         data-end-date="@doc.EndDate.ToString("yyyy-MM-dd")"
@@ -516,10 +582,14 @@ else
                     }
                     else
                     {
-                        <div class="table-responsive">
+                        <div class="table-responsive vdoc-tab-table-scroll">
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="bg-light text-secondary font-weight-bold small">
                                     <tr>
+                                        @if (Model.IsAllVehicles)
+                                        {
+                                            <th>ARAÇ</th>
+                                        }
                                         <th>DURUM</th>
                                         <th>BAŞLANGIÇ</th>
                                         <th>BİTİŞ (POLİÇE SONU)</th>
@@ -533,6 +603,13 @@ else
                                     @foreach (var doc in Model.KaskoDocuments)
                                     {
                                         <tr class="@(doc.Status == VehicleDocumentStatus.Valid ? "table-success font-weight-normal" : doc.Status == VehicleDocumentStatus.Expired ? "table-danger" : doc.Status == VehicleDocumentStatus.ExpiringSoon ? "table-warning" : "")">
+                                            @if (Model.IsAllVehicles)
+                                            {
+                                                <td class="text-nowrap">
+                                                    <a href="/Vehicle/Documents?vehicleId=@doc.VehicleId&activeTab=Kasko" class="font-weight-bold text-primary">@doc.PlateNumber</a>
+                                                    <small class="text-muted d-block">@doc.BrandModel</small>
+                                                </td>
+                                            }
                                             <td>
                                                 <span class="badge @doc.StatusBadgeClass px-2 py-1">
                                                     @if (doc.Status == VehicleDocumentStatus.Valid)
@@ -572,6 +649,7 @@ else
                                             <td class="text-right text-nowrap">
                                                 <button type="button" class="btn btn-xs btn-outline-primary mr-1 btn-action-mutate btn-edit-document" 
                                                         data-id="@doc.Id"
+                                                        data-vehicle-id="@doc.VehicleId"
                                                         data-doc-type="@doc.DocumentType"
                                                         data-start-date="@doc.StartDate.ToString("yyyy-MM-dd")"
                                                         data-end-date="@doc.EndDate.ToString("yyyy-MM-dd")"
@@ -604,7 +682,14 @@ else
                             <h5 class="font-weight-bold text-dark m-0">
                                 <i class="fa fa-circle-o-notch mr-1 text-primary"></i> Lastik Geçmişi ve Değişim Takibi
                             </h5>
-                            <small class="text-muted">Kullanım KM'si aracın güncel KM'sine (@(Model.SelectedVehicle?.CurrentKm.ToString("N0") ?? "0") km) göre anlık hesaplanmaktadır.</small>
+                            @if (Model.IsAllVehicles)
+                            {
+                                <small class="text-muted">Kullanım KM'si her aracın kendi güncel KM'sine göre anlık hesaplanmaktadır.</small>
+                            }
+                            else
+                            {
+                                <small class="text-muted">Kullanım KM'si aracın güncel KM'sine (@(Model.SelectedVehicle?.CurrentKm.ToString("N0") ?? "0") km) göre anlık hesaplanmaktadır.</small>
+                            }
                         </div>
                         <div class="d-flex" style="gap: 8px;">
                             <div class="btn-group">
@@ -633,10 +718,14 @@ else
                     }
                     else
                     {
-                        <div class="table-responsive">
+                        <div class="table-responsive vdoc-tab-table-scroll">
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="thead-light">
                                     <tr>
+                                        @if (Model.IsAllVehicles)
+                                        {
+                                            <th>Araç</th>
+                                        }
                                         <th style="width: 50px;">Durum</th>
                                         <th>Marka / Ebat</th>
                                         <th>DOT / Üretim</th>
@@ -653,6 +742,12 @@ else
                                     @foreach (var tire in Model.TireDocuments)
                                     {
                                         <tr class="@(tire.IsCurrentTire ? "table-success font-weight-normal" : "") @(tire.Status == aractakipsys.Models.Enums.TireStatus.Critical ? "table-danger" : tire.Status == aractakipsys.Models.Enums.TireStatus.Approaching ? "table-warning" : "")">
+                                            @if (Model.IsAllVehicles)
+                                            {
+                                                <td class="text-nowrap">
+                                                    <a href="/Vehicle/Documents?vehicleId=@tire.VehicleId&activeTab=Tire" class="font-weight-bold text-primary">@tire.PlateNumber</a>
+                                                </td>
+                                            }
                                             <td>
                                                 @if (tire.IsCurrentTire)
                                                 {
@@ -732,6 +827,7 @@ else
                                             <td class="text-right text-nowrap">
                                                 <button type="button" class="btn btn-xs btn-outline-primary mr-1 btn-action-mutate btn-edit-tire" 
                                                         data-id="@tire.Id"
+                                                        data-vehicle-id="@tire.VehicleId"
                                                         data-brand="@tire.Brand"
                                                         data-size="@(tire.Size ?? "")"
                                                         data-dot="@(tire.DotDate ?? "")"
@@ -779,10 +875,26 @@ else
             </div>
             <form method="post" action="/Vehicle/AddDocument">
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="VehicleId" value="@Model.SelectedVehicleId" />
+                @if (!Model.IsAllVehicles)
+                {
+                    <input type="hidden" name="VehicleId" value="@Model.SelectedVehicleId" />
+                }
                 <input type="hidden" name="activeTab" value="@activeTab" />
 
                 <div class="modal-body p-4">
+                    @if (Model.IsAllVehicles)
+                    {
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">Araç <span class="text-danger">*</span></label>
+                            <select name="VehicleId" class="form-control" required>
+                                <option value="">-- Araç Seçiniz --</option>
+                                @foreach (var item in Model.VehicleSelectList.Where(v => v.Value != "0"))
+                                {
+                                    <option value="@item.Value">@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    }
                     <div class="form-group mb-3">
                         <label class="font-weight-bold text-dark">Belge Türü <span class="text-danger">*</span></label>
                         <select name="DocumentType" id="modalDocumentType" class="form-control" required>
@@ -848,7 +960,7 @@ else
             </div>
             <form method="post" id="editDocumentForm" action="/Vehicle/UpdateDocument/0">
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="VehicleId" value="@Model.SelectedVehicleId" />
+                <input type="hidden" name="VehicleId" id="editDocVehicleId" value="@Model.SelectedVehicleId" />
                 <input type="hidden" name="activeTab" value="@activeTab" />
                 <input type="hidden" name="DocumentType" id="editDocumentType" />
 
@@ -909,9 +1021,25 @@ else
             </div>
             <form method="post" action="/Vehicle/AddTire">
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="VehicleId" value="@Model.SelectedVehicleId" />
+                @if (!Model.IsAllVehicles)
+                {
+                    <input type="hidden" name="VehicleId" value="@Model.SelectedVehicleId" />
+                }
 
                 <div class="modal-body p-4">
+                    @if (Model.IsAllVehicles)
+                    {
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold text-dark">Araç <span class="text-danger">*</span></label>
+                            <select name="VehicleId" class="form-control" required>
+                                <option value="">-- Araç Seçiniz --</option>
+                                @foreach (var item in Model.VehicleSelectList.Where(v => v.Value != "0"))
+                                {
+                                    <option value="@item.Value">@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    }
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="font-weight-bold text-dark">Marka <span class="text-danger">*</span></label>
@@ -1000,7 +1128,7 @@ else
             </div>
             <form method="post" id="editTireForm" action="/Vehicle/UpdateTire/0">
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="VehicleId" value="@Model.SelectedVehicleId" />
+                <input type="hidden" name="VehicleId" id="editTireVehicleId" value="@Model.SelectedVehicleId" />
 
                 <div class="modal-body p-4">
                     <div class="row">
@@ -1088,10 +1216,42 @@ else
     <input type="hidden" name="vehicleId" value="@Model.SelectedVehicleId" />
 </form>
 
+@section Styles {
+<style>
+    /* Yalnızca Araç Belgeleri sayfasına özel araç seçici Select2 kaydırma stili */
+    .vdoc-vehicle-select-dropdown .select2-results > .select2-results__options,
+    .vdoc-vehicle-select-dropdown .select2-results__options {
+        max-height: 350px !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Dört sekmenin (Muayene, Trafik Sigortası, Kasko, Lastik) kayıt tabloları için dikey kaydırma ve sabit başlık */
+    .vdoc-tab-table-scroll {
+        max-height: 400px;
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .vdoc-tab-table-scroll table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background-color: #f8f9fa;
+        box-shadow: inset 0 -1px 0 #dee2e6;
+    }
+</style>
+}
+
 @section Scripts {
 <script>
-    function openEditModal(id, docType, start, end, cost, policyNo, company, notes) {
+    function openEditModal(id, vehicleId, docType, start, end, cost, policyNo, company, notes) {
         $('#editDocumentForm').attr('action', '/Vehicle/UpdateDocument/' + id);
+        if (vehicleId) {
+            $('#editDocVehicleId').val(vehicleId);
+        }
         $('#editDocumentType').val(docType);
         $('#editStartDate').val(start);
         $('#editEndDate').val(end);
@@ -1109,8 +1269,11 @@ else
         }
     }
 
-    function openEditTireModal(id, brand, size, dot, season, installedDate, installedKm, recKm, recDate, cost, notes) {
+    function openEditTireModal(id, vehicleId, brand, size, dot, season, installedDate, installedKm, recKm, recDate, cost, notes) {
         $('#editTireForm').attr('action', '/Vehicle/UpdateTire/' + id);
+        if (vehicleId) {
+            $('#editTireVehicleId').val(vehicleId);
+        }
         $('#editTireBrand').val(brand || '');
         $('#editTireSize').val(size || '');
         $('#editTireDotDate').val(dot || '');
@@ -1135,10 +1298,51 @@ else
     }
 
     $(document).ready(function () {
+        // Araç seçme açılır listesi: Select2 ile aranabilir ve 350px max-height kaydırılabilir liste
+        var $vehicleSelect = $('#vehicleDocumentSelect');
+        if ($vehicleSelect.length && $.fn.select2) {
+            $vehicleSelect.select2({
+                width: '100%',
+                dropdownCssClass: 'vdoc-vehicle-select-dropdown',
+                language: {
+                    noResults: function () {
+                        return 'Eşleşen araç bulunamadı';
+                    },
+                    searching: function () {
+                        return 'Aranıyor...';
+                    }
+                },
+                matcher: function (params, data) {
+                    if ($.trim(params.term) === '') {
+                        return data;
+                    }
+                    if (typeof data.text === 'undefined') {
+                        return null;
+                    }
+                    var term = params.term.toLocaleLowerCase('tr-TR');
+                    var text = data.text.toLocaleLowerCase('tr-TR');
+                    return text.indexOf(term) > -1 ? data : null;
+                }
+            }).on('select2:open', function () {
+                setTimeout(function () {
+                    var searchInput = document.querySelector('.vdoc-vehicle-select-dropdown .select2-search__field');
+                    if (searchInput) {
+                        searchInput.placeholder = 'Plaka veya marka/model ara...';
+                        searchInput.focus();
+                    }
+                }, 0);
+            });
+        }
+
+        $vehicleSelect.on('change', function () {
+            $('#vehicleSelectForm').submit();
+        });
+
         $(document).on('click', '.btn-edit-document', function () {
             var $btn = $(this);
             openEditModal(
                 $btn.attr('data-id'),
+                $btn.attr('data-vehicle-id'),
                 $btn.attr('data-doc-type'),
                 $btn.attr('data-start-date'),
                 $btn.attr('data-end-date'),
@@ -1158,6 +1362,7 @@ else
             var $btn = $(this);
             openEditTireModal(
                 $btn.attr('data-id'),
+                $btn.attr('data-vehicle-id'),
                 $btn.attr('data-brand'),
                 $btn.attr('data-size'),
                 $btn.attr('data-dot'),
