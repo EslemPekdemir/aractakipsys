@@ -9,3 +9,9 @@ appsettings.Production.json
 App_Data/
 wwwroot/uploads/
 scratch/
+
+cookies.txt
+test_report.pdf
+/0
+App_Data/
+*.bak

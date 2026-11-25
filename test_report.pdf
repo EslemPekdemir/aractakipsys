@@ -1,9 +1,0 @@
-HTTP/1.1 302 Found
-Content-Length: 0
-Date: Wed, 04 Nov 2026 09:15:07 GMT
-Server: Kestrel
-Cache-Control: no-cache, no-store, must-revalidate
-Expires: 0
-Location: http://localhost:5293/Account/Login?ReturnUrl=%2FReport%2FExportTiresPdf
-Pragma: no-cache
-
