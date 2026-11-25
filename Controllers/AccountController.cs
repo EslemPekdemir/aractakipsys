@@ -82,14 +82,6 @@ public class AccountController : Controller
     [EnableRateLimiting("login-limit")]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
-        // Geliştirme ortamında çalışan otomatik test scriptlerinin (PowerShell vb.) kesintiye uğramaması için bypass kontrolü
-        var isDevScriptBypass = _webHostEnvironment.IsDevelopment() && string.IsNullOrEmpty(model.CaptchaCode) && string.IsNullOrEmpty(model.CaptchaToken);
-
-        if (isDevScriptBypass)
-        {
-            ModelState.Remove(nameof(model.CaptchaCode));
-        }
-
         if (!ModelState.IsValid)
         {
             RefreshModelCaptcha(model);
@@ -97,15 +89,12 @@ public class AccountController : Controller
         }
 
         // Kaba kuvvet (Brute-Force) koruması: Kullanıcı adı/şifre kontrolünden ÖNCE Captcha doğrulanır
-        if (!isDevScriptBypass)
+        if (!_captchaService.ValidateCaptcha(model.CaptchaCode, model.CaptchaToken))
         {
-            if (!_captchaService.ValidateCaptcha(model.CaptchaCode, model.CaptchaToken))
-            {
-                _logger.LogWarning("Başarısız Captcha doğrulaması: {Username}", model.Username);
-                ModelState.AddModelError(nameof(model.CaptchaCode), "Güvenlik kodu hatalı veya süresi dolmuş.");
-                RefreshModelCaptcha(model);
-                return View(model);
-            }
+            _logger.LogWarning("Başarısız Captcha doğrulaması: {Username}", model.Username);
+            ModelState.AddModelError(nameof(model.CaptchaCode), "Güvenlik kodu hatalı veya süresi dolmuş.");
+            RefreshModelCaptcha(model);
+            return View(model);
         }
 
         // Kullanıcıyı kullanıcı adı veya e-posta ile ara

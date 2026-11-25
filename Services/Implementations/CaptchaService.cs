@@ -12,17 +12,15 @@ namespace aractakipsys.Services.Implementations;
 public class CaptchaService : ICaptchaService
 {
     private readonly IDataProtector _protector;
-    private readonly IWebHostEnvironment _environment;
 
     // Karıştırılabilecek karakterler (0, O, 1, I, l) hariç tutulmuş güvenli karakter havuzu
     private const string CharacterPool = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
     private static readonly string[] TextColors = { "#1e3c72", "#2a5298", "#0f172a", "#0369a1", "#1d4ed8", "#047857", "#b91c1c", "#4338ca" };
     private static readonly string[] NoiseColors = { "#94a3b8", "#cbd5e1", "#64748b", "#38bdf8", "#818cf8" };
 
-    public CaptchaService(IDataProtectionProvider dataProtectionProvider, IWebHostEnvironment environment)
+    public CaptchaService(IDataProtectionProvider dataProtectionProvider)
     {
         _protector = dataProtectionProvider.CreateProtector("aractakipsys.CaptchaProtection.v1");
-        _environment = environment;
     }
 
     /// <summary>
@@ -63,12 +61,6 @@ public class CaptchaService : ICaptchaService
         }
 
         var trimmedCode = inputCode.Trim();
-
-        // Geliştirme ortamında testlerin ve geliştiricinin hızını artırmak için test kodları
-        if (_environment.IsDevelopment() && (trimmedCode == "12345" || trimmedCode.Equals("TEST", StringComparison.OrdinalIgnoreCase)))
-        {
-            return true;
-        }
 
         try
         {

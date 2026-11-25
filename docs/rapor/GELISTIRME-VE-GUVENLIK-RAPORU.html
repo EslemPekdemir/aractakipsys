@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Düzce Üniversitesi Araç Takip Paneli — Kapsamlı Geliştirme ve Güvenlik Çalışmaları Raporu</title>
+    <style>
+        :root {
+            --primary-navy: #0f2547;
+            --secondary-navy: #1e3c72;
+            --accent-blue: #2563eb;
+            --accent-teal: #1ab394;
+            --success-green: #059669;
+            --success-bg: #ecfdf5;
+            --success-border: #a7f3d0;
+            --text-dark: #1e293b;
+            --text-muted: #475569;
+            --bg-page: #f1f5f9;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-page);
+            color: var(--text-dark);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.65;
+            font-size: 15px;
+        }
+
+        .report-wrapper {
+            max-width: 1240px;
+            margin: 32px auto;
+            padding: 0 20px;
+        }
+
+        /* Kurumsal Başlık Alanı */
+        .report-header {
+            background: linear-gradient(135deg, var(--primary-navy) 0%, var(--secondary-navy) 100%);
+            color: #ffffff;
+            border-radius: 16px;
+            padding: 40px 44px;
+            box-shadow: 0 12px 30px rgba(15, 37, 71, 0.18);
+            border-bottom: 5px solid var(--accent-teal);
+            margin-bottom: 28px;
+        }
+
+        .header-top-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+
+        .inst-pill {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            color: #f8fafc;
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .status-pill-green {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #10b981;
+            color: #ffffff;
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        .report-header h1 {
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.4px;
+            color: #ffffff;
+        }
+
+        .report-header h2 {
+            margin: 0 0 24px 0;
+            font-size: 17px;
+            font-weight: 500;
+            color: #bfdbfe;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 12px;
+            padding: 16px 20px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #93c5fd;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .meta-value {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        /* İçindekiler ve Kartlar */
+        .section-card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            padding: 32px 36px;
+            margin-bottom: 26px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        .toc-card {
+            background: #ffffff;
+            border-left: 5px solid var(--secondary-navy);
+        }
+
+        .toc-title {
+            margin: 0 0 14px 0;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--primary-navy);
+        }
+
+        .toc-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px 24px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-list li a {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            color: var(--secondary-navy);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.15s ease;
+        }
+
+        .toc-list li a:hover {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: var(--accent-blue);
+        }
+
+        .section-heading {
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--primary-navy);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .sub-heading {
+            margin: 26px 0 14px 0;
+            font-size: 17.5px;
+            font-weight: 700;
+            color: var(--secondary-navy);
+            border-left: 4px solid var(--accent-teal);
+            padding-left: 12px;
+        }
+
+        .module-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 22px 26px;
+            margin-bottom: 22px;
+        }
+
+        .module-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #cbd5e1;
+        }
+
+        .module-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--primary-navy);
+        }
+
+        .badge-completed {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background-color: var(--success-bg);
+            color: var(--success-green);
+            border: 1px solid var(--success-border);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .module-sublabel {
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 12px 0 6px 0;
+            font-size: 14.5px;
+        }
+
+        /* Listeler */
+        ul.check-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 8px 0 14px 0;
+        }
+
+        ul.check-list > li {
+            position: relative;
+            padding-left: 28px;
+            margin-bottom: 8px;
+        }
+
+        ul.check-list > li::before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-size: 14px;
+        }
+
+        ul.sub-list, ol.sub-list {
+            margin: 6px 0 8px 0;
+            padding-left: 22px;
+        }
+
+        ul.sub-list li, ol.sub-list li {
+            margin-bottom: 4px;
+        }
+
+        /* Tablolar */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin: 14px 0 20px 0;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            font-size: 14px;
+        }
+
+        thead th {
+            background-color: var(--primary-navy);
+            color: #ffffff;
+            text-align: left;
+            padding: 12px 14px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            border-bottom: 2px solid var(--secondary-navy);
+        }
+
+        tbody td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+            color: var(--text-dark);
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        code {
+            background-color: #e2e8f0;
+            color: #0f172a;
+            padding: 2px 6px;
+            border-radius: 5px;
+            font-family: Consolas, Monaco, "Courier New", monospace;
+            font-size: 13px;
+        }
+
+        .report-footer {
+            text-align: center;
+            padding: 24px 16px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        /* Mobil Uyum */
+        @media (max-width: 768px) {
+            .report-wrapper {
+                margin: 12px auto;
+                padding: 0 12px;
+            }
+            .report-header {
+                padding: 24px 20px;
+            }
+            .report-header h1 {
+                font-size: 21px;
+            }
+            .section-card {
+                padding: 20px 16px;
+            }
+            .module-card {
+                padding: 16px;
+            }
+            thead th, tbody td {
+                padding: 10px;
+                font-size: 13px;
+            }
+        }
+
+        /* Yazdırma (@media print) Uyumu */
+        @media print {
+            body {
+                background-color: #ffffff;
+                color: #000000;
+                font-size: 11.5pt;
+            }
+            .report-wrapper {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            .report-header {
+                background: #0f2547 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                box-shadow: none;
+                border-radius: 8px;
+                padding: 24px;
+            }
+            .section-card {
+                box-shadow: none;
+                border: 1px solid #cbd5e1;
+                page-break-inside: auto;
+                padding: 20px;
+                margin-bottom: 18px;
+            }
+            .module-card {
+                page-break-inside: avoid;
+                background: #ffffff;
+            }
+            thead th {
+                background-color: #0f2547 !important;
+                color: #ffffff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .badge-completed, .status-pill-green {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            a {
+                text-decoration: none;
+                color: inherit;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="report-wrapper">
+
+    <!-- KURUMSAL BAŞLIK ALANI -->
+    <header class="report-header">
+        <div class="header-top-badges">
+            <span class="inst-pill">T.C. Düzce Üniversitesi &bull; Bilgi İşlem Daire Başkanlığı</span>
+            <span class="status-pill-green">&#10004; Tamamlandı &amp; Doğrulandı</span>
+        </div>
+        <h1>DÜZCE ÜNİVERSİTESİ ARAÇ TAKİP PANELİ</h1>
+        <h2>Kapsamlı Geliştirme ve Güvenlik Çalışmaları Raporu</h2>
+
+        <div class="meta-grid">
+            <div class="meta-item">
+                <span class="meta-label">Sistem Adı</span>
+                <span class="meta-value">Düzce Üniversitesi Araç Takip Paneli</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Proje Sahibi</span>
+                <span class="meta-value">Eslem Pekdemir</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Rapor Tarihi</span>
+                <span class="meta-value">23 Kasım 2026</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Toplam Migration Sayısı</span>
+                <span class="meta-value">27 Adet (EF Core Code-First)</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- İÇİNDEKİLER -->
+    <nav class="section-card toc-card">
+        <h3 class="toc-title">İçindekiler</h3>
+        <ul class="toc-list">
+            <li><a href="#bolum-1">1. Proje Bilgileri</a></li>
+            <li><a href="#bolum-2">2. Geliştirme Aşamaları (Kronolojik Migration Geçmişi)</a></li>
+            <li><a href="#bolum-3">3. Modül Modül Yapılan Çalışmalar (15 Modül)</a></li>
+            <li><a href="#bolum-4">4. Hata Düzeltmeleri ve Teknik İyileştirmeler</a></li>
+            <li><a href="#bolum-5">5. Güvenlik Çalışmaları</a></li>
+            <li><a href="#bolum-6">6. Veri ve Yedekleme İşlemleri</a></li>
+            <li><a href="#bolum-7">7. Sonuç</a></li>
+        </ul>
+    </nav>
+
+    <!-- 1. PROJE BİLGİLERİ -->
+    <section id="bolum-1" class="section-card">
+        <h2 class="section-heading">
+            <span>1. Proje Bilgileri</span>
+            <span class="badge-completed">&#10004; Kurumsal İç Yönetim Sistemi</span>
+        </h2>
+        <p>
+            <strong>Düzce Üniversitesi Araç Takip Paneli</strong>, üniversitenin kendi mülkiyetindeki resmi araç filosunun, görevli şoför kadrosunun, resmi görevlendirme süreçlerinin, periyodik bakım/onarım faaliyetlerinin, araç belgelerinin (fenni muayene, trafik sigortası, kasko), lastik envanterinin, personel araç taleplerinin, geçici yetki devri (vekâlet) işlemlerinin ve resmi denetim raporlarının dijital ortamda yönetilmesi amacıyla geliştirilmiş kurumsal bir iç yönetim sistemidir. Sistem ticari bir kiralama platformu olmayıp tamamen üniversite içi resmi taşıt görevlendirme ve filo takip süreçlerini yürütmektedir.
+        </p>
+
+        <h3 class="sub-heading">1.1 Teknoloji Yığını ve Mimari Özeti</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bileşen Katmanı</th>
+                        <th>Kullanılan Teknoloji / Kütüphane</th>
+                        <th>Sürüm / Detay</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Çekirdek Platform</strong></td>
+                        <td>.NET (C#) / ASP.NET Core MVC</td>
+                        <td><code>net9.0</code> (<code>Nullable: enable</code>, <code>ImplicitUsings: enable</code>)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Veritabanı &amp; ORM</strong></td>
+                        <td>MS SQL Server &amp; Entity Framework Core (Code-First)</td>
+                        <td><code>Microsoft.EntityFrameworkCore.SqlServer</code> (9.0.*)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Kimlik Doğrulama &amp; Yetki</strong></td>
+                        <td>ASP.NET Core Identity &amp; Rol Tabanlı Yetkilendirme (RBAC)</td>
+                        <td><code>Microsoft.AspNetCore.Identity.EntityFrameworkCore</code> (9.0.*), 5 Kurumsal Rol + Dinamik Vekâlet (<code>IClaimsTransformation</code>)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Resmi PDF Evrak Motoru</strong></td>
+                        <td>QuestPDF (Community Lisansı)</td>
+                        <td><code>QuestPDF</code> (2026.8.0) — 8 ayrı resmi belge ve rapor şablonu</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Oturum ve Şifreleme</strong></td>
+                        <td>ASP.NET Core DataProtection</td>
+                        <td><code>App_Data/DataProtection-Keys</code> dosya sistemi anahtar kalıcılığı ve Stateless SVG Captcha şifrelemesi</td>
+                    </tr>
+                    <tr>
+                        <td><strong>İstek Hız Sınırlandırma</strong></td>
+                        <td>ASP.NET Core Built-in Rate Limiting</td>
+                        <td><code>System.Threading.RateLimiting</code> (Sliding Window &amp; Fixed Window algoritmaları)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Arka Plan Görevleri</strong></td>
+                        <td>ASP.NET Core Hosted Service (<code>BackgroundService</code>)</td>
+                        <td><code>VehicleDocumentExpirationWorker</code> (24 saatlik periyodik belge geçerlilik denetimi)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>E-Posta Altyapısı</strong></td>
+                        <td>Yerleşik SMTP &amp; Konsol Simülasyon Servisi</td>
+                        <td><code>System.Net.Mail.SmtpClient</code> (<code>SmtpEmailService</code> / <code>ConsoleEmailService</code>) + <code>EmailTemplateBuilder</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Arayüz (Frontend)</strong></td>
+                        <td>Razor Views, Bootstrap, Inspinia Admin Tema, jQuery</td>
+                        <td>Masaüstü yönetim paneli (<code>_AdminLayout.cshtml</code>) ve mobil öncelikli şoför portalı (<code>_SurucuLayout.cshtml</code>), Select2, Toastr, Chart.js, Web Audio API</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Veritabanı Şema Evrimi</strong></td>
+                        <td>EF Core Migrations</td>
+                        <td>Toplam <strong>27 adet</strong> sıralı migration adımı ve 18 adet Fluent API (<code>IEntityTypeConfiguration&lt;T&gt;</code>) sınıfı</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="sub-heading">1.2 Genel Mimari İstatistikler</h3>
+        <ul class="check-list">
+            <li><strong>Toplam Migration Sayısı:</strong> 27 (<code>20260831133104_InitialCreate</code> – <code>20261120111421_AddAssignmentDocumentsTable</code>)</li>
+            <li><strong>Toplam Veritabanı Varlığı (Entity):</strong> 19 (<code>BaseAuditableEntity</code> taban sınıfı + 18 tablo varlığı)</li>
+            <li><strong>Toplam Enum Tanımı:</strong> 12 (<code>AssignmentStatus</code>, <code>AuditAction</code>, <code>FaultReportStatus</code>, <code>FuelType</code>, <code>TireSeason</code>, <code>TireStatus</code>, <code>VehicleDocumentStatus</code>, <code>VehicleDocumentType</code>, <code>VehicleRequestStatus</code>, <code>VehicleRequestType</code>, <code>VehicleStatus</code>, <code>VehicleType</code> ve <code>EnumExtensions</code>)</li>
+            <li><strong>Toplam MVC Controller:</strong> 15 (<code>Account</code>, <code>Assignment</code>, <code>AuditLog</code>, <code>Availability</code>, <code>Driver</code>, <code>FaultReport</code>, <code>Home</code>, <code>Maintenance</code>, <code>Report</code>, <code>RoleDelegation</code>, <code>Sef</code>, <code>Surucu</code>, <code>SystemDefinition</code>, <code>Vehicle</code>, <code>VehicleRequest</code>)</li>
+            <li><strong>Toplam Servis &amp; PDF Doküman Sınıfı:</strong> 14 Servis Arayüzü (<code>Interfaces</code>), 15 Servis Uygulaması, 8 QuestPDF Doküman Sınıfı, 1 Arka Plan Servisi (<code>BackgroundService</code>)</li>
+            <li><strong>Toplam Razor View:</strong> 55 <code>.cshtml</code> görünüm dosyası</li>
+        </ul>
+    </section>
+
+    <!-- 2. GELİŞTİRME AŞAMALARI -->
+    <section id="bolum-2" class="section-card">
+        <h2 class="section-heading">
+            <span>2. Geliştirme Aşamaları (Kronolojik Migration Geçmişi)</span>
+            <span class="badge-completed">&#10004; 27 Migration Adımı</span>
+        </h2>
+        <p>
+            Projenin veri modeli ve fonksiyonel kapsamı, Code-First yaklaşımıyla toplam <strong>27 migration</strong> adımı üzerinden evrilmiştir. Her bir migration adımında yapılan şema ve veri dönüşümleri aşağıda tarih sırasıyla listelenmiştir:
+        </p>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">Sıra</th>
+                        <th style="width: 310px;">Migration Kimliği</th>
+                        <th style="width: 95px;">Tarih</th>
+                        <th>Kapsam ve Eklenen / Değişen Yapılar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>1</strong></td>
+                        <td><code>20260831133104_InitialCreate</code></td>
+                        <td>31.08.2026</td>
+                        <td>
+                            ✅ ASP.NET Core Identity tabloları (<code>AspNetRoles</code>, <code>AspNetUsers</code>, <code>AspNetUserRoles</code>, <code>AspNetUserClaims</code>, <code>AspNetUserLogins</code>, <code>AspNetUserTokens</code>, <code>AspNetRoleClaims</code>) oluşturuldu.<br>
+                            ✅ <code>ApplicationUser</code> üzerine <code>FullName</code>, <code>IsActive</code>, <code>CreatedAt</code> alanları eklendi.<br>
+                            ✅ Çekirdek iş tabloları (<code>Vehicles</code>, <code>Drivers</code>, <code>Assignments</code>, <code>Maintenances</code>, <code>AuditLogs</code>) oluşturuldu.<br>
+                            ✅ <code>Vehicles.PlateNumber</code> ve <code>Drivers.UserId</code> üzerine tekil (unique) indeksler; <code>Assignments</code> üzerine <code>(VehicleId, PlannedStartTime, PlannedEndTime)</code> ve <code>(DriverId, PlannedStartTime, PlannedEndTime)</code> çakışma kontrolü bileşik indeksleri tanımlandı.<br>
+                            ✅ İlişkisel veri kaybını önlemek üzere tüm yabancı anahtarlarda <code>ReferentialAction.Restrict</code> silme davranışı uygulandı.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>2</strong></td>
+                        <td><code>20260902073029_AddAssignmentSelfReportingAndApprovalColumns</code></td>
+                        <td>02.09.2026</td>
+                        <td>✅ Şoförlerin saha/gece görev başlangıç ve bitişlerini bildirmesi ve Ulaşım Şefinin onaylaması (3 kademeli onay akışı) için <code>Assignments</code> tablosuna <code>StartReportedBySelf</code> (<code>bit</code>), <code>StartApprovedByUserId</code> (<code>nvarchar(450)</code>), <code>EndReportedBySelf</code> (<code>bit</code>) ve <code>EndApprovedByUserId</code> (<code>nvarchar(450)</code>) kolonları ile <code>AspNetUsers</code> yabancı anahtarları eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>3</strong></td>
+                        <td><code>20260902133351_AddProfilePictureToApplicationUser</code></td>
+                        <td>02.09.2026</td>
+                        <td>✅ Kullanıcıların özel profil fotoğrafı yükleyebilmesi için <code>AspNetUsers</code> tablosuna <code>ProfilePictureUrl</code> (<code>nvarchar(500)</code>, nullable) kolonu eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>4</strong></td>
+                        <td><code>20260903064727_AddVehicleRequest</code></td>
+                        <td>03.09.2026</td>
+                        <td>✅ Üniversite personelinin sisteme giriş yapmadan araç talep edebilmesi için <code>VehicleRequests</code> tablosu (<code>RequesterFullName</code>, <code>RequesterEmail</code>, <code>RequesterPhone</code>, <code>Purpose</code>, <code>Status</code>, <code>FulfilledAssignmentId</code>, <code>FulfilledByUserId</code>, <code>FulfilledAt</code>, <code>RejectionReason</code>) ve performans indeksleri oluşturuldu.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>5</strong></td>
+                        <td><code>20260903074226_MakeAuditLogUserIdNullable</code></td>
+                        <td>03.09.2026</td>
+                        <td>✅ Anonim araç talepleri ve arka plan servisi (<code>VehicleDocumentExpirationWorker</code>) işlemlerinin denetim günlüğüne yabancı anahtar hatası vermeden kaydedilebilmesi için <code>AuditLogs.ChangedByUserId</code> kolonu <code>nullable</code> yapıldı.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>6</strong></td>
+                        <td><code>20260903112632_AddRequestTypeToVehicleRequest</code></td>
+                        <td>03.09.2026</td>
+                        <td>✅ <code>VehicleRequests</code> tablosuna görev talebi türünü belirten <code>RequestType</code> (<code>nvarchar(max)</code>, varsayılan <code>"OfficialTrip"</code>) alanı eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>7</strong></td>
+                        <td><code>20260904084941_AddVehicleInspectionInsuranceAndTireFields</code></td>
+                        <td>04.09.2026</td>
+                        <td>✅ <code>Vehicles</code> tablosuna fenni muayene bitiş tarihi (<code>InspectionExpiryDate</code>), trafik sigortası bitiş tarihi (<code>InsuranceExpiryDate</code>), lastik markası (<code>TireBrand</code>), lastik mevsimi (<code>TireSeason</code>), lastik üretim yılı (<code>TireYear</code>) ve trafik cezası/şef notları (<code>FineNotes</code>, <code>nvarchar(1000)</code>) kolonları eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>8</strong></td>
+                        <td><code>20260907064925_AddAccommodationAndPerDiemToAssignment</code></td>
+                        <td>07.09.2026</td>
+                        <td>✅ Görevlendirmelerde konaklama ve harcırah takibi için <code>Assignments</code> tablosuna <code>AccommodationNights</code> (<code>int</code>), <code>AccommodationCost</code> (<code>decimal(18,2)</code>), <code>PerDiemDays</code> (<code>int</code>), <code>PerDiemAmount</code> (<code>decimal(18,2)</code>) ve <code>ExpenseNotes</code> (<code>nvarchar(500)</code>) kolonları eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>9</strong></td>
+                        <td><code>20260907072457_AddInspectionAndInsuranceStartDatesToVehicle</code></td>
+                        <td>07.09.2026</td>
+                        <td>✅ <code>Vehicles</code> tablosuna fenni muayene başlangıç (<code>InspectionStartDate</code>) ve trafik sigortası başlangıç (<code>InsuranceStartDate</code>) tarih kolonları eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>10</strong></td>
+                        <td><code>20260907081212_AddSignedDocumentFieldsToAssignment</code></td>
+                        <td>07.09.2026</td>
+                        <td>✅ Islak imzalı görev emirlerinin taranmış kopyalarını saklamak üzere <code>Assignments</code> tablosuna <code>SignedDocumentPath</code> (<code>nvarchar(500)</code>), <code>SignedDocumentOriginalFileName</code> (<code>nvarchar(255)</code>), <code>SignedDocumentUploadedAt</code> (<code>datetime2</code>) ve <code>SignedDocumentUploadedByUserId</code> (<code>nvarchar(450)</code>) kolonları eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>11</strong></td>
+                        <td><code>20260907102316_AddHourlyRateAndDriverFeeToAssignment</code></td>
+                        <td>07.09.2026</td>
+                        <td>✅ Görev bitiş onayında fiili çalışma saati ve görev ücreti hesaplaması için <code>Assignments</code> tablosuna <code>HourlyRate</code> (<code>decimal(18,2)</code>), <code>CalculatedDutyHours</code> (<code>decimal(18,2)</code>) ve <code>TotalDriverFee</code> (<code>decimal(18,2)</code>) kolonları eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>12</strong></td>
+                        <td><code>20260907133605_AddDepartmentToVehicleRequest</code></td>
+                        <td>07.09.2026</td>
+                        <td>✅ <code>VehicleRequests</code> tablosuna talep eden personelin fakülte/daire başkanlığı bilgisini tutan <code>Department</code> (<code>nvarchar(150)</code>) kolonu eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>13</strong></td>
+                        <td><code>20260908065145_UpdateVehicleTypeAndTireSeasonToString</code></td>
+                        <td>08.09.2026</td>
+                        <td>✅ <code>Vehicles.VehicleType</code> ve <code>Vehicles.TireSeason</code> kolonları <code>nvarchar(50)</code> tipine dönüştürüldü ve mevcut sayısal/İngilizce enum kayıtları SQL dönüşüm sorgularıyla Türkçe standart değerlere (<code>Yazlık</code>, <code>Kışlık</code>, <code>4 Mevsim</code>, <code>Sedan</code>, <code>Minibüs</code>, <code>Panelvan</code>, <code>Kamyonet</code>, <code>Otobüs</code>, <code>Diğer</code>) normalize edildi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>14</strong></td>
+                        <td><code>20260908071220_UpdateFuelTypeToString</code></td>
+                        <td>08.09.2026</td>
+                        <td>✅ <code>Vehicles.FuelType</code> kolonu <code>nvarchar(50)</code> tipine dönüştürüldü ve mevcut kayıtlar Türkçe metinlere (<code>Benzin</code>, <code>Dizel</code>, <code>LPG</code>, <code>Elektrik</code>, <code>Hibrit</code>) dönüştürüldü.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>15</strong></td>
+                        <td><code>20260909110745_AddPerDiemHybridFieldsToAssignment</code></td>
+                        <td>09.09.2026</td>
+                        <td>✅ Saatlik ve günlük hibrit harcırah hesaplama modeli için <code>Assignments</code> tablosuna <code>PerDiemType</code> (<code>nvarchar(20)</code>, varsayılan <code>"Hourly"</code>), <code>PerDiemHours</code> (<code>decimal(18,2)</code>) ve <code>PerDiemRate</code> (<code>decimal(18,2)</code>) kolonları eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>16</strong></td>
+                        <td><code>20261020213038_AddPhase3AssignmentChecksAndFaultReports</code></td>
+                        <td>20.10.2026</td>
+                        <td>
+                            ✅ <strong>Faz 3:</strong> <code>Assignments</code> tablosuna şoför araç kontrol tikleri (<code>CheckOil</code>, <code>CheckWater</code>, <code>CheckFuel</code>, <code>CheckHydraulic</code>, <code>CheckTires</code>, <code>ChecksCompletedAt</code>) ve acil durum güzergah dışı sevk alanları (<code>OffRouteDispatcherName</code>, <code>OffRouteDispatcherTitle</code>, <code>OffRouteReason</code>, <code>OffRouteReportedAt</code>, <code>OffRouteReportedByUserId</code>) eklendi.<br>
+                            ✅ Araç arıza bildirimleri için <code>VehicleFaultReports</code> tablosu oluşturuldu.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>17</strong></td>
+                        <td><code>20261020233958_AddMultiDriverAndDestinationFields</code></td>
+                        <td>20.10.2026</td>
+                        <td>
+                            ✅ <strong>Faz 2-A:</strong> Çoklu şoför, kurum dışı şoför ve şoförsüz görevlendirme desteği için <code>Assignments.DriverId</code> nullable yapıldı; <code>Destination</code>, <code>Route</code>, <code>IsDriverless</code>, <code>IsExternalDriver</code>, <code>ExternalDriverFullName</code>, <code>ExternalDriverDepartment</code> kolonları eklendi.<br>
+                            ✅ <code>AssignmentDrivers</code> ara tablosu ve <code>[IsDeleted] = 0</code> filtreli tekil indeksi oluşturuldu; mevcut tüm görevlerin şoförleri SQL sorgusuyla veri kaybı olmadan <code>AssignmentDrivers</code> tablosuna <code>IsPrimary = 1</code> olarak aktarıldı.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>18</strong></td>
+                        <td><code>20261024174753_AddAssignmentRouteChange</code></td>
+                        <td>24.10.2026</td>
+                        <td>✅ <strong>Faz 2-B:</strong> Sefer esnasında şoförlerin yaptığı güzergah ve hedef değişikliklerini tarihçesiyle kaydetmek ve şef onayına sunmak üzere <code>AssignmentRouteChanges</code> tablosu (<code>OldRoute</code>, <code>NewRoute</code>, <code>OldDestination</code>, <code>NewDestination</code>, <code>Reason</code>, <code>ChangedByUserId</code>, <code>ChangedByFullName</code>, <code>IsReviewedByAdmin</code>, <code>ReviewedAt</code>, <code>ReviewedByUserId</code>) oluşturuldu.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>19</strong></td>
+                        <td><code>20261024184022_AddDriverLicense</code></td>
+                        <td>24.10.2026</td>
+                        <td>✅ <strong>Faz 4:</strong> Bir şoförün birden fazla ehliyet sınıfına ve her sınıf için ayrı geçerlilik tarihine sahip olabilmesi için <code>DriverLicenses</code> tablosu oluşturuldu. Mevcut şoförlerin ehliyet verileri SQL ile yeni tabloya otomatik taşındı.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>20</strong></td>
+                        <td><code>20261024191639_AddVehicleDocument</code></td>
+                        <td>24.10.2026</td>
+                        <td>✅ <strong>Faz 5-A:</strong> Araçların Fenni Muayene (<code>Inspection</code>), Trafik Sigortası (<code>Insurance</code>) ve <code>Kasko</code> poliçe geçmişlerini maliyet, şirket ve poliçe numaralarıyla takip etmek üzere <code>VehicleDocuments</code> tablosu oluşturuldu. Mevcut araçların muayene ve sigorta tarihleri SQL ile yeni tabloya otomatik aktarıldı.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>21</strong></td>
+                        <td><code>20261024201613_AddVehicleTire</code></td>
+                        <td>24.10.2026</td>
+                        <td>✅ <strong>Faz 5-B:</strong> Araç lastik geçmişi ve değişim eşikleri takibi için <code>VehicleTires</code> tablosu (<code>Brand</code>, <code>Size</code>, <code>DotDate</code>, <code>ProductionYear</code>, <code>Season</code>, <code>InstalledDate</code>, <code>InstalledKm</code>, <code>RecommendedReplaceKm</code>, <code>RecommendedReplaceDate</code>, <code>Cost</code>, <code>Notes</code>) oluşturuldu ve mevcut araçlardaki lastik bilgileri SQL ile yeni tabloya taşındı.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>22</strong></td>
+                        <td><code>20261024210401_AddMaintenanceCost</code></td>
+                        <td>24.10.2026</td>
+                        <td>✅ <strong>Faz 7-A:</strong> Bakım ve onarım işlemlerinin maliyetlerini raporlayabilmek amacıyla <code>Maintenances</code> tablosuna <code>Cost</code> (<code>decimal(18,2)</code>, nullable) kolonu eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>23</strong></td>
+                        <td><code>20261024212807_AddFaz6RequestOptionsAndFields</code></td>
+                        <td>24.10.2026</td>
+                        <td>✅ <strong>Faz 6:</strong> Araç talep formundaki birim ve araç türü seçeneklerinin yönetim panelinden dinamik yönetilebilmesi için <code>RequestDepartments</code> ve <code>RequestVehicleTypes</code> tabloları oluşturuldu. <code>VehicleRequests</code> tablosuna <code>RequestedVehicleType</code>, <code>PassengerCount</code>, <code>RequestedStartTime</code>, <code>RequestedEndTime</code>, <code>ContactUserId</code>, <code>ContactFullName</code>, <code>ContactPhone</code>, <code>ContactEmail</code> kolonları eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>24</strong></td>
+                        <td><code>20261025004604_AddRoleDelegationAndAuditOnBehalf</code></td>
+                        <td>25.10.2026</td>
+                        <td>✅ <strong>Faz 1-B:</strong> Geçici yetki devri (vekâlet) mekanizması için <code>RoleDelegations</code> tablosu ve <code>IX_RoleDelegations_ActiveCheck</code> bileşik indeksi oluşturuldu. Vekâleten yapılan işlemlerin denetim izi için <code>AuditLogs</code> tablosuna <code>OnBehalfOfUserId</code> ve <code>DelegationId</code> kolonları eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>25</strong></td>
+                        <td><code>20261026071023_AddSystemDefinitions</code></td>
+                        <td>26.10.2026</td>
+                        <td>✅ Sistem genelindeki dinamik seçenek listeleri (<code>TireSeason</code>, <code>FuelType</code>, <code>MaintenanceType</code>, <code>VehicleType</code>, <code>LicenseClass</code>) için <code>SystemDefinitions</code> tablosu ve <code>[IsDeleted] = 0</code> filtreli <code>(CategoryKey, NormalizedName)</code> benzersiz indeksi oluşturuldu.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>26</strong></td>
+                        <td><code>20261030084944_AddRouteToVehicleRequest</code></td>
+                        <td>30.10.2026</td>
+                        <td>✅ <code>VehicleRequests</code> tablosuna talep edilen görev güzergahını tutan <code>Route</code> (<code>nvarchar(500)</code>, nullable) kolonu eklendi.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>27</strong></td>
+                        <td><code>20261120111421_AddAssignmentDocumentsTable</code></td>
+                        <td>20.11.2026</td>
+                        <td>✅ Görev başına birden fazla ve şoför bazlı imzalı görev belgesi yüklenebilmesi için <code>AssignmentDocuments</code> tablosu (<code>AssignmentId</code>, <code>DriverId</code>, <code>FilePath</code>, <code>OriginalFileName</code>, <code>FileSizeBytes</code>, <code>Description</code>, <code>UploadedAt</code>, <code>UploadedByUserId</code>) oluşturuldu. Mevcut <code>Assignments</code> tablosundaki tekil imzalı belgeler SQL ile yeni tabloya eksiksiz taşındı.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 3. MODÜL MODÜL YAPILAN ÇALIŞMALAR -->
+    <section id="bolum-3" class="section-card">
+        <h2 class="section-heading">
+            <span>3. Modül Modül Yapılan Çalışmalar</span>
+            <span class="badge-completed">&#10004; 15 Tamamlanmış Modül</span>
+        </h2>
+
+        <!-- 3.1 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.1 Kimlik Doğrulama, Rol Yapısı (RBAC) ve Kullanıcı Profili Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li>Standart Identity şablonları yerine Düzce Üniversitesi kurumsal kimliğine uygun özel giriş (<code>Login</code>), şifremi unuttum (<code>ForgotPassword</code>), şifre sıfırlama (<code>ResetPassword</code>), yetkisiz erişim (<code>AccessDenied</code>) ve kullanıcı profili (<code>Profile</code>) ekranları geliştirildi.</li>
+                <li>Harici servis (Google reCAPTCHA vb.) bağımlılığı bulunmayan, sunucu tarafında <code>CaptchaService</code> ile dinamik üretilen 5 karakterli <strong>Stateless SVG Captcha</strong> sistemi entegre edildi.</li>
+                <li>
+                    <strong>5 Kademeli Kurumsal Rol Mimarisi (<code>AppRoles.cs</code>)</strong> kurgulandı:
+                    <ol class="sub-list">
+                        <li><code>Admin</code> (Sistem Yöneticisi): Tüm modüllerde ve üst düzey yönetici hesaplarında tam yetkili.</li>
+                        <li><code>DaireBaskani</code> (Daire Başkanı): Tüm operasyonel ekranlarda, denetim kayıtlarında, sistem tanımlarında ve talep seçeneklerinde tam yetkili; kullanıcı yönetiminde yalnızca <code>Kullanici</code> (Şef) ve <code>Driver</code> (Şoför) hesaplarını yönetebilir.</li>
+                        <li><code>GenelSekreter</code> (Genel Sekreter): Tüm ekranları, kullanıcı listesini, raporları, PDF önizlemelerini ve denetim kayıtlarını inceleyebilen <strong>Salt Okunur (Read-Only)</strong> üst denetim rolü.</li>
+                        <li><code>Kullanici</code> (Ulaşım / Birim Şefi): Araç, şoför, görev, bakım, arıza ve araç taleplerini yöneten operasyonel birim yöneticisi.</li>
+                        <li><code>Driver</code> (Şoför): Mobil şoför portalı üzerinden yalnızca kendisine atanmış görevleri görüntüleyen, başlangıç/bitiş KM, araç kontrol tikleri, güzergah değişikliği ve arıza bildirimi yapan saha kullanıcısı.</li>
+                    </ol>
+                </li>
+                <li><strong>Dinamik Baş Harf (Rozet) Avatar Sistemi (<code>AvatarHelper.cs</code>):</strong> Özel profil fotoğrafı bulunmayan kullanıcılar için ad ve soyadın baş harflerinden (örn. <code>"Ahmet Yılmaz"</code> &rarr; <code>AY</code>) kurumsal renkli dairesel rozet avatar üretildi.</li>
+                <li><strong>Bağımsız Profil Güncelleme:</strong> Kullanıcıların şifre değiştirmek zorunda kalmadan yalnızca ad-soyad, telefon ve profil fotoğrafını güncelleyebilmesi, yeni fotoğraf seçildiğinde canlı önizleme yapılması ve mevcut fotoğrafın kaldırılabilmesi (<code>RemoveProfilePhoto</code>) sağlandı.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entity:</strong> <code>ApplicationUser</code> (<code>AspNetUsers</code>)<br>
+                <strong>Controller &amp; Servis:</strong> <code>AccountController</code>, <code>CaptchaService</code>, <code>SmtpEmailService</code>, <code>ConsoleEmailService</code><br>
+                <strong>Views:</strong> <code>Views/Account/Login.cshtml</code>, <code>ForgotPassword.cshtml</code>, <code>ForgotPasswordConfirmation.cshtml</code>, <code>ResetPassword.cshtml</code>, <code>Profile.cshtml</code>, <code>AccessDenied.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li>Sisteme dışarıdan kayıt olma (<code>/Account/Register</code>) özelliği kesin olarak kapalıdır; hesaplar yalnızca yetkili yöneticiler tarafından açılır.</li>
+                <li>Giriş sonrasında <code>ReturnUrl</code> parametresi kullanıcının rolüyle uyumluysa yönlendirilir (Şoför yalnızca <code>/surucu</code> veya <code>/account</code> adreslerine, yöneticiler ise yönetim paneline yönlendirilir).</li>
+            </ul>
+        </div>
+
+        <!-- 3.2 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.2 Yönetici Dashboard, Birleşik Bildirim Merkezi ve Aylık Operasyon Takvimi Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li><strong>KPI Özet Kartları ve Filo Grafiği:</strong> Toplam araç ve 5 durum kırılımı (<code>Boşta</code>, <code>Görevde</code>, <code>Bakımda</code>, <code>Belgesi Geçersiz</code>, <code>Hizmet Dışı</code>), aktif görevler, bugünkü planlı görevler, devam eden bakımlar ve aktif şoför sayılarını gösteren KPI kartları ile Chart.js tabanlı filo durumu grafiği geliştirildi.</li>
+                <li><strong>Hızlı Plaka Arama (<code>/Home/SearchPlate</code>):</strong> Boşluklu veya boşluksuz plaka aramasıyla aracın anlık durumu, güncel KM'si, muayene ve sigorta kalan günleri, güncel lastik künyesi, ceza/şef notları ve aracı en son kullanan şoförlerin geçmişi AJAX ile tek kartta sunuldu.</li>
+                <li><strong>Aylık Operasyon Takvimi (<code>/Home/CalendarData</code> - Faz 9):</strong> Harici takvim kütüphanesi kullanılmadan 7 sütunlu (42 günlük) aylık ızgara takvim geliştirildi. Her gün üzerinde aktif araç doluluğu, bakımdaki araçlar, süresi dolan belgeler ve ehliyetler işaretlendi; güne tıklandığında açılan <code>#dashboardCalendarDayModal</code> ile o günün tüm görev, bakım, belge ve ehliyet detayları listelendi.</li>
+                <li><strong>Birleşik Bildirim Merkezi (<code>_AdminLayout.cshtml</code>):</strong> Üst barda 5 ayrı uyarı kategorisini (<code>Belge</code>, <code>Talep</code>, <code>Arıza</code>, <code>Güzergah</code>, <code>Ehliyet</code>) tek bir açılır menüde ve kategori filtre çiplerinde (<code>notify-chip</code>) birleştiren bildirim merkezi inşa edildi.</li>
+                <li><strong>Sesli ve Görsel Uyarı (Web Audio API &amp; Toast):</strong> Sisteme girişte veya 30 saniyelik periyodik kontrollerde yeni bildirim tespit edildiğinde harici ses dosyası kullanmadan Web Audio API ile kurumsal bildirim sesi ve Toast uyarısı üretildi; <code>sessionStorage</code> imza kontrolü ile aynı bildirimin tekrar tekrar çıkması engellendi.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Controller &amp; Servis:</strong> <code>HomeController</code>, <code>DashboardService</code><br>
+                <strong>ViewModels:</strong> <code>DashboardViewModel</code>, <code>DashboardPlateSearchResultViewModel</code>, <code>DashboardCalendarViewModels</code><br>
+                <strong>Views:</strong> <code>Views/Home/Index.cshtml</code>, <code>Views/Shared/_AdminLayout.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li>Takvim verileri çekilirken <code>Assignments</code>, <code>Maintenances</code>, <code>Vehicles</code> (belge ve lastikleriyle) ve <code>DriverLicenses</code> tabloları ay bazında tekil sorgularla çekilerek N+1 sorgu problemi önlenmiştir.</li>
+                <li>Belge ve ehliyet uyarı listelerinde en acil kayıtlar (süresi en çok geçmiş veya dolmasına en az gün kalmış olanlar) en üstte sıralanır.</li>
+            </ul>
+        </div>
+
+        <!-- 3.3 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.3 Araç Envanteri Yönetimi Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li>Araç filosunun plaka, marka, model, model yılı, renk, araç türü, yakıt tipi, güncel kilometre, fenni muayene/sigorta başlangıç-bitiş tarihleri, lastik bilgileri ve ceza/şef notlarıyla yönetimi sağlandı.</li>
+                <li>Durum, araç türü ve plaka/marka/model aramasına göre sunucu taraflı sayfalamalı (<code>GetVehiclesPagedAsync</code>) liste ekranı ve Select2 filtreleri oluşturuldu.</li>
+                <li>Araç detay ekranında (<code>/Vehicle/Details/{id}</code>) araç künyesi, güncel lastik kartı, son 5 görevlendirme ve tüm bakım geçmişi bir arada gösterildi.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entity:</strong> <code>Vehicle</code> (<code>Vehicles</code>)<br>
+                <strong>Controller &amp; Servis:</strong> <code>VehicleController</code>, <code>VehicleService</code>, <code>VehicleDocumentExpirationWorker</code><br>
+                <strong>Views:</strong> <code>Views/Vehicle/Index.cshtml</code>, <code>Create.cshtml</code>, <code>Edit.cshtml</code>, <code>Details.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Tarihsel Plaka Tekilliği:</strong> <code>IgnoreQueryFilters()</code> ile silinmiş (soft-delete) araçlar dahil plaka kontrolü yapılır; daha önce kullanılmış bir plaka tekrar açılamaz.</li>
+                <li><strong>Salt Okunur KM ve Durum:</strong> Araç düzenleme formunda <code>CurrentKm</code> ve <code>Status</code> alanları elle değiştirilemez; yalnızca görev, bakım ve belge süreçleriyle otomatik güncellenir.</li>
+                <li><strong>Tek Kaynak İlkesi:</strong> Yeni araç eklendiğinde girilen ilk muayene, ilk sigorta ve ilk lastik bilgileri otomatik olarak <code>VehicleDocuments</code> ve <code>VehicleTires</code> tablolarına da ilk kayıt olarak işlenir.</li>
+                <li><strong>Silme Koruması:</strong> Aktif/planlı görevi veya devam eden bakımı olan araçlar silinemez.</li>
+            </ul>
+        </div>
+
+        <!-- 3.4 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.4 Araç Belgeleri (Muayene, Trafik Sigortası, Kasko) ve Lastik Yönetimi Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li><strong>4 Sekmeli Araç Belgeleri Paneli (<code>/Vehicle/Documents</code> - Faz 5-A &amp; Faz 5-B):</strong> Seçili bir araç veya <code>"Tümü (Tüm Araçlar)"</code> filtresi üzerinden <strong>Fenni Muayene</strong>, <strong>Trafik Sigortası</strong>, <strong>Kasko</strong> ve <strong>Lastik</strong> kayıtlarının tüm geçmişiyle yönetildiği merkezi ekran geliştirildi.</li>
+                <li><strong>Belge Takibi:</strong> Her belge için başlangıç tarihi, bitiş tarihi, ödenen tutar (<code>Cost</code>), firma/istasyon adı (<code>CompanyName</code>), poliçe/istasyon numarası (<code>PolicyOrStationNumber</code>) ve notlar kaydedilir. En güncel kayıt <code>"GÜNCEL GEÇERLİ"</code> rozetiyle vurgulanır.</li>
+                <li><strong>Otomatik Belge Geçerlilik Takip Servisi (<code>VehicleDocumentExpirationWorker</code>):</strong> Uygulama açılışında ve her 24 saatte bir çalışarak fenni muayene veya trafik sigortası süresi dolmuş araçları (seyirdeki <code>OnDuty</code> araçlar hariç) otomatik olarak <code>DocumentExpired</code> (<code>Belgesi Geçersiz</code>) durumuna çeker; belgeleri yenilenen araçları ise tekrar <code>Idle</code> (veya açık bakımı varsa <code>Maintenance</code>) durumuna döndürür ve her geçişi <code>AuditLog</code>'a yazar.</li>
+                <li><strong>Lastik Envanter ve Eşikleri:</strong> Lastik markası, ebat (<code>Size</code>), DOT üretim tarihi (<code>52/23</code> formatından 4 haneli <code>ProductionYear</code> çıkarımı), mevsim, takılma tarihi, takılma KM'si, hedef değişim KM'si, hedef değişim tarihi ve maliyet alanları yönetilir.</li>
+                <li><strong>Dinamik Kullanım KM'si:</strong> Lastiğin yaptığı mesafe sabit kaydedilmez; <code>Vehicle.CurrentKm - InstalledKm</code> formülüyle anlık hesaplanır (eski taşınan kayıtlarda <code>InstalledKm</code> boş ise <code>"Bilinmiyor"</code> gösterilir).</li>
+                <li><strong>Lastik Kullanım Raporu PDF (<code>/Vehicle/ExportTiresPdf</code>):</strong> Tek araç (tüm geçmişiyle) veya tüm filo (güncel lastikleriyle) için QuestPDF tabanlı A4 yatay rapor ve önizleme üretilir.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entities:</strong> <code>VehicleDocument</code> (<code>VehicleDocuments</code>), <code>VehicleTire</code> (<code>VehicleTires</code>)<br>
+                <strong>Controller &amp; Servis:</strong> <code>VehicleController</code>, <code>VehicleService</code>, <code>VehicleTiresReportPdfDocument</code><br>
+                <strong>Views:</strong> <code>Views/Vehicle/Documents.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Geriye Dönük Senkronizasyon:</strong> Belge veya lastik eklendiğinde, güncellendiğinde ya da silindiğinde <code>SyncVehicleLegacyDocumentColumnsAsync</code> ve <code>SyncVehicleLegacyTireColumnsAsync</code> metotları çalışarak <code>Vehicles</code> tablosundaki özet kolonları ve aracın <code>DocumentExpired</code> durumunu otomatik senkronize eder.</li>
+                <li><strong>Son Kayıt Silme Koruması:</strong> Bir aracın son aktif Muayene, son aktif Trafik Sigortası veya son aktif Lastik kaydı silinemez (Kasko opsiyonel olduğu için silinebilir).</li>
+                <li><strong>Uyarı Ayrımı:</strong> Kasko ve Lastik değişim uyarıları (30 gün veya 1000 KM eşiği) bildirim merkezinde uyarı üretir ancak aracın operasyonel durumunu <code>DocumentExpired</code> yapmaz.</li>
+            </ul>
+        </div>
+
+        <!-- 3.5 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.5 Şoför Yönetimi ve Çoklu Ehliyet Takibi Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li><strong>Atomik Şoför Hesabı Oluşturma:</strong> Yeni şoför kaydedilirken <code>ApplicationUser</code> (Identity hesabı), <code>Driver</code> profili ve çoklu <code>DriverLicense</code> satırları tek bir veritabanı transaction'ı içinde oluşturulur.</li>
+                <li><strong>Çoklu Ehliyet Desteği (Faz 4):</strong> Şoför ekleme ve düzenleme ekranlarında <code>LicenseNumber</code> tekil tutulurken, şoförün sahip olduğu birden fazla ehliyet sınıfı (<code>B</code>, <code>C</code>, <code>D</code>, <code>E</code>, <code>CE</code> vb.) ve her birinin ayrı geçerlilik tarihi dinamik satırlarla (<code>+ Ehliyet Ekle</code>) yönetilir.</li>
+                <li><strong>Hızlı Aktif/Pasif (<code>ToggleStatus</code>) ve Yönetici Şifre Sıfırlama (<code>ResetPassword</code>):</strong> Şoför tek tıkla pasife alınabilir veya detay sayfasındaki modal üzerinden şifresi yönetici tarafından sıfırlanabilir (kilitlenmiş hesapların kilidi de otomatik açılır).</li>
+                <li><strong>Ehliyet Geçerlilik Uyarıları (<code>/Driver/ExpiringLicenseSummary</code>):</strong> Süresi dolmuş veya 30 gün içinde dolacak ehliyetler hem yöneticilere (Dashboard, bildirim merkezi, sidebar rozeti) hem de şoförün kendi mobil ekranına uyarı olarak yansıtılır.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entities:</strong> <code>Driver</code> (<code>Drivers</code>), <code>DriverLicense</code> (<code>DriverLicenses</code>), <code>ApplicationUser</code><br>
+                <strong>Controller &amp; Servis:</strong> <code>DriverController</code>, <code>DriverService</code><br>
+                <strong>Views:</strong> <code>Views/Driver/Index.cshtml</code>, <code>Create.cshtml</code>, <code>Edit.cshtml</code>, <code>Details.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Tarihsel Ehliyet No Tekilliği:</strong> <code>IgnoreQueryFilters()</code> ile silinmiş şoförler dahil aynı ehliyet numarasının ikinci kez kullanılması engellenir.</li>
+                <li><strong>Birim (<code>Department</code>) Düzenleme Kısıtı:</strong> Şoförün bağlı olduğu birim bilgisi hem arayüzde hem sunucu katmanında (<code>isAdmin</code> parametresiyle) yalnızca <code>Admin</code> ve <code>DaireBaskani</code> tarafından değiştirilebilir; Ulaşım Şefi (<code>Kullanici</code>) birim alanını değiştiremez.</li>
+                <li><strong>Aktif Görev ve Vekâlet Koruması:</strong> Planlı veya devam eden görevi olan şoför pasife alınamaz ve silinemez. Şoför pasife alındığında veya silindiğinde bağlı <code>ApplicationUser.IsActive = false</code> yapılır ve aktif vekâletleri otomatik iptal edilir.</li>
+            </ul>
+        </div>
+
+        <!-- 3.6 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.6 Görevlendirme, 3 Kademeli Onay, Süre Uzatma ve İmzalı Evrak Arşivi Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li>
+                    <strong>3 Farklı Şoför Modu (Faz 2-A):</strong> Görev oluşturma ve düzenleme formlarında birbirini kesin olarak dışlayan 3 mod desteklenir:
+                    <ol class="sub-list">
+                        <li><em>Kurum Şoförlü:</em> 1 asil + istenirse birden fazla yedek/ek kurum şoförü (<code>AssignmentDrivers</code>).</li>
+                        <li><em>Kurum Dışı Şoför (<code>IsExternalDriver</code>):</em> Dış görevli şoför adı-soyadı ve kurumu.</li>
+                        <li><em>Şoförsüz Görevlendirme (<code>IsDriverless</code>):</em> Aracın doğrudan görevli personele tahsisi.</li>
+                    </ol>
+                </li>
+                <li><strong>Görev Yeri ve Güzergah:</strong> Görevin konusu (<code>Purpose</code>), gidilecek yer (<code>Destination</code>) ve güzergah (<code>Route</code>) ayrı alanlar olarak yönetilir.</li>
+                <li><strong>Canlı Müsaitlik Servisi (<code>AvailabilityController</code>):</strong> Tarih aralığı seçildiğinde <code>/Availability/GetOptions</code>, <code>CheckVehicleAvailability</code> ve <code>CheckDriverAvailability</code> AJAX uç noktalarıyla araç ve şoförlerin görev çakışması, bakım durumu, belge geçerliliği, ehliyet süresi ve aktif vekâlet durumu anlık kontrol edilir.</li>
+                <li>
+                    <strong>3 Kademeli Onay Akışı ve Doğrudan Başlat/Bitir:</strong>
+                    <ul class="sub-list">
+                        <li>Şoför mobil panelden başlangıç/bitiş bildirdiğinde görev durumu hemen değişmez; yönetim panelinde turuncu <code>"Onay Bekliyor"</code> rozetiyle listelenir.</li>
+                        <li>Şef/Admin <code>ApproveStart</code> ve <code>ApproveEnd</code> işlemleriyle bildirimi onaylar.</li>
+                        <li>Şoförsüz, dış şoförlü veya şoförün bildirim yapamadığı durumlarda Şef/Admin <code>StartDirect</code> ve <code>EndDirect</code> ile görevi doğrudan başlatıp bitirebilir.</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Şef KM Düzeltmesi ve 200 KM / 1000 KM Eşik Kontrolleri (<code>KmValidationService</code> - Faz 2-B):</strong>
+                    <ul class="sub-list">
+                        <li>Şef bitiş onay modalında şoförün bildirdiği başlangıç (<code>ConfirmedStartKm</code>) ve bitiş (<code>ConfirmedEndKm</code>) kilometrelerini revize edebilir.</li>
+                        <li>Yapılan sefer mesafesi 200 KM'yi (<code>TripDistanceThreshold</code>) aştığında kırmızı ünlem ikonlu dikkat uyarısı gösterilir; 1000 KM (<code>KmDiscrepancyThreshold</code>) üzerindeki farklarda açık onay (<code>confirmKmDifference</code>) istenir.</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Hibrit Görev Ücreti, Konaklama, Harcırah ve Sonradan Maliyet Revizyonu:</strong>
+                    <ul class="sub-list">
+                        <li>Bitiş onayında Saatlik (<code>Hourly</code>) veya Günlük (<code>Daily</code>) harcırah/görev ücreti hesaplaması, konaklama gün sayısı (<code>AccommodationNights</code>) ve konaklama bedeli (<code>AccommodationCost</code>) kaydedilir.</li>
+                        <li>Görev tamamlandıktan sonra gelen faturalar için <code>UpdateFinancialDetails</code> aksiyonu ile KM ve süreye dokunulmadan, zorunlu revizyon gerekçesiyle (<code>[Revizyon dd.MM.yyyy HH:mm]: ...</code>) maliyet alanları güncellenebilir.</li>
+                    </ul>
+                </li>
+                <li><strong>Seyir Halinde Süre Uzatma (<code>ExtendDuration</code>):</strong> Planlı veya devam eden görevlerin bitiş zamanı, yeni zaman aralığında araç ve şoför çakışması kontrol edilerek ve zorunlu gerekçe <code>ExpenseNotes</code> alanına <code>[Süre Uzatma - dd.MM.yyyy HH:mm]: ...</code> şeklinde damgalanarak uzatılabilir.</li>
+                <li><strong>Güzergah Dışı Sevk (<code>SaveOffRouteDispatch</code>) ve Şoför Güzergah Değişikliği Onayı (<code>ApproveRouteChange</code>):</strong> Acil durumlarda aracı güzergah dışına sevk eden yetkilinin adı, unvanı ve gerekçesi sisteme işlenebilir; şoförün yoldayken bildirdiği güzergah değişiklikleri Şef tarafından incelenip onaylandığında resmi görev emrinin sevk kutusuna aktarılır.</li>
+                <li><strong>Resmi Taşıt Görev Emri PDF (<code>AssignmentOrderDocument</code> - Faz 3):</strong> QuestPDF ile tek sayfa A4 dikey matbu formatta; üniversite logosu, sayı/tarih, görevlendiren/sevk eden imza kutuları, görev yeri, orijinal güzergah, güzergah dışı sevk kutusu, araç/şoför bilgileri, çıkış/giriş KM ve saatleri, 3 maddelik resmi yönerge ve 5'li araç kontrol kutuları (<code>[X]</code> / <code>[ ]</code>) + Paraf alanıyla üretilir. Hem <strong>"Dolu"</strong>, hem <strong>"Boş Çıktı"</strong> (<code>emptyValues=true</code>), hem de çoklu şoförde <strong>şoföre özel</strong> (<code>driverId</code>) PDF alınabilir.</li>
+                <li><strong>Çoklu İmzalı Evrak Yükleme ve Merkezi Evrak Arşivi (<code>/Assignment/SignedDocuments</code>):</strong> Görev detayından şoför seçimi ve açıklamayla birden fazla imzalı/taranmış belge (<code>AssignmentDocuments</code>) yüklenebilir, önizlenebilir (<code>ViewSignedDocument</code>), indirilebilir (<code>DownloadSignedDocument</code>), yumuşak silinebilir (<code>DeleteSignedDocument</code>) ve merkezi arşiv sayfasından plaka, şoför, tarih ve metin aramasıyla takip edilebilir.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entities:</strong> <code>Assignment</code>, <code>AssignmentDriver</code>, <code>AssignmentRouteChange</code>, <code>AssignmentDocument</code><br>
+                <strong>Controllers &amp; Servisler:</strong> <code>AssignmentController</code>, <code>AvailabilityController</code>, <code>AssignmentService</code>, <code>KmValidationService</code>, <code>AssignmentOrderDocument</code><br>
+                <strong>Views:</strong> <code>Views/Assignment/Index.cshtml</code>, <code>Create.cshtml</code>, <code>Edit.cshtml</code>, <code>Details.cshtml</code>, <code>SignedDocuments.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Çifte Rezervasyon ve Aktif Sefer Engeli:</strong> Aynı saat aralığında başka bir planlı/aktif görevi olan araca veya şoföre görev atanamaz. Ayrıca aracın veya şoförün üzerinde hâlihazırda tamamlanmamış (<code>InProgress</code>) bir görev varsa ikinci bir görev başlatılamaz.</li>
+                <li><strong>Ehliyet Kapsama Kuralı:</strong> Atanan her kurum şoförünün aktif ehliyetlerinden <strong>en az birinin</strong> son geçerlilik tarihi, görevin planlanan bitiş tarihini (<code>LicenseExpiryDate.Date &gt;= PlannedEndTime.Date</code>) kapsamak zorundadır.</li>
+                <li><strong>Akıllı Araç KM Güncelleme Kuralı:</strong> Görev bitişi onaylandığında <code>Vehicle.CurrentKm</code> yalnızca bu görev aracın <strong>en son tamamlanan göreviyse</strong> ve yeni bitiş KM'si aracın mevcut KM'sinden <strong>büyükse</strong> güncellenir; geçmiş tarihli bir görevin KM revizyonu aracın güncel KM'sini geriye düşürmez.</li>
+            </ul>
+        </div>
+
+        <!-- 3.7 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.7 Şoför Mobil Portalı Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li>Şoförlerin %90 oranında akıllı telefondan kullanacağı dikkate alınarak özel <code>_SurucuLayout.cshtml</code> üzerinde tablo içermeyen, %100 dokunmatik kart (<code>card-custom</code>) ve en az 50px yüksekliğinde (<code>btn-touch</code>) buton tasarımına sahip mobil portal geliştirildi.</li>
+                <li>Görevler; <strong>Aktif Sürüş (<code>ActiveAssignment</code>)</strong>, <strong>Onay Bekleyenler (<code>PendingApprovalAssignments</code>)</strong>, <strong>Bugünkü Planlı Görevler (<code>TodayPlannedAssignments</code>)</strong>, <strong>Yaklaşan Görevler (<code>UpcomingAssignments</code>)</strong> ve <strong>Geçmiş Görevler (<code>PastAssignments</code>)</strong> olarak gruplandı.</li>
+                <li><strong>AJAX Operasyonları:</strong> Sayfa yenilenmeden Başlangıç KM bildirme (<code>/Surucu/Baslat/{id}</code>), Bitiş KM + Teslim Notu + Araç Kontrolleri bildirme (<code>/Surucu/Bitir/{id}</code>), 5'li Araç Kontrol Tiklerini (Yağ, Su, Yakıt, Hidrolik, Lastik) kaydetme (<code>/Surucu/SaveVehicleChecks/{id}</code>), seferdeyken Güzergah ve Hedef değiştirme (<code>/Surucu/GuzergahDegistir/{id}</code>) ve Arıza Bildirimi açma (<code>/Surucu/ReportFault</code>) işlevleri sağlandı.</li>
+                <li>Şoförün kendi adına düzenlenmiş Taşıt Görev Emri PDF belgesini mobil modalda önizlemesi ve indirmesi (<code>/Surucu/GorevEmri/{id}</code>) ile kendi şifresini değiştirmesi (<code>/Surucu/ChangePassword</code>) sağlandı.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Controller &amp; Servis:</strong> <code>SurucuController</code>, <code>DriverService</code>, <code>FaultReportService</code><br>
+                <strong>Views:</strong> <code>Views/Shared/_SurucuLayout.cshtml</code>, <code>Views/Surucu/Index.cshtml</code>, <code>Detay.cshtml</code>, <code>ChangePassword.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Yatay Yetki İzolasyonu (IDOR Koruması):</strong> Şoför yalnızca <code>a.DriverId == driver.Id</code> veya <code>a.AssignmentDrivers.Any(ad =&gt; !ad.IsDeleted &amp;&amp; ad.DriverId == driver.Id)</code> koşulunu sağlayan kendi görevlerini görebilir, işlem yapabilir ve PDF indirebilir; başka şoförün görevine erişim <code>403 Forbid</code> ile reddedilir.</li>
+                <li><strong>Vekil Şoför Saha Kısıtı:</strong> Aktif bir yetki devriyle geçici Ulaşım Şefi vekili olan şoförün mobil panelde üstte bilgi kartı ve <code>"Yönetim Paneline Geçiş Yap"</code> butonu gösterilir; vekâlet süresince saha görev başlatma, bitirme ve güzergah değiştirme uç noktaları sunucu tarafında engellenir.</li>
+                <li><strong>Gece Vardiyası / Kendi Kendine Görev Açma Yasağı:</strong> Şoförlerin otoparktan araç seçip kendi kendilerine görev başlatma özelliği tamamen kaldırılmıştır; şoförler yalnızca yetkili şefin atadığı görevleri işleyebilir.</li>
+            </ul>
+        </div>
+
+        <!-- 3.8 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.8 Bakım ve Onarım Yönetimi Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li>Araçların periyodik bakım, arıza onarım, lastik/rot-balans, muayene hazırlık gibi servis süreçlerinin başlangıç tarihi, bitiş tarihi, işlemi yapan servis/firma (<code>PerformedBy</code>), işlem maliyeti (<code>Cost</code>) ve açıklamasıyla yönetimi sağlandı.</li>
+                <li>Devam eden bakımların tek tıkla tamamlanması (<code>Complete</code>) ve idari hata durumlarında modal onaylı yumuşak silinmesi (<code>Delete</code>) geliştirildi.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entity:</strong> <code>Maintenance</code> (<code>Maintenances</code>)<br>
+                <strong>Controller &amp; Servis:</strong> <code>MaintenanceController</code>, <code>MaintenanceService</code><br>
+                <strong>Views:</strong> <code>Views/Maintenance/Index.cshtml</code>, <code>Create.cshtml</code>, <code>Edit.cshtml</code>, <code>Details.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Durum Makinesi Entegrasyonu:</strong> Bitiş tarihi boş (devam eden) bir bakım açıldığında aracın durumu otomatik <code>VehicleStatus.Maintenance</code> yapılır; bakım tamamlandığında veya açık bakım silindiğinde (aracın başka açık bakımı yoksa) durum otomatik <code>VehicleStatus.Idle</code> (<code>Boşta</code>) durumuna döndürülür.</li>
+                <li><strong>Çakışma Koruması:</strong> Aktif görevdeki (<code>OnDuty</code>) bir araca açık bakım kaydı açılamaz; halihazırda açık bakımı olan bir araca ikinci bir açık bakım açılamaz ve bakımdaki araca görev atanamaz.</li>
+            </ul>
+        </div>
+
+        <!-- 3.9 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.9 Araç Arıza Bildirimi Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li>Şoförlerin mobil panelden veya görev detayından araç kilometresi ve arıza açıklamasıyla bildirim oluşturması (<code>CreateFaultReportAsync</code>), oluşturulan bildirimlerin üst bildirim merkezinde ve sol menüde kırmızı sayaç rozetiyle (<code>#sidebarFaultBadge</code>) Ulaşım Şefliğine anlık düşmesi sağlandı.</li>
+                <li>Şef/Admin için durum (<code>Pending</code>, <code>Approved</code>, <code>Resolved</code>, <code>Rejected</code>) ve araç filtreli liste ekranı (<code>/FaultReport</code>) ile bildirim detay/inceleme ekranı (<code>/FaultReport/Detail/{id}</code>) geliştirildi.</li>
+                <li>Şefin arıza kaydındaki KM ve açıklamayı düzenleyerek inceleme/sevk notuyla onaylaması (<code>Approve</code>) veya durumunu güncellemesi (<code>UpdateStatus</code>) sağlandı.</li>
+                <li><strong>Resmi Araç Arıza Bildirim Formu PDF (<code>FaultReportDocument</code>):</strong> QuestPDF ile hem kayıt verileriyle dolu (<code>/FaultReport/DownloadPdf/{id}</code>) hem de sahada elle doldurulmak üzere boş matbu form (<code>/FaultReport/DownloadBlankPdf</code>) olarak A4 dikey PDF üretimi ve önizlemesi yapıldı.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entity:</strong> <code>VehicleFaultReport</code> (<code>VehicleFaultReports</code>)<br>
+                <strong>Controller &amp; Servis:</strong> <code>FaultReportController</code>, <code>FaultReportService</code>, <code>FaultReportDocument</code><br>
+                <strong>Views:</strong> <code>Views/FaultReport/Index.cshtml</code>, <code>Detail.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li>Arıza bildirimi açılması veya onaylanması aracın <code>Vehicle.Status</code> değerini otomatik olarak <code>Maintenance</code> veya <code>OutOfService</code> yapmaz; araç durumu idari kararla (bakım kaydı açılarak) yönetilir.</li>
+                <li>Resmi PDF çıktısına kurum dışı veya EBYS üst veri damgası basılmaz; imza kutularında GUID yerine yalnızca gerçek yönetici/şoför adı soyadı yer alır.</li>
+            </ul>
+        </div>
+
+        <!-- 3.10 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.10 Personel Araç Talebi ve Talep Seçenekleri Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li><strong>Girişsiz (Anonim) Kurumsal Talep Formu (<code>/AracTalebi</code> - Faz 6):</strong> Üniversite personelinin hesap açmadan; Ad Soyad, <code>@duzce.edu.tr</code> kurumsal e-posta, cep telefonu, birim/fakülte (yönetici tanımlı açılır liste), istenen araç türü (yönetici tanımlı açılır liste), yolcu sayısı (<code>1-200</code>), başlangıç/bitiş tarih ve saati, gidilecek güzergah (<code>Route</code>) ve görev amacıyla başvuru yapabildiği ekran geliştirildi. Formda <em>"Yalnızca il içi görevlendirme yapılır."</em> uyarısı yer alır.</li>
+                <li><strong>Talep Yönetim Havuzu (<code>/VehicleRequest</code>):</strong> Bekleyen, Karşılanan ve Reddedilen taleplerin sayaçlı sekmeler, birim, tarih ve arama filtreleriyle listelenmesi sağlandı.</li>
+                <li><strong>Talebi Göreve Dönüştürme (<code>/VehicleRequest/Fulfill/{id}</code>):</strong> Şef/Admin talebi incelerken talep edilen tarih aralığına göre müsait araç ve şoförleri görür, koordinasyon için bir <strong>İletişim Kişisi</strong> (Ulaşım Şefi veya Şoför) seçer, varsa <strong>Şeflik Notu</strong> ekler ve tek tıkla resmi <code>Assignment</code> oluşturur.</li>
+                <li><strong>Kurumsal HTML E-Posta Bildirimleri (<code>EmailTemplateBuilder.cs</code>):</strong> Talep karşılandığında yeşil onay temalı, reddedildiğinde kırmızı ret gerekçeli kurumsal HTML e-posta şablonu üretilerek talep sahibine gönderilir.</li>
+                <li><strong>Talep Seçenekleri Yönetimi (<code>/VehicleRequest/Options</code>):</strong> <code>Admin</code> ve <code>DaireBaskani</code> rollerinin talep formunda çıkan Birim (<code>RequestDepartments</code>) ve Araç Türü (<code>RequestVehicleTypes</code>) listelerine yeni kayıt ekleyebildiği, sıralamasını düzenleyebildiği ve aktif/pasif yapabildiği ekran geliştirildi.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entities:</strong> <code>VehicleRequest</code>, <code>RequestDepartment</code>, <code>RequestVehicleType</code><br>
+                <strong>Controller &amp; Servis:</strong> <code>VehicleRequestController</code>, <code>VehicleRequestService</code>, <code>EmailTemplateBuilder</code><br>
+                <strong>Views:</strong> <code>Views/VehicleRequest/Create.cshtml</code>, <code>Success.cshtml</code>, <code>Index.cshtml</code>, <code>Fulfill.cshtml</code>, <code>Options.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Çift Katmanlı Kurumsal E-Posta ve Telefon Doğrulaması:</strong> Yalnızca <code>@duzce.edu.tr</code> uzantılı e-postalar ve <code>5xx xxx xx xx</code> formatındaki 10/11 haneli geçerli cep telefonları kabul edilir.</li>
+                <li><strong>Şoför Kişisel Veri Gizliliği Kuralı:</strong> Talep sahibine gönderilen onay e-postasında görevli şoförün <strong>yalnızca Adı Soyadı</strong> yer alır; şoförün telefon numarası ve e-posta adresi gizlenir. Koordinasyon için seçilen İletişim Kişisinin (Şef/İrtibat) iletişim bilgileri paylaşılır ve görev amacındaki dahili <code>[Talep #...]</code> önekleri temizlenir.</li>
+                <li><strong>E-Posta Hata Toleransı:</strong> SMTP sunucusuna ulaşılamasa bile hata yakalanıp loglanır; görevlendirme ve talep onay işlemi kesintiye uğramaz.</li>
+            </ul>
+        </div>
+
+        <!-- 3.11 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.11 Kullanıcı Yönetimi (Ulaşım Şefleri ve Üst Yöneticiler) Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li>Sistemdeki <code>Kullanici</code> (Ulaşım Şefi), <code>DaireBaskani</code> (Daire Başkanı) ve <code>GenelSekreter</code> (Genel Sekreter) hesaplarının listelendiği, yeni yetkili hesabının açıldığı, bilgilerinin güncellendiği, dondurulduğu (<code>ToggleStatus</code>), şifresinin sıfırlandığı (<code>ResetPassword</code>) ve yumuşak silindiği (<code>Delete</code>) yönetim modülü geliştirildi.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entity:</strong> <code>ApplicationUser</code> (<code>AspNetUsers</code>, <code>AspNetUserRoles</code>)<br>
+                <strong>Controller:</strong> <code>SefController</code><br>
+                <strong>Views:</strong> <code>Views/Sef/Index.cshtml</code>, <code>Create.cshtml</code>, <code>Edit.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Hiyerarşik Rol Güvenliği:</strong> <code>Admin</code>, <code>DaireBaskani</code> ve <code>GenelSekreter</code> rollerine sahip hesapları yalnızca saf <code>Admin</code> oluşturabilir, düzenleyebilir, şifresini sıfırlayabilir, dondurabilir veya silebilir. <code>DaireBaskani</code> rolü yalnızca <code>Kullanici</code> (Şef) hesapları üzerinde işlem yapabilir. <code>GenelSekreter</code> ise bu ekranı yalnızca salt okunur olarak izleyebilir.</li>
+                <li><strong>Kendi Hesabını Koruma:</strong> Hiçbir yönetici kendi hesabını bu ekrandan düzenleyemez, donduramaz veya silemez.</li>
+                <li><strong>Kullanıcı Yumuşak Silme (Soft-Delete) Protokolü:</strong> Silinen kullanıcı veritabanından fiziksel olarak silinmez (<code>AuditLog</code> ve geçmiş görev/vekâlet yabancı anahtarlarını bozmamak için); <code>IsActive = false</code> yapılır, <code>LockoutEnabled = true</code> ve <code>LockoutEnd = DateTimeOffset.MaxValue</code> ile kilitlenir, tüm rollerden çıkarılır ve aktif vekâletleri otomatik sonlandırılır.</li>
+            </ul>
+        </div>
+
+        <!-- 3.12 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.12 Geçici Yetki Devri (Vekâlet) Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li><strong>Vekâlet Yönetimi (<code>/RoleDelegation</code> - Faz 1-B):</strong> Ulaşım Şeflerinin izin, hastalık veya görevlendirme durumlarında yetkilerini belirli bir tarih-saat aralığı için başka bir aktif Ulaşım Şefine veya Şoföre devredebilmesi sağlandı.</li>
+                <li><strong>Dinamik Rol Dönüşümü (<code>DelegationClaimsTransformation.cs</code>):</strong> Vekâlet süresi aktif olduğu müddetçe, vekil personelin veritabanındaki kalıcı rolü değiştirilmeden her HTTP isteğinde bellekte (<code>15 saniye</code> süreli <code>IMemoryCache</code> destekli) dinamik olarak <code>ClaimTypes.Role = "Kullanici"</code>, <code>DelegatorUserId</code> ve <code>DelegationId</code> claim'leri eklenir.</li>
+                <li><strong>Erken Sonlandırma (<code>Revoke</code>) ve Üst Bant Bildirimi:</strong> Hem asıl şefin hem de vekil personelin ekranının üst kısmında aktif vekâlet bilgi bandı gösterilir; asıl şef göreve erken döndüğünde tek tıkla yetki devrini sonlandırabilir ve önbellek anında temizlenir (<code>InvalidateUserCache</code>).</li>
+                <li><strong>Resmi Yetki Devri ve Vekâlet Belgesi PDF (<code>RoleDelegationPdfDocument</code>):</strong> Belge No (<code>B.30.2.DZC.0.73.00/YD-00001</code>), düzenleme tarihi, dayanak satırı, devreden/devralan bilgileri, vekâlet süresi, uygulama esasları ve ıslak imza kutularını içeren A4 resmi PDF belgesi ve önizlemesi üretilir.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entity:</strong> <code>RoleDelegation</code> (<code>RoleDelegations</code>)<br>
+                <strong>Controller &amp; Servis:</strong> <code>RoleDelegationController</code>, <code>RoleDelegationService</code>, <code>DelegationClaimsTransformation</code>, <code>RoleDelegationPdfDocument</code><br>
+                <strong>Views:</strong> <code>Views/RoleDelegation/Index.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Zincirleme ve Çakışan Devir Yasağı:</strong> Vekil konumundaki bir personel devraldığı yetkiyi başkasına devredemez (zincirleme devir engeli). Aynı tarih aralığında çakışan ikinci bir vekâlet oluşturulamaz.</li>
+                <li><strong>Şoför Görev Çakışması ve Saha Yasağı:</strong> Görevi devralacak kişi bir Şoför ise, vekâlet tarih aralığında planlı veya devam eden bir sürüş görevi varsa sistem çakışan görevleri kırmızı listeyle göstererek vekâleti reddeder. Vekâlet süresince vekil şoför yeni görev atamalarında müsaitlik listesinde kapalı görünür ve mobil saha başlat/bitir işlemlerini kullanamaz.</li>
+            </ul>
+        </div>
+
+        <!-- 3.13 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.13 Sistem Tanımları (Dinamik Seçenek Listeleri) Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li><strong>5 Sabit Kategori Yönetimi (<code>/SystemDefinition</code>):</strong> Kodda güvenli beyaz liste (<code>SystemDefinitionCategories.cs</code>) olarak tanımlanan 5 kategorideki (<code>TireSeason</code> - Lastik Mevsimi, <code>FuelType</code> - Yakıt Tipi, <code>MaintenanceType</code> - Bakım/Servis Türü, <code>VehicleType</code> - Araç Türü, <code>LicenseClass</code> - Ehliyet Sınıfı) açılır liste seçeneklerinin merkezi yönetimi sağlandı.</li>
+                <li>Her seçenek için gerçek zamanlı kullanım sayısı (<code>"N kayıtta kullanılıyor"</code>), sistem varsayılanı rozeti (<code>IsSystemDefault</code>), sıralama (<code>DisplayOrder</code>), yeni seçenek ekleme, isim değiştirme, aktif/pasif yapma ve kullanılmayan özel tanımları silme özellikleri geliştirildi.</li>
+                <li>Dinamik seçenekleri form ekranlarına sağlayan <code>/SystemDefinition/GetActiveOptions</code> JSON uç noktası eklendi.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entity:</strong> <code>SystemDefinition</code> (<code>SystemDefinitions</code>)<br>
+                <strong>Controller &amp; Servis:</strong> <code>SystemDefinitionController</code>, <code>SystemDefinitionService</code>, <code>SystemDefinitionCategories</code><br>
+                <strong>Views:</strong> <code>Views/SystemDefinition/Index.cshtml</code>
+            </p>
+            <div class="module-sublabel">Önemli İş Kuralları:</div>
+            <ul class="check-list">
+                <li><strong>Atomik Kaskat İsim Güncelleme (Cascade Rename):</strong> Özel tanımların (<code>IsSystemDefault == false</code>) adı değiştirildiğinde; ilişkili tüm tablolardaki (<code>Vehicles</code>, <code>VehicleTires</code>, <code>Maintenances</code>, <code>DriverLicenses</code>, <code>Drivers</code>) kayıtlar tek bir veritabanı transaction'ı içinde otomatik olarak yeni adla güncellenir. Sistem varsayılanı (<code>IsSystemDefault == true</code>) olan çekirdek tanımların adı kilitlidir.</li>
+                <li><strong>Sunucu Taraflı Seçenek Doğrulaması (<code>ValidateOptionAsync</code>):</strong> Araç, lastik, bakım ve şoför formlarında gönderilen değerlerin ilgili kategoride aktif bir seçenek olduğu sunucuda doğrulanır; düzenleme formlarında kaydın mevcut eski değeri pasife alınmış olsa dahi <code>(Pasif)</code> etiketiyle korunur.</li>
+                <li><strong>Türkçe Normalizasyon ve Son Aktif Seçenek Koruması:</strong> İsim tekilliği <code>ToUpper(tr-TR)</code> (<code>NormalizedName</code>) üzerinden kontrol edilir. Bir kategorideki son aktif seçenek pasife alınamaz ve silinemez.</li>
+            </ul>
+        </div>
+
+        <!-- 3.14 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.14 Resmi Rapor Merkezi ve Ortak PDF Önizleme Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li>
+                    <strong>5 Sekmeli Kurumsal Rapor Merkezi (<code>/Report</code> - Faz 7-A, Faz 7-B, Faz 8, Faz 10):</strong> Tüm rapor sayfalarında ortak sekme çubuğu, KPI özet kartları, hızlı tarih kısayolları (<code>Bu Ay</code>, <code>Geçen Ay</code>, <code>Bu Yıl</code>, <code>Geçen Yıl</code>, <code>Tümü</code>), sunucu taraflı 10'arlı sayfalama ve QuestPDF tabanlı A4 Yatay (Landscape) resmi PDF çıktıları geliştirildi:
+                    <ol class="sub-list">
+                        <li><strong>Sefer &amp; Kullanım Raporu (<code>/Report/Index</code> &amp; <code>ExportPdf</code>):</strong> Tamamlanmış görevlerin şoför bazlı gruplanmış dökümü, her satırda <code>"X sa Y dk"</code> formatında görev süresi (<code>DurationHelper</code>), şoför alt toplamları ve çoklu şoförlü görevlerin çifte sayılmasını engelleyen tekil (<code>DistinctAssignments</code>) Rapor Genel Toplamı.</li>
+                        <li><strong>Araç Bakım &amp; Tamir Dökümü (<code>/Report/Maintenance</code> &amp; <code>ExportMaintenancePdf</code>):</strong> Araç, bakım türü, durum (devam eden/tamamlanan) ve tarih-saat filtreli bakım geçmişi, serviste geçen toplam gün, satır bazlı maliyet ve Genel Toplam Bakım Maliyeti.</li>
+                        <li><strong>Araç Belge Durum Raporu (<code>/Report/InsuranceInspection</code> &amp; <code>ExportInsuranceInspectionPdf</code>):</strong> Kapsam (<code>Tümü</code>, <code>Trafik Sigortası</code>, <code>Fenni Muayene</code>, <code>Kasko</code>), durum (<code>Tümü</code>, <code>Süresi Geçenler</code>, <code>30 Gün İçinde Dolacaklar</code>, <code>Özel Tarih</code>) ve tek araç filtreli birleşik 9 sütunlu belge ve maliyet dökümü.</li>
+                        <li><strong>Araç Lastik Raporu (<code>/Report/Tires</code> &amp; <code>ExportTiresPdf</code>):</strong> Tek araç seçildiğinde aracın tüm lastik geçmişini, tüm filo seçildiğinde her aracın güncel lastiğini durum filtreleriyle (<code>Normal</code>, <code>Yaklaşıyor</code>, <code>Değişim Gerekli</code>, <code>Veri Eksik</code>) listeleyen rapor.</li>
+                        <li><strong>Araç Talepleri Raporu (<code>/Report/VehicleRequests</code> &amp; <code>ExportVehicleRequestsPdf</code>):</strong> Talep eden birimler bazında toplam talep, karşılanan, reddedilen ve bekleyen talep istatistiklerini ve genel toplamları sunan rapor.</li>
+                    </ol>
+                </li>
+                <li><strong>Ortak PDF Önizleme Modalı (<code>_PdfPreviewModal.cshtml</code> - Faz 8):</strong> Sistemdeki tüm PDF çıktılarının (<code>preview=true</code> parametresi ve <code>Content-Disposition: inline</code> başlığıyla) sayfa yenilenmeden ve dosya indirmeye zorlamadan modal içindeki <code>&lt;iframe&gt;</code> üzerinden anlık önizlenmesi, modal içinden tek tıkla indirilmesi veya mobil cihazlarda yeni sekmede açılması sağlandı.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Controller &amp; Servis:</strong> <code>ReportController</code>, <code>ReportService</code>, <code>UsageReportPdfDocument</code>, <code>MaintenanceReportPdfDocument</code>, <code>InsuranceInspectionReportPdfDocument</code>, <code>VehicleTiresReportPdfDocument</code>, <code>VehicleRequestReportPdfDocument</code>, <code>FileDownloadHelper</code>, <code>DurationHelper</code><br>
+                <strong>Views:</strong> <code>Views/Report/Index.cshtml</code>, <code>Maintenance.cshtml</code>, <code>InsuranceInspection.cshtml</code>, <code>Tires.cshtml</code>, <code>VehicleRequests.cshtml</code>, <code>Views/Shared/_PdfPreviewModal.cshtml</code>
+            </p>
+        </div>
+
+        <!-- 3.15 -->
+        <div class="module-card">
+            <div class="module-header">
+                <h3 class="module-title">3.15 Denetim Günlüğü (AuditLog) Modülü</h3>
+                <span class="badge-completed">&#10004; Tamamlandı</span>
+            </div>
+            <div class="module-sublabel">Geliştirilen Özellikler:</div>
+            <ul class="check-list">
+                <li>Sistemdeki tüm kritik veri oluşturma (<code>Create</code>), güncelleme (<code>Update</code>) ve yumuşak silme (<code>Delete</code>) işlemlerinin eski (<code>OldValues</code>) ve yeni (<code>NewValues</code>) durumlarını JSON olarak saklayan değiştirilemez (immutable) denetim günlüğü geliştirildi.</li>
+                <li><strong>Vekâlet İzleme (Faz 1-B):</strong> <code>IHttpContextAccessor</code> üzerinden aktif kullanıcının <code>DelegatorUserId</code> ve <code>DelegationId</code> claim'leri otomatik okunarak vekâleten yapılan her işlemde <code>OnBehalfOfUserId</code> ve <code>DelegationId</code> alanları dolduruldu; arayüzde <code>"Ali Demir (Ahmet Şef adına vekâleten [YD-00001])"</code> şeklinde mavi rozetle gösterildi.</li>
+                <li><strong>Türkçe Okunabilir İnceleme Modalı:</strong> Ham JSON veya teknik alan adları yerine tüm alan ve enum değerlerini Türkçe etiketlerle ve kullanıcı ID'lerini <code>UserMap</code> üzerinden gerçek ad-soyad/unvan bilgileriyle çözümleyen karşılaştırmalı detay modalı oluşturuldu.</li>
+            </ul>
+            <div class="module-sublabel">İlgili Entity ve Ekranlar:</div>
+            <p>
+                <strong>Entity:</strong> <code>AuditLog</code> (<code>AuditLogs</code> — <code>BaseAuditableEntity</code>'den türemez, silinemez ve güncellenemez)<br>
+                <strong>Controller &amp; Servis:</strong> <code>AuditLogController</code>, <code>AuditLogService</code><br>
+                <strong>Views:</strong> <code>Views/AuditLog/Index.cshtml</code>
+            </p>
+        </div>
+    </section>
+
+    <!-- 4. HATA DÜZELTMELERİ VE TEKNİK İYİLEŞTİRMELER -->
+    <section id="bolum-4" class="section-card">
+        <h2 class="section-heading">
+            <span>4. Hata Düzeltmeleri ve Teknik İyileştirmeler</span>
+            <span class="badge-completed">&#10004; 14 Kalıcı Çözüm</span>
+        </h2>
+        <p>
+            Kod tabanında, servislerde ve arayüz katmanında tespit edilip kalıcı olarak çözülen teknik sorunlar ve iyileştirmeler aşağıda tablo halinde sunulmuştur:
+        </p>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 45px;">No</th>
+                        <th style="width: 28%;">Sorun / İhtiyaç Tanımı</th>
+                        <th>Uygulanan Çözüm</th>
+                        <th style="width: 24%;">Etkilenen Dosya(lar)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>1</strong></td>
+                        <td><strong>Türkçe ve İngilizce Ondalık Ayraç (<code>1.250,50</code> vs <code>5.0</code>) Model Binding Hatası:</strong> HTML5 number input'larından veya Türkçe klavyeden girilen noktalı/virgüllü <code>decimal</code> tutarların yanlış çözümlenmesi (<code>5.0</code> değerinin <code>50</code> olması veya validasyon hatası vermesi).</td>
+                        <td>Hem nokta (<code>.</code>) hem virgül (<code>,</code>) ayracını birlikte veya tekil olarak akıllıca analiz edip <code>CultureInfo.InvariantCulture</code> ile çözümleyen özel <code>InvariantDecimalModelBinder</code> ve <code>InvariantDecimalModelBinderProvider</code> yazılarak MVC pipeline'ının en başına (<code>Insert(0, ...)</code>) eklendi.</td>
+                        <td><code>Common/ModelBinders/InvariantDecimalModelBinder.cs</code>, <code>InvariantDecimalModelBinderProvider.cs</code>, <code>Program.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>2</strong></td>
+                        <td><strong>HTTP <code>Content-Disposition</code> Başlığında Türkçe Karakter Çökmesi (RFC 7230):</strong> PDF indirme ve önizleme yanıtlarında dosya adında geçen <code>ı, İ, ğ, Ğ, ü, Ü, ş, Ş, ö, Ö, ç, Ç</code> karakterlerinin Kestrel sunucusunda HTTP header hatası fırlatması.</td>
+                        <td><code>FileDownloadHelper.ToSafeAsciiFileName</code> ve <code>SetContentDisposition</code> yardımcı metotları yazılarak tüm PDF dosya adları güvenli ASCII karşılıklarına dönüştürüldü ve <code>inline</code>/<code>attachment</code> başlıkları standartlaştırıldı.</td>
+                        <td><code>Common/Helpers/FileDownloadHelper.cs</code>, <code>AssignmentController.cs</code>, <code>ReportController.cs</code>, <code>FaultReportController.cs</code>, <code>VehicleController.cs</code>, <code>RoleDelegationController.cs</code>, <code>SurucuController.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>3</strong></td>
+                        <td><strong>Uygulama Yeniden Başladığında Oturumların Düşmesi ve Şifrelerin Sıfırlanması:</strong> Her uygulama başlangıcında DataProtection anahtarlarının yenilenmesi ve Seed işleminin mevcut kullanıcı şifrelerini ezmesi nedeniyle oturumların kopması.</td>
+                        <td>DataProtection anahtarları <code>App_Data/DataProtection-Keys</code> dizininde kalıcı hale getirildi (<code>PersistKeysToFileSystem</code>), <code>SecurityStampValidatorOptions.ValidationInterval</code> 8 saate çıkarıldı ve <code>DbInitializer.SeedAsync</code> içinde mevcut kullanıcıların şifrelerine dokunmama kuralı uygulandı.</td>
+                        <td><code>Program.cs</code>, <code>Data/DbInitializer.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>4</strong></td>
+                        <td><strong>Anonim Araç Taleplerinde ve Arka Plan Servisinde <code>AuditLog</code> Yabancı Anahtar (FK) Hatası:</strong> Giriş yapmamış personelin oluşturduğu taleplerde veya sistem worker'ı çalışırken <code>ChangedByUserId</code> alanının <code>AspNetUsers</code> FK kısıtına takılması.</td>
+                        <td><code>MakeAuditLogUserIdNullable</code> migration'ı ile <code>AuditLogs.ChangedByUserId</code> kolonu <code>nullable</code> yapıldı; anonim ve sistem işlemlerinde <code>null</code> geçilerek kullanıcı bilgisi JSON içeriğinde tutuldu.</td>
+                        <td><code>Migrations/20260903074226_MakeAuditLogUserIdNullable.cs</code>, <code>Services/Implementations/VehicleRequestService.cs</code>, <code>VehicleDocumentExpirationWorker.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>5</strong></td>
+                        <td><strong>Kullanıcı (Şef) Silindiğinde <code>AuditLog</code> ve Görev Geçmişi FK Çakışması:</strong> Daha önce işlem yapmış bir Ulaşım Şefinin fiziksel (<code>DELETE</code>) silinmesi halinde <code>AuditLogs</code> ve <code>Assignments</code> tablolarındaki <code>Restrict</code> yabancı anahtarların hata vermesi.</td>
+                        <td><code>SefController.Delete</code> aksiyonu fiziksel silme yerine kapsamlı <strong>Soft-Delete</strong> protokolüne çevrildi (<code>IsActive = false</code>, <code>LockoutEnd = DateTimeOffset.MaxValue</code>, tüm rollerin kaldırılması ve aktif vekâletlerin otomatik iptali).</td>
+                        <td><code>Controllers/SefController.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>6</strong></td>
+                        <td><strong>Açık Bakım Kaydı Olmadığı Halde <code>Bakımda</code> (<code>Maintenance</code>) Kalan Yetim Araçlar:</strong> Bakım kaydı silinen veya tamamlanan bazı araçların durumunun <code>Maintenance</code> olarak asılı kalması.</td>
+                        <td><code>DbInitializer.SeedAsync</code> içerisine <strong>Self-Healing (Kendi Kendini Onarma)</strong> bloğu ve <code>MaintenanceService.DeleteMaintenanceAsync</code> / <code>CompleteMaintenanceAsync</code> içerisine başka açık bakım yoksa aracı otomatik <code>Idle</code> (<code>Boşta</code>) durumuna döndüren kontrol eklendi.</td>
+                        <td><code>Data/DbInitializer.cs</code>, <code>Services/Implementations/MaintenanceService.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>7</strong></td>
+                        <td><strong>Çoklu Şoförlü Görevlerde Kullanım Raporu Çifte Sayım (Double Counting) Sorunu:</strong> Çoklu şoför atanan bir görevin raporda her şoförün grubunda listelenirken rapor sonundaki genel toplam mesafeyi ve sefer sayısını iki kez artırması.</td>
+                        <td>Şoför bazlı alt gruplarda her şoförün kendi seferi gösterilirken, raporun KPI kartlarında ve dip genel toplamında <code>AssignmentId</code> bazında tekilleştirme (<code>distinctAssignments = reportItems.GroupBy(x =&gt; x.AssignmentId).Select(g =&gt; g.First())</code>) uygulandı.</td>
+                        <td><code>Services/Implementations/ReportService.cs</code>, <code>UsageReportPdfDocument.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>8</strong></td>
+                        <td><strong>Geçmiş Tarihli Görev Onayında Şef KM Düzeltmesinin Aracın Güncel KM'sini Düşürmesi:</strong> Aracın daha yeni bir görevi tamamlanmışken eski bir görevin bitiş KM'si onaylandığında <code>Vehicle.CurrentKm</code> değerinin yanlışlıkla eski/küçük değere çekilmesi.</td>
+                        <td><code>ApproveEndAsync</code> içerisine <code>hasLaterCompletedAssignment</code> kontrolü eklendi; <code>Vehicle.CurrentKm</code> yalnızca onaylanan görev aracın <strong>en son tamamlanan göreviyse</strong> ve yeni KM mevcut KM'den <strong>büyükse</strong> güncellenir.</td>
+                        <td><code>Services/Implementations/AssignmentService.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>9</strong></td>
+                        <td><strong>Vekâlet Sonlandırıldığında Yetkinin Önbellekte Asılı Kalması ve Mükerrer Claim Eklenmesi:</strong> <code>IClaimsTransformation</code> birden çok kez çalıştığında aynı rol/claim'in mükerrer eklenmesi ve vekâlet iptal edildiğinde eski yetkinin devam etmesi.</td>
+                        <td><code>DelegationClaimsTransformation.TransformAsync</code> tamamen <strong>idempotent</strong> hale getirildi (<code>!principal.IsInRole</code>, <code>!identity.HasClaim</code>), vekâlet bittiğinde mevcut vekâlet claim'lerini temizleyen <code>RemoveClaim</code> bloğu eklendi ve <code>RoleDelegationService</code> içinde 15 saniyelik <code>IMemoryCache</code> + işlem anında <code>InvalidateUserCache</code> uygulandı.</td>
+                        <td><code>Common/DelegationClaimsTransformation.cs</code>, <code>Services/Implementations/RoleDelegationService.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>10</strong></td>
+                        <td><strong>İç İçe (Nested) Bootstrap Modallarında Backdrop Donması ve PDF Yükleme Spinner'ının Takılı Kalması:</strong> Kart veya tablo içine gömülen modalların arka planı kilitlemesi ve bazı tarayıcılarda PDF <code>iframe</code> <code>load</code> olayının tetiklenmemesi.</td>
+                        <td>Tüm modallar (<code>_PdfPreviewModal</code>, <code>#modalCreateDelegation</code>, <code>#createOptionModal</code>, <code>#changeRouteModal</code> vb.) kartların dışına, <code>&lt;/body&gt;</code> öncesine taşındı. PDF önizleme modalında <code>.is-hidden</code> sınıfı, modal kapandığında <code>src="about:blank"</code> sıfırlaması ve <strong>3000 ms güvenlik zaman aşımı (fallback timeout)</strong> uygulandı.</td>
+                        <td><code>Views/Shared/_PdfPreviewModal.cshtml</code>, <code>Views/RoleDelegation/Index.cshtml</code>, <code>Views/SystemDefinition/Index.cshtml</code>, <code>Views/Surucu/Detay.cshtml</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>11</strong></td>
+                        <td><strong>Resmi PDF Belgelerinde GUID Basılması ve Dahili Şef Notlarının Sızması:</strong> Kullanıcının tam adı bulunamadığında imza alanlarına kullanıcı ID'sinin (GUID) basılması ve görev emrinde/e-postada dahili <code>(Şef Notu: ...)</code> veya <code>[Talep #...]</code> metinlerinin görünmesi.</td>
+                        <td><code>AssignmentOrderDocument.FilterPersonName</code> ve <code>FaultReportDocument</code> içinde <code>Guid.TryParse</code> ve regex filtreleri ile GUID basılması kesin olarak engellendi; <code>CleanPurpose</code> ve <code>EmailTemplateBuilder</code> içinde regex ile şef notları ve talep önekleri temizlendi.</td>
+                        <td><code>Services/Implementations/AssignmentOrderDocument.cs</code>, <code>FaultReportDocument.cs</code>, <code>Common/Helpers/EmailTemplateBuilder.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>12</strong></td>
+                        <td><strong>Geliştirme Ortamı Captcha Sabit Kod (<code>12345</code> / <code>TEST</code>) ve Boş Token Bypass'ının Kaldırılması:</strong> Test kolaylığı için eklenen geliştirme ortamı Captcha geçişlerinin gerçek kullanıcı akışıyla birebir aynı olması ihtiyacı.</td>
+                        <td><code>CaptchaService.ValidateCaptcha</code> içindeki <code>"12345"</code> / <code>"TEST"</code> geçişi ve <code>AccountController.Login</code> içindeki <code>isDevScriptBypass</code> kontrolü kaldırılarak her ortamda gerçek dinamik SVG Captcha doğrulaması zorunlu kılındı.</td>
+                        <td><code>Services/Implementations/CaptchaService.cs</code>, <code>Controllers/AccountController.cs</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>13</strong></td>
+                        <td><strong>Sabit/Varsayılan Saatlik Ücret ve Eski "Yevmiye / Kadrolu Personel" Terminolojisi:</strong> İlk sürümlerde kod içine gömülü varsayılan saatlik ücret bulunması ve kurum yapısına uymayan "Yevmiye / Kadrolu Personel" ifadelerinin yer alması.</td>
+                        <td>Sabit ücret kaldırılarak <code>HourlyRate</code> / <code>PerDiemRate</code> şefin serbest girişine bırakıldı; tüm kod tabanı, arayüz ve PDF şablonlarında terminoloji <strong>"Görev Ücreti"</strong>, <strong>"Saatlik Ücret"</strong> ve <strong>"Harcırah"</strong> olarak standartlaştırıldı.</td>
+                        <td><code>Services/Implementations/AssignmentService.cs</code>, <code>Views/Assignment/Details.cshtml</code>, <code>Index.cshtml</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>14</strong></td>
+                        <td><strong>Mobil Cihazlarda Önbellekten (Cache) Eski Sayfa Gösterimi:</strong> Mobil tarayıcılarda geri tuşu veya sekme geçişlerinde eski görev durumlarının önbellekten gelmesi.</td>
+                        <td><code>Program.cs</code> içerisine HTML yanıtları ve operasyonel rotalar (<code>/Home</code>, <code>/Report</code>, <code>/Vehicle</code>, <code>/Assignment</code>, <code>/Maintenance</code>, <code>/Driver</code>, <code>/Surucu</code>) için <code>Cache-Control: no-cache, no-store, must-revalidate</code>, <code>Pragma: no-cache</code>, <code>Expires: 0</code> başlıklarını ekleyen ara yazılım (middleware) eklendi.</td>
+                        <td><code>Program.cs</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 5. GÜVENLİK ÇALIŞMALARI -->
+    <section id="bolum-5" class="section-card">
+        <h2 class="section-heading">
+            <span>5. Güvenlik Çalışmaları</span>
+            <span class="badge-completed">&#10004; Kodda Doğrulanan Güvenlik Mimarisi</span>
+        </h2>
+        <p>
+            Projede kurumsal bilgi güvenliği standartları doğrultusunda hem uygulama kodunda hem de <code>.agent/skills/security-audit</code> yetkinliği ve <code>C:\Users\Dell\audits\arac-takip</code> denetim mimarisi kapsamında doğrulanan güvenlik kontrolleri aşağıda detaylandırılmıştır:
+        </p>
+
+        <h3 class="sub-heading">5.1 Kimlik Doğrulama, Parola Politikası ve Oturum Güvenliği</h3>
+        <ul class="check-list">
+            <li><strong>Güçlü Parola Karmaşıklığı (<code>Program.cs</code>):</strong> ASP.NET Core Identity üzerinde en az <strong>10 karakter</strong> uzunluk (<code>RequiredLength = 10</code>), en az 1 rakam (<code>RequireDigit</code>), en az 1 küçük harf (<code>RequireLowercase</code>), en az 1 büyük harf (<code>RequireUppercase</code>), en az 1 özel karakter (<code>RequireNonAlphanumeric</code>) ve en az 3 farklı karakter (<code>RequiredUniqueChars = 3</code>) zorunluluğu tanımlanmıştır.</li>
+            <li><strong>Kriptografik Rastgele Parola Üretimi (<code>DbInitializer.GenerateSecurePassword</code>):</strong> Sistem tarafından üretilen parolalarda <code>System.Security.Cryptography.RandomNumberGenerator</code> kullanılarak tahmin edilemez parolalar oluşturulmaktadır.</li>
+            <li><strong>Kaba Kuvvet (Brute-Force) Hesap Kilitleme (Lockout):</strong> Art arda <strong>5 hatalı giriş</strong> denemesinde (<code>MaxFailedAccessAttempts = 5</code>) kullanıcı hesabı otomatik olarak <strong>15 dakika</strong> süreyle (<code>DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15)</code>) kilitlenir.</li>
+            <li><strong>Çerez (Cookie) ve Oturum Sertleştirmesi:</strong> Kimlik doğrulama çerezlerinde <code>HttpOnly = true</code> (XSS üzerinden çerez çalınmasını engeller), <code>SameSite = SameSiteMode.Lax</code> (CSRF koruması), <code>SlidingExpiration = true</code>, 7 günlük geçerlilik süresi ve <code>App_Data/DataProtection-Keys</code> üzerinde kalıcı şifreleme anahtarları yapılandırılmıştır.</li>
+            <li><strong>Kullanıcı İfşası (User Enumeration) Koruması:</strong> <code>ForgotPassword</code> ve <code>ResetPassword</code> uç noktalarında girilen e-posta/kullanıcı adı sistemde bulunmasa dahi saldırgana ipucu vermemek için standart başarı mesajı döndürülür.</li>
+        </ul>
+
+        <h3 class="sub-heading">5.2 Durumsuz (Stateless) Şifreli SVG Captcha Koruması</h3>
+        <ul class="check-list">
+            <li><strong>Kaba Kuvvet Öncesi Doğrulama:</strong> <code>AccountController.Login</code> POST işleminde veritabanına kullanıcı/şifre sorgusu yapılmadan <strong>önce</strong> Captcha doğrulanır.</li>
+            <li><strong>DataProtection Şifreli Token (<code>CaptchaService.cs</code>):</strong> Üretilen 5 karakterli güvenlik kodu (<code>0, O, 1, I, l</code> gibi karıştırılan karakterler hariç tutularak), <code>IDataProtector</code> (<code>aractakipsys.CaptchaProtection.v1</code>) ile <code>CAPTCHA:{code}:{expiryUnixTime}:{nonce}</code> formatında şifrelenir. Her token yalnızca <strong>3 dakika</strong> geçerlidir.</li>
+            <li><strong>OCR Bot Direnci:</strong> SVG görselinde 25 adet rastgele gürültü noktası, 4 adet Bezier eğrisi (<code>&lt;path&gt;</code>) ve her karakter için <code>-18&deg;</code> ile <code>+19&deg;</code> arasında rastgele döndürme (<code>transform="rotate(...)"</code>) uygulanır.</li>
+        </ul>
+
+        <h3 class="sub-heading">5.3 İstek Hız Sınırlandırması (IP Bazlı Rate Limiting)</h3>
+        <p>
+            <code>Program.cs</code> içerisinde <code>AddRateLimiter</code> ve <code>app.UseRateLimiter()</code> ile 6 katmanlı hız sınırlandırma politikası aktif edilmiştir. Limit aşıldığında <code>429 Too Many Requests</code> durum koduyla AJAX isteklerine JSON, tarayıcı isteklerine kurumsal Türkçe HTML uyarı sayfası döndürülür:
+        </p>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Politika Adı</th>
+                        <th>Uygulandığı Uç Nokta</th>
+                        <th>Algoritma</th>
+                        <th>Limit ve Pencere Süresi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>GlobalLimiter</code></td>
+                        <td>Tüm Sistem (Global Kalkan)</td>
+                        <td>Sliding Window (6 Segment)</td>
+                        <td>IP başına dakikada <strong>150 istek</strong></td>
+                    </tr>
+                    <tr>
+                        <td><code>login-limit</code></td>
+                        <td><code>POST /Account/Login</code></td>
+                        <td>Sliding Window (6 Segment)</td>
+                        <td>IP başına dakikada <strong>5 deneme</strong></td>
+                    </tr>
+                    <tr>
+                        <td><code>forgot-password-limit</code></td>
+                        <td><code>POST /Account/ForgotPassword</code></td>
+                        <td>Fixed Window</td>
+                        <td>IP başına 5 dakikada <strong>3 istek</strong></td>
+                    </tr>
+                    <tr>
+                        <td><code>reset-password-limit</code></td>
+                        <td><code>POST /Account/ResetPassword</code></td>
+                        <td>Fixed Window</td>
+                        <td>IP başına 5 dakikada <strong>5 istek</strong></td>
+                    </tr>
+                    <tr>
+                        <td><code>captcha-limit</code></td>
+                        <td><code>GET /Account/GetNewCaptcha</code></td>
+                        <td>Fixed Window</td>
+                        <td>IP başına dakikada <strong>15 istek</strong></td>
+                    </tr>
+                    <tr>
+                        <td><code>vehicle-request-limit</code></td>
+                        <td><code>POST /AracTalebi</code> (<code>/VehicleRequest/Create</code>)</td>
+                        <td>Sliding Window (6 Segment)</td>
+                        <td>IP başına dakikada <strong>5 talep</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="sub-heading">5.4 Rol Tabanlı Yetkilendirme (RBAC), Salt Okunur Kalkanı ve Yatay Yetki İzolasyonu</h3>
+        <ul class="check-list">
+            <li><strong>Merkezi Rol Sabitleri (<code>AppRoles.cs</code>):</strong> Tüm Controller ve Action'larda <code>[Authorize(Roles = ...)]</code> nitelikleri merkezi sabitlerle (<code>SuperAdminOnly</code>, <code>AdminOrDaireBaskani</code>, <code>ManagementAndAudit</code>, <code>AllStaffAndManagers</code>, <code>OperationalStaff</code>) korunmuştur.</li>
+            <li><strong>Merkezi Salt Okunur Güvenlik Kalkanı (<code>ReadOnlyRoleFilter.cs</code>):</strong> Global MVC filtresi olarak çalışan <code>ReadOnlyRoleFilter</code>, <code>GenelSekreter</code> rolündeki kullanıcıların <code>GET</code>, <code>HEAD</code>, <code>OPTIONS</code> dışındaki tüm veri değiştirici (<code>POST</code>, <code>PUT</code>, <code>DELETE</code>, <code>PATCH</code>) isteklerini (<code>AccountController</code> üzerindeki <code>Login</code>, <code>Logout</code>, <code>Profile</code>, <code>ChangePassword</code>, <code>ForgotPassword</code>, <code>ResetPassword</code> istisnaları hariç) sunucu katmanında <code>403 Forbidden</code> (AJAX) veya uyarı mesajlı yönlendirme ile kesin olarak engeller. Ayrıca <code>_AdminLayout.cshtml</code> içinde CSS katmanında da tüm değiştirici buton ve modallar gizlenir.</li>
+            <li><strong>Dikey Yetki Yükseltme (Privilege Escalation) Koruması (<code>SefController.cs</code>):</strong> <code>DaireBaskani</code> rolünün <code>Admin</code>, <code>DaireBaskani</code> veya <code>GenelSekreter</code> rolünde yeni kullanıcı açması, mevcut bir kullanıcıyı bu rollere yükseltmesi veya bu rollerdeki hesapların şifresini sıfırlaması/silmesi/dondurması sunucu tarafında <code>User.IsAdmin()</code> kontrolüyle engellenir ve güvenlik loguna yazılır.</li>
+            <li>
+                <strong>Yatay Yetki Kontrolü (IDOR Koruması):</strong>
+                <ul class="sub-list">
+                    <li><code>SurucuController</code> ve <code>DriverService</code> içindeki tüm sorgularda <code>Where(a =&gt; a.DriverId == driver.Id || a.AssignmentDrivers.Any(ad =&gt; !ad.IsDeleted &amp;&amp; ad.DriverId == driver.Id))</code> filtresi zorunlu tutulmuştur.</li>
+                    <li><code>RoleDelegationService</code> içinde Şef rolündeki kullanıcıların yalnızca kendilerinin devrettiği veya kendilerine devredilen vekâlet kayıtlarını ve PDF belgelerini görebilmesi (<code>!isElevatedAdmin</code> kontrolü) sağlanmıştır.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3 class="sub-heading">5.5 Dosya Yükleme Güvenliği (Magic Number / Dosya Başlığı Bayt Doğrulaması)</h3>
+        <p>
+            Sisteme yüklenen profil fotoğraflarında (<code>AccountController.IsValidImageFile</code>) ve imzalı görev belgelerinde (<code>AssignmentService.IsValidDocumentFile</code>) istemcinin gönderdiği <code>Content-Type</code> başlığına veya dosya uzantısına güvenilmez; dosyanın ilk baytları (<strong>Magic Bytes</strong>) okunarak zararlı script/kabuk (Web Shell / RCE) yüklenmesi engellenir:
+        </p>
+        <ul class="check-list">
+            <li><strong>JPEG / JPG (<code>.jpg</code>, <code>.jpeg</code>):</strong> İlk 3 bayt <code>0xFF, 0xD8, 0xFF</code> doğrulaması.</li>
+            <li><strong>PNG (<code>.png</code>):</strong> İlk 8 bayt <code>0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A</code> doğrulaması.</li>
+            <li><strong>WebP (<code>.webp</code> - Profil Fotoğrafı):</strong> İlk 4 bayt <code>0x52, 0x49, 0x46, 0x46</code> (<code>RIFF</code>) ve 8-11. baytlar <code>0x57, 0x45, 0x42, 0x50</code> (<code>WEBP</code>) doğrulaması.</li>
+            <li><strong>PDF (<code>.pdf</code> - İmzalı Görev Belgesi):</strong> İlk 4 bayt <code>0x25, 0x50, 0x44, 0x46</code> (<code>%PDF</code>) doğrulaması.</li>
+            <li><strong>Boyut ve Kestrel Sınırları:</strong> Profil fotoğrafları <strong>5 MB</strong>, imzalı görev belgeleri ise hem uygulama hem Kestrel seviyesinde (<code>[RequestSizeLimit(10 * 1024 * 1024)]</code> ve <code>[RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)]</code>) <strong>10 MB</strong> ile sınırlandırılmıştır.</li>
+            <li><strong>Path Traversal Önleme ve Güvenli Dizin (<code>App_Data</code>):</strong> Yüklenen dosya adları diske asla orijinal adıyla yazılmaz; <code>{assignmentId}_{Guid.NewGuid():N}{ext}</code> formatında yeniden adlandırılır. İmzalı resmi görev belgeleri doğrudan web erişimine açık olan <code>wwwroot</code> altında değil, dışarıdan erişilemeyen <code>App_Data/AssignmentDocuments</code> dizininde saklanır ve yalnızca yetki kontrolünden geçen <code>DownloadSignedDocument</code> / <code>ViewSignedDocument</code> aksiyonları üzerinden akış (stream) olarak sunulur.</li>
+        </ul>
+
+        <h3 class="sub-heading">5.6 SQL Injection, XSS, CSRF ve Açık Yönlendirme (Open Redirect) Korumaları</h3>
+        <ul class="check-list">
+            <li><strong>SQL Injection Koruması:</strong> Veri erişim katmanının tamamında parametreli Entity Framework Core LINQ sorguları kullanılmıştır; kod tabanında kullanıcı girdisi birleştiren hiçbir ham SQL (<code>FromSqlRaw</code> / <code>ExecuteSqlRaw</code>) sorgusu bulunmamaktadır.</li>
+            <li><strong>CSRF (Cross-Site Request Forgery) Koruması:</strong> Veri değiştiren tüm HTTP <code>POST</code> aksiyonlarında <code>[ValidateAntiForgeryToken]</code> niteliği ve Razor formlarında <code>@Html.AntiForgeryToken()</code> doğrulaması uygulanmıştır.</li>
+            <li><strong>XSS ve HTML E-Posta Kodlama:</strong> Razor görünümlerinde otomatik HTML encoding kullanılmış; <code>EmailTemplateBuilder</code> içinde dış kullanıcıdan gelen tüm metin alanları (<code>RequesterFullName</code>, <code>Department</code>, <code>Purpose</code>, <code>RejectionReason</code>, <code>ChiefNote</code>) <code>WebUtility.HtmlEncode</code> ile temizlenmiştir.</li>
+            <li><strong>Open Redirect Koruması:</strong> Giriş ve işlem sonrası yönlendirmelerde <code>Url.IsLocalUrl(returnUrl)</code> kontrolü uygulanarak harici zararlı sitelere yönlendirme engellenmiştir.</li>
+        </ul>
+
+        <h3 class="sub-heading">5.7 Güvenlik Denetimi Altyapısı (<code>.agent/skills/security-audit</code> &amp; <code>C:\Users\Dell\audits\arac-takip</code>)</h3>
+        <ul class="check-list">
+            <li>Proje içerisinde <code>.agent/skills/security-audit</code> altında kapsamlı güvenlik denetimi beceri seti (<code>SKILL.md</code>, <code>WEB-PROTOCOL-AND-AUTH.md</code>, <code>CLIENT-SIDE.md</code>, <code>DATA-ISOLATION-AND-LIFECYCLE.md</code>, <code>RESOURCE-EXHAUSTION-AND-AVAILABILITY.md</code>, <code>ATTACK-CLASSES.md</code>, <code>HUNTING.md</code>, <code>RECONNAISSANCE.md</code>, <code>VALIDATION-AND-REPORTING.md</code> ve doğrulama scriptleri) yapılandırılmıştır.</li>
+            <li><code>C:\Users\Dell\audits\arac-takip</code> dizininde <code>arac-takip-20261123-01</code> denetim çalışması kapsamında sistemin mimari güvenlik haritası (<code>architecture.md</code>), kapsam defteri (<code>coverage-ledger.json</code>) ve çalışma üst verileri (<code>run-metadata.json</code>) oluşturulmuştur.</li>
+        </ul>
+    </section>
+
+    <!-- 6. VERİ VE YEDEKLEME İŞLEMLERİ -->
+    <section id="bolum-6" class="section-card">
+        <h2 class="section-heading">
+            <span>6. Veri ve Yedekleme İşlemleri</span>
+            <span class="badge-completed">&#10004; Veri Bütünlüğü &amp; Yedekleme</span>
+        </h2>
+        <p>
+            Kod tabanında, migration dosyalarında, <code>DbInitializer</code> sınıfında ve <code>scratch/</code> dizinindeki bakım/doğrulama betiklerinde kayıt altına alınan veri yönetimi ve yedekleme çalışmaları şunlardır:
+        </p>
+
+        <ul class="check-list">
+            <li><strong>Veritabanı Tam Yedekleme (<code>scratch/take_backup.ps1</code>):</strong> Kritik şema ve Sistem Tanımları geçişleri öncesinde MS SQL Server üzerindeki veritabanının <code>C:\Yedek\aractakip_db_sistemtanimlari_oncesi.bak</code> dosyasına tam yedeğini (<code>BACKUP DATABASE ... WITH INIT, STATS = 10</code>) alan yedekleme betiği oluşturulmuş ve çalıştırılmıştır.</li>
+            <li>
+                <strong>Migration İçi Otomatik Veri Taşıma (Zero Data Loss SQL Migrations):</strong>
+                <ol class="sub-list">
+                    <li><em>Enum &rarr; Türkçe Metin Normalizasyonu (<code>20260908065145</code> &amp; <code>20260908071220</code>):</em> <code>Vehicles</code> tablosundaki eski sayısal/İngilizce araç türü, lastik mevsimi ve yakıt tipi değerleri SQL <code>UPDATE</code> sorgularıyla Türkçe karşılıklarına dönüştürülmüştür.</li>
+                    <li><em>Çoklu Şoför Veri Aktarımı (<code>20261020233958_AddMultiDriverAndDestinationFields</code>):</em> Mevcut tüm görevlerin <code>DriverId</code> kayıtları yeni <code>AssignmentDrivers</code> ara tablosuna <code>IsPrimary = 1</code> olarak aktarılmıştır.</li>
+                    <li><em>Çoklu Ehliyet Veri Aktarımı (<code>20261024184022_AddDriverLicense</code>):</em> Mevcut şoförlerin <code>LicenseClass</code> ve <code>LicenseExpiryDate</code> alanları yeni <code>DriverLicenses</code> tablosuna taşınmıştır.</li>
+                    <li><em>Araç Belgeleri Veri Aktarımı (<code>20261024191639_AddVehicleDocument</code>):</em> Mevcut araçların muayene ve sigorta başlangıç/bitiş tarihleri <code>VehicleDocuments</code> tablosuna <code>Inspection</code> ve <code>Insurance</code> kayıtları olarak aktarılmıştır.</li>
+                    <li><em>Araç Lastikleri Veri Aktarımı (<code>20261024201613_AddVehicleTire</code>):</em> Mevcut araçların <code>TireBrand</code>, <code>TireYear</code>, <code>TireSeason</code> verileri <code>VehicleTires</code> tablosuna ilk lastik kaydı olarak taşınmıştır (<code>InstalledKm</code> bilinmediği için uydurma veri yazılmayıp <code>NULL</code> bırakılmıştır).</li>
+                    <li><em>Çoklu İmzalı Görev Belgesi Veri Aktarımı (<code>20261120111421_AddAssignmentDocumentsTable</code>):</em> <code>Assignments</code> tablosunda bulunan tekil <code>SignedDocumentPath</code> kayıtları veri kaybı olmaksızın yeni <code>AssignmentDocuments</code> tablosuna aktarılmıştır.</li>
+                </ol>
+            </li>
+            <li><strong>Canlı Veriden Sistem Tanımlarını İçe Aktarma (<code>DbInitializer.SeedSystemDefinitionsAsync</code>):</strong> 5 sabit kategorideki (<code>TireSeason</code>, <code>FuelType</code>, <code>VehicleType</code>, <code>MaintenanceType</code>, <code>LicenseClass</code>) 35 adet çekirdek sistem varsayılanına (<code>IsSystemDefault = true</code>) ek olarak, mevcut veritabanı tablolarında fiilen kullanılmakta olan tüm farklı değerler otomatik taranıp <code>CreatedBy = "DataImport"</code> ile <code>SystemDefinitions</code> tablosuna kazandırılmıştır.</li>
+            <li><strong>Kurumsal Başlangıç Verileri (<code>DbInitializer.SeedAsync</code>):</strong> 5 sistem rolü, varsayılan yönetici/şef hesapları, 12 örnek şoför, 17 örnek üniversite aracı (<code>81 DU 001</code> – <code>81 DU 310</code>), örnek görevler ve 10 fakülte/daire başkanlığından gelen örnek araç talepleri yalnızca ilk kurulumda ("yoksa ekle" prensibiyle ve mevcut kullanıcı şifrelerine dokunmadan) oluşturulmaktadır.</li>
+            <li><strong>Otomasyon ve Doğrulama Betikleri (<code>scratch/</code>):</strong> Sistemin uçtan uca iş kurallarını, rol izinlerini (<code>GenelSekreter</code>, <code>DaireBaskani</code>, <code>Sef</code>), kullanıcı yumuşak silme akışını, vekâlet kurallarını, PDF uç noktalarını ve sistem tanımlarını doğrulayan PowerShell test betikleri (<code>comprehensive_qa_test.ps1</code>, <code>run_checklist_tests.ps1</code>, <code>run_precise_faz1b_tests.ps1</code>, <code>test_system_definitions.ps1</code>, <code>test_user_delete_suite.ps1</code>, <code>test_genel_sekreter_sef_complete.ps1</code>, <code>test_pdf_endpoints.ps1</code> vb.) geliştirilmiştir.</li>
+        </ul>
+    </section>
+
+    <!-- 7. SONUÇ -->
+    <section id="bolum-7" class="section-card">
+        <h2 class="section-heading">
+            <span>7. Sonuç</span>
+            <span class="badge-completed">&#10004; Üretime Hazır</span>
+        </h2>
+        <p>
+            <strong>Düzce Üniversitesi Araç Takip Paneli</strong>, 27 aşamalı veritabanı evrimi, 15 MVC kontrolcüsü, 19 veri varlığı ve 8 resmi QuestPDF evrak/rapor şablonu ile üniversitenin tüm taşıt görevlendirme, filo belge/lastik/bakım takibi, anonim personel araç talebi ve geçici yetki devri süreçlerini uçtan uca dijitalleştirmiştir. Rol tabanlı yetkilendirme, merkezi salt okunur denetim kalkanı, durumsuz şifreli SVG Captcha, IP bazlı hız sınırlandırma, dosya başlığı (Magic Byte) doğrulaması ve vekâlet izli denetim günlüğü (<code>AuditLog</code>) mekanizmalarıyla kurumsal güvenlik ve veri bütünlüğü standartlarını eksiksiz karşılayan, masaüstü ve mobil uyumlu bir sistem olarak tamamlanmıştır.
+        </p>
+    </section>
+
+    <footer class="report-footer">
+        &copy; 2026 Düzce Üniversitesi &bull; Bilgi İşlem Daire Başkanlığı &bull; Araç Takip Paneli Geliştirme ve Güvenlik Raporu
+    </footer>
+
+</div>
+
+</body>
+</html>

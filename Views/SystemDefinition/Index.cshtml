@@ -133,7 +133,7 @@
                 else
                 {
                     <div class="table-responsive">
-                        <table class="table table-hover table-striped mb-0 align-middle">
+                        <table class="table table-hover table-striped mb-0 align-middle" id="systemDefsTable">
                             <thead class="thead-light">
                                 <tr>
                                     <th style="width: 50px;" class="text-center">#</th>
@@ -155,7 +155,7 @@
                                     var isLockedRename = item.IsSystemDefault;
                                     var isLastActive = item.IsActive && Model.ActiveCount <= 1;
 
-                                    <tr class="@(!item.IsActive ? "text-muted bg-light" : "")">
+                                    <tr class="sys-def-row @(!item.IsActive ? "text-muted bg-light" : "")">
                                         <td class="text-center font-weight-bold">@(i + 1)</td>
                                         <td>
                                             <span class="font-weight-bold @(item.IsActive ? "text-dark" : "text-muted text-decoration-line-through")">
@@ -296,6 +296,11 @@
                             </tbody>
                         </table>
                     </div>
+                    <!-- SAYFALAMA (PAGINATION) BARI -->
+                    <div class="p-3 border-top d-flex justify-content-between align-items-center flex-wrap" id="sysDefPaginationWrapper" style="gap: 10px;">
+                        <span class="text-muted small" id="sysDefPageInfo"></span>
+                        <ul class="pagination pagination-sm m-0" id="sysDefPaginationList"></ul>
+                    </div>
                 }
             </div>
         </div>
@@ -427,6 +432,78 @@
                     $('#editOptionUsageText').text('Bu seçenek henüz hiçbir kayıtta kullanılmamaktadır. Adını serbestçe değiştirebilirsiniz.');
                 }
             });
+
+            var pageSize = 10;
+            var $rows = $('#systemDefsTable tbody tr.sys-def-row');
+            var totalItems = $rows.length;
+            if (totalItems === 0) {
+                $('#sysDefPaginationWrapper').hide();
+                return;
+            }
+            var totalPages = Math.ceil(totalItems / pageSize);
+
+            function renderPage(page) {
+                if (page < 1) page = 1;
+                if (page > totalPages) page = totalPages;
+
+                var startIdx = (page - 1) * pageSize;
+                var endIdx = Math.min(startIdx + pageSize, totalItems);
+
+                $rows.hide();
+                $rows.slice(startIdx, endIdx).show();
+
+                $('#sysDefPageInfo').html('Toplam <strong>' + totalItems + '</strong> kayıttan <strong>' + (startIdx + 1) + ' - ' + endIdx + '</strong> arası gösteriliyor.');
+
+                var $list = $('#sysDefPaginationList');
+                if (totalPages <= 1) {
+                    $list.empty();
+                    return;
+                }
+
+                var html = '';
+                if (page > 1) {
+                    html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" data-page="' + (page - 1) + '">&laquo; Önceki</a></li>';
+                } else {
+                    html += '<li class="page-item disabled"><span class="page-link">&laquo; Önceki</span></li>';
+                }
+
+                var startP = Math.max(1, page - 2);
+                var endP = Math.min(totalPages, page + 2);
+                if (page <= 3) endP = Math.min(totalPages, 5);
+                if (page >= totalPages - 2) startP = Math.max(1, totalPages - 4);
+
+                if (startP > 1) {
+                    html += '<li class="page-item ' + (1 === page ? 'active' : '') + '"><a class="page-link" href="javascript:void(0)" data-page="1">1</a></li>';
+                    if (startP > 2) html += '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>';
+                }
+
+                for (var p = startP; p <= endP; p++) {
+                    if (p === page) {
+                        html += '<li class="page-item active"><span class="page-link">' + p + '</span></li>';
+                    } else {
+                        html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" data-page="' + p + '">' + p + '</a></li>';
+                    }
+                }
+
+                if (endP < totalPages) {
+                    if (endP < totalPages - 1) html += '<li class="page-item disabled"><span class="page-link">&hellip;</span></li>';
+                    html += '<li class="page-item ' + (totalPages === page ? 'active' : '') + '"><a class="page-link" href="javascript:void(0)" data-page="' + totalPages + '">' + totalPages + '</a></li>';
+                }
+
+                if (page < totalPages) {
+                    html += '<li class="page-item"><a class="page-link" href="javascript:void(0)" data-page="' + (page + 1) + '">Sonraki &raquo;</a></li>';
+                } else {
+                    html += '<li class="page-item disabled"><span class="page-link">Sonraki &raquo;</span></li>';
+                }
+
+                $list.html(html);
+                $list.find('a[data-page]').on('click', function (e) {
+                    e.preventDefault();
+                    renderPage(parseInt($(this).data('page'), 10));
+                });
+            }
+
+            renderPage(1);
         });
     </script>
 }
